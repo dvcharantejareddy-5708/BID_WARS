@@ -331,6 +331,10 @@ export function App() {
     socketService.send({ type: 'REAUCTION_UNSOLD' });
   };
 
+  const handleAdvanceLot = (lotIndex?: number) => {
+    socketService.send({ type: 'ADVANCE_LOT', lotIndex });
+  };
+
   const handleSendChatMessage = (text: string) => {
     socketService.send({ type: 'SEND_CHAT_MESSAGE', text });
   };
@@ -437,6 +441,7 @@ export function App() {
                     onResumeAuction={handleResumeAuction}
                     onRestartAuction={handleRestartAuction}
                     onEndAuction={handleEndAuction}
+                    onAdvanceLot={handleAdvanceLot}
                   />
                 )}
 

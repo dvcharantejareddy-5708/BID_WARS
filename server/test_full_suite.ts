@@ -350,9 +350,18 @@ async function runTestSuite() {
   assert(afterUnsoldCSKSquadLen === initialCSKSquadLen, 'UNSOLD player causes zero squad changes');
   assert(historyLatest && historyLatest.status === 'UNSOLD', 'UNSOLD result recorded in Auction History');
 
-  // 3. Verify AuctionHammer component exists
+  // 3. Verify AuctionHammer component & user-provided hammer image exist
   const hammerPath = pathModule.resolve('./client/src/components/AuctionHammer.tsx');
   assert(fsModule.existsSync(hammerPath), 'AuctionHammer.tsx component exists on disk');
+
+  const userHammerAssetPath = pathModule.resolve('./client/public/auction-hammer.png');
+  assert(fsModule.existsSync(userHammerAssetPath), 'auction-hammer.png exists in client/public');
+  const hammerStats = fsModule.statSync(userHammerAssetPath);
+  assert(hammerStats.size > 10000, `auction-hammer.png is valid non-empty file (${hammerStats.size} bytes)`);
+
+  const gavelModalContent = fsModule.readFileSync(pathModule.resolve('./client/src/components/FullScreenGavelModal.tsx'), 'utf-8');
+  assert(gavelModalContent.includes('/auction-hammer.png'), 'FullScreenGavelModal renders user provided /auction-hammer.png');
+  assert(gavelModalContent.includes('animate-user-hammer-strike'), 'FullScreenGavelModal applies animate-user-hammer-strike');
 
   console.log('\n====================================================');
   console.log(`🎯 TEST RESULTS: ${passedTests} / ${totalTests} TESTS PASSED (${Math.round((passedTests / totalTests) * 100)}%)`);

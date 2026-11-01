@@ -146,6 +146,36 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
   }
 };
 
+export function resolveTeamId(input?: string | null): IPLTeamId | null {
+  if (!input) return null;
+  const clean = input.trim().toUpperCase();
+  if (clean in IPL_FRANCHISES) return clean as IPLTeamId;
+
+  for (const [key, f] of Object.entries(IPL_FRANCHISES)) {
+    if (f.shortName.toUpperCase() === clean || f.name.toUpperCase() === clean) {
+      return key as IPLTeamId;
+    }
+  }
+
+  if (clean.includes('CHENNAI') || clean.includes('SUPER KINGS')) return 'CSK';
+  if (clean.includes('MUMBAI') || clean.includes('INDIANS')) return 'MI';
+  if (clean.includes('BANGALORE') || clean.includes('BENGALURU') || clean.includes('CHALLENGERS')) return 'RCB';
+  if (clean.includes('KOLKATA') || clean.includes('KNIGHT')) return 'KKR';
+  if (clean.includes('HYDERABAD') || clean.includes('SUNRISERS')) return 'SRH';
+  if (clean.includes('RAJASTHAN') || clean.includes('ROYALS')) return 'RR';
+  if (clean.includes('PUNJAB') || clean.includes('KINGS')) return 'PBKS';
+  if (clean.includes('DELHI') || clean.includes('CAPITALS')) return 'DC';
+  if (clean.includes('GUJARAT') || clean.includes('TITANS')) return 'GT';
+  if (clean.includes('LUCKNOW') || clean.includes('GIANTS')) return 'LSG';
+
+  return null;
+}
+
+export function resolveTeamFranchise(input?: string | null): IPLFranchise | null {
+  const id = resolveTeamId(input);
+  return id ? IPL_FRANCHISES[id] : null;
+}
+
 export type PlayerCategory = 'Batsmen' | 'All-rounders' | 'Bowlers' | 'Wicket-keepers';
 export type PrimaryRole = 'BATTER' | 'BOWLER' | 'ALL_ROUNDER';
 
@@ -319,6 +349,7 @@ export type ClientMessage =
   | { type: 'RESTART_AUCTION' }
   | { type: 'END_AUCTION' }
   | { type: 'REAUCTION_UNSOLD' }
+  | { type: 'ADVANCE_LOT'; lotIndex?: number }
   | { type: 'PING' };
 
 // Server to Client Message Events

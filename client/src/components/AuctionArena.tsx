@@ -7,36 +7,30 @@ import {
   Play, 
   RotateCcw, 
   Award, 
-  Globe, 
   Shield, 
   Sparkles, 
-  History, 
-  Flame,
-  ChevronUp,
-  AlertCircle,
-  Dice5,
-  Tag,
-  Plane,
-  ChevronDown,
+  ChevronUp, 
+  AlertCircle, 
+  Dice5, 
+  Tag, 
+  Plane, 
+  ChevronDown, 
   Users,
-  Volume2,
-  VolumeX
+  Wallet,
+  CheckCircle2
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { 
   RoomState, 
   AuctionLot, 
   IPLTeamId, 
   IPL_FRANCHISES, 
-  RoomMember, 
-  Player,
   PlayerCategory 
 } from '../types.js';
-import { soundManager, formatPriceForSpeech } from '../services/audio.js';
+import { soundManager } from '../services/audio.js';
 import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
-import { AuctionHammer } from './AuctionHammer.js';
+import { FullScreenGavelModal } from './FullScreenGavelModal.js';
 
 interface AuctionArenaProps {
   roomState: RoomState;
@@ -48,6 +42,7 @@ interface AuctionArenaProps {
   onResumeAuction: () => void;
   onRestartAuction: () => void;
   onEndAuction: () => void;
+  onAdvanceLot?: (lotIndex?: number) => void;
 }
 
 const ALL_TEAMS: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
@@ -61,27 +56,31 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   onPauseAuction,
   onResumeAuction,
   onRestartAuction,
-  onEndAuction
+  onEndAuction,
+  onAdvanceLot
 }) => {
   const [now, setNow] = useState(Date.now());
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showHostDraw, setShowHostDraw] = useState(false);
+  const [showSquadList, setShowSquadList] = useState(false);
 
-  // Section 16: Category & Price selection for Host Random Draw
+  // Category & Price selection for Host Random Draw
   const [selectedCategory, setSelectedCategory] = useState<PlayerCategory>('Batsmen');
-  const [selectedPriceBracket, setSelectedPriceBracket] = useState<number>(20000000); // default 2 Cr
+  const [selectedPriceBracket, setSelectedPriceBracket] = useState<number>(20000000);
   const [imageError, setImageError] = useState(false);
+  const [dismissedLotNumber, setDismissedLotNumber] = useState<number | null>(null);
 
   const myMember = roomState.members[myMemberId];
   const myTeamId = myMember?.teamId;
   const isHost = myMember?.isHost;
   const lot = roomState.currentLot;
 
+  // Reset image error on lot change
   useEffect(() => {
     setImageError(false);
   }, [lot?.player?.id]);
 
-  // Real-time server-synced local clock ticker (every 100ms for smooth progress bar)
+  // Synchronized clock ticker for countdown bar
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(interval);
@@ -103,61 +102,22 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     }
   }, [remainingSec, roomState.status, lot?.status]);
 
-  const [isMuted, setIsMuted] = useState(soundManager.isMuted);
-  const announcedSaleKeys = useRef<Set<string>>(new Set());
-
-  const handleToggleMute = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    const muted = soundManager.toggleMute();
-    setIsMuted(muted);
-  };
-
-  // Coordinated voice announcement & hammer audio on confirmed sale exactly once
+  // Handle UNSOLD result: play sound and advance after brief clean animation (no hammer/voice)
   useEffect(() => {
-    if (lot?.status === 'SOLD' && lot.soldPrice && lot.winningTeam) {
-      const saleKey = `${lot.player.id}_${lot.soldPrice}_${lot.winningTeam}`;
-
-      if (!announcedSaleKeys.current.has(saleKey)) {
-        announcedSaleKeys.current.add(saleKey);
-
-        // Hammer gavel thud at impact
-        soundManager.playSoldGavel();
-
-        // Confetti celebration for winning team
-        if (lot.winningTeam === myTeamId) {
-          confetti({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.6 }
-          });
-        }
-
-        // Voice Announcement strictly per prompt format:
-        // “SOLD! [Player Name] is sold to [Winning Team Name] for [Final Price]!”
-        const fullTeamName = IPL_FRANCHISES[lot.winningTeam]?.name || lot.winningTeamName || lot.winningTeam;
-        const spokenPrice = formatPriceForSpeech(lot.soldPrice);
-
-        // Coordinated ~400ms after hammer strike begins
-        const speechTimer = setTimeout(() => {
-          soundManager.speakSoldAnnouncement(lot.player.name, fullTeamName, spokenPrice);
-        }, 400);
-
-        return () => clearTimeout(speechTimer);
-      }
-    } else if (lot?.status === 'UNSOLD') {
+    if (lot?.status === 'UNSOLD') {
       soundManager.playUnsoldSound();
-      // Strictly NO voice announcement on UNSOLD
-      soundManager.stopSpeech();
-    } else if (lot?.status === 'IN_PROGRESS') {
-      soundManager.stopSpeech();
+      const advanceTimer = setTimeout(() => {
+        onAdvanceLot?.(lot.lotNumber - 1);
+      }, 2500);
+      return () => clearTimeout(advanceTimer);
     }
-  }, [lot?.status, lot?.soldPrice, lot?.winningTeam, lot?.player?.id, myTeamId]);
+  }, [lot?.status, lot?.lotNumber, onAdvanceLot]);
 
   if (!lot) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-fadeIn">
-        <div className="bg-[#0D0D0D] border border-[#262626] p-6 rounded-2xl shadow-2xl">
-          <Trophy className="w-10 h-10 text-[#FFC857] mx-auto mb-3 animate-bounce" />
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center animate-fadeIn">
+        <div className="bg-[#0D0D0D] border border-[#222222] p-8 rounded-2xl shadow-2xl">
+          <Trophy className="w-12 h-12 text-[#FFD700] mx-auto mb-3 animate-bounce" />
           <h2 className="text-xl font-bold font-display text-white mb-1">Preparing Next Lot...</h2>
           <p className="text-xs text-[#8E8E93]">Loading official verified player records.</p>
         </div>
@@ -196,10 +156,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   let bidDisabledReason = '';
   if (!myTeamId) bidDisabledReason = 'Select a franchise to bid';
   else if (roomState.status === 'PAUSED') bidDisabledReason = 'Auction is paused';
-  else if (lot.status !== 'IN_PROGRESS') bidDisabledReason = 'Lot is finalized';
-  else if (isHighestBidder) bidDisabledReason = 'Your team holds the highest bid';
+  else if (lot.status !== 'IN_PROGRESS') bidDisabledReason = 'Lot transition in progress';
+  else if (isHighestBidder) bidDisabledReason = 'Your franchise holds the highest bid';
   else if (isSquadFull) bidDisabledReason = 'Maximum squad limit (25) reached';
-  else if (isOverseasFull) bidDisabledReason = 'Overseas limit reached (8/8) — cannot bid on overseas players';
+  else if (isOverseasFull) bidDisabledReason = 'Overseas limit reached (8/8)';
   else if (hasInsufficientPurse) {
     bidDisabledReason = `Purse reserve required: ₹${(minReserveRequired / 10000000).toFixed(2)} Cr needed to fill squad`;
   }
@@ -215,11 +175,11 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const remainingLots = Math.max(0, (lot.totalLots || 359) - lot.lotNumber);
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 space-y-3.5">
-      {/* Set & Lot Progress Ribbon */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0D0D0D] border border-[#262626] px-3.5 py-2 rounded-xl text-xs shadow-md">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-2.5 py-0.5 rounded-full border border-[#00E676]/20 text-[11px]">
+    <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-3 space-y-3">
+      {/* 1. TOP PROGRESS RIBBON: Compact Set & Lot Status */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0D0D0D] border border-[#222222] px-4 py-2 rounded-xl text-xs shadow-md">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-2.5 py-0.5 rounded-full border border-[#00E676]/30 text-[11px]">
             Set {roomState.currentSetOrder}/{roomState.totalSets}
           </span>
           <span className="text-[#8E8E93] hidden sm:inline">·</span>
@@ -227,8 +187,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             {player.set_name}
           </span>
           {player.is_marquee && (
-            <span className="bg-[#FFC857]/20 text-[#FFC857] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#FFC857]/40 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#FFC857]" />
+            <span className="bg-[#FFD700]/15 text-[#FFD700] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#FFD700]/30 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[#FFD700]" />
               MARQUEE
             </span>
           )}
@@ -247,545 +207,25 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               <Pause className="w-3 h-3" /> PAUSED
             </span>
           ) : (
-            <span className="bg-[#00E676]/20 text-[#00E676] font-bold px-2.5 py-0.5 rounded-full border border-[#00E676]/40 flex items-center gap-1 text-[11px] animate-pulse">
-              <Flame className="w-3 h-3 text-[#00E676]" /> LIVE
+            <span className="bg-[#00E676]/15 text-[#00E676] font-bold px-2.5 py-0.5 rounded-full border border-[#00E676]/30 flex items-center gap-1 text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-[#00E676] animate-ping inline-block mr-0.5" />
+              LIVE AUCTION
             </span>
           )}
         </div>
       </div>
 
-      {/* Main 2-Column Dashboard Layout
-          LEFT: Auction Information & Live Purse Matrix
-          RIGHT: Active Player Card with Details at Top, Silhouette Below, & Bidding
-      */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {/* 2. MAIN 3-AREA DASHBOARD LAYOUT */}
+      <div className="grid grid-cols-12 gap-3.5 items-start">
         
         {/* ======================================================== */}
-        {/* LEFT COLUMN: AUCTION INFORMATION & CONTROLS (5 cols)    */}
-        {/* Order 2 on mobile, Order 1 on Desktop                    */}
+        {/* LEFT AREA: BIDDING CONTROLS & AUCTION INFO (4 Cols)     */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 flex flex-col gap-3.5 order-2 lg:order-1">
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
-          {/* User's Team & Remaining Purse Card */}
-          {myTeamId ? (
-            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-4 shadow-xl">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2.5">
-                  <TeamLogo teamId={myTeamId} className="w-10 h-10" />
-                  <div>
-                    <span className="text-[10px] text-[#00E676] font-bold uppercase tracking-wider block">
-                      YOUR FRANCHISE · {myMember?.nickname}
-                    </span>
-                    <h3 className="font-display font-black text-sm text-white leading-tight">
-                      {IPL_FRANCHISES[myTeamId].name}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">
-                    Purse Balance
-                  </span>
-                  <span className="text-lg font-mono font-black text-[#00E676]">
-                    ₹{(myPurse / 10000000).toFixed(2)} Cr
-                  </span>
-                </div>
-              </div>
-
-              {/* Squad & Overseas Indicators */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-[#151515] border border-[#262626] rounded-xl p-2 flex items-center justify-between">
-                  <span className="text-[#8E8E93] text-[11px] flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5 text-[#00E676]" /> Squad:
-                  </span>
-                  <span className="font-mono font-bold text-white">
-                    {mySquad.length} / {roomState.settings.maxSquad}
-                  </span>
-                </div>
-
-                <div className={`rounded-xl p-2 flex items-center justify-between border ${
-                  myOverseasCount >= roomState.settings.maxOverseas
-                    ? 'bg-[#FF5252]/10 border-[#FF5252]/30 text-[#FF5252]'
-                    : 'bg-[#151515] border-[#262626] text-white'
-                }`}>
-                  <span className="text-[11px] flex items-center gap-1">
-                    <Plane className="w-3.5 h-3.5 text-[#FFC857]" /> Overseas:
-                  </span>
-                  <span className="font-mono font-bold">
-                    {myOverseasCount} / {roomState.settings.maxOverseas}
-                    {myOverseasCount >= roomState.settings.maxOverseas && (
-                      <span className="ml-1 text-[9px] font-black uppercase text-[#FF5252]">(MAX)</span>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-3.5 shadow-xl flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#1A1A1A] border border-[#2E2E2E] flex items-center justify-center text-xs font-bold text-[#8E8E93]">
-                👁
-              </div>
-              <div>
-                <span className="text-xs font-bold text-white block">Spectator Mode</span>
-                <span className="text-[11px] text-[#8E8E93]">Select a franchise in the waiting lobby to bid</span>
-              </div>
-            </div>
-          )}
-
-          {/* Compact 10-Franchise Purse Summary Grid */}
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-3.5 shadow-xl">
-            <div className="flex items-center justify-between mb-2.5 px-0.5">
-              <span className="text-[11px] font-bold text-[#8E8E93] uppercase tracking-wider flex items-center gap-1.5">
-                <Trophy className="w-3.5 h-3.5 text-[#FFC857]" />
-                All 10 Franchises Live Purse
-              </span>
-              <span className="text-[10px] text-[#8E8E93] font-mono">
-                Max 8 OS
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-1.5 max-h-[220px] overflow-y-auto pr-1">
-              {ALL_TEAMS.map((teamKey) => {
-                const franchise = IPL_FRANCHISES[teamKey];
-                const teamPurse = roomState.teamPurse[teamKey] || 0;
-                const teamSquad = roomState.teamSquads[teamKey] || [];
-                const osCount = teamSquad.filter(p => p.is_overseas).length;
-                const isLeading = lot.currentBidder === teamKey;
-                const isMine = myTeamId === teamKey;
-
-                return (
-                  <div
-                    key={teamKey}
-                    className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
-                      isLeading
-                        ? 'bg-[#00E676]/10 border-[#00E676] shadow-[0_0_10px_rgba(0,230,118,0.2)]'
-                        : isMine
-                        ? 'bg-[#181818] border-[#FFC857]/40'
-                        : 'bg-[#151515] border-[#222222]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <TeamLogo teamId={teamKey} className="w-6 h-6 shrink-0" />
-                      <div className="truncate">
-                        <span className="font-bold text-white text-[11px] block truncate">
-                          {franchise.shortName}
-                        </span>
-                        <span className="text-[10px] text-[#8E8E93] font-mono block">
-                          ₹{(teamPurse / 10000000).toFixed(1)} Cr
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0 font-mono text-[10px]">
-                      <span className="text-slate-300 block">{teamSquad.length}/25</span>
-                      <span className={osCount >= 8 ? 'text-[#FF5252] font-bold' : 'text-[#8E8E93]'}>
-                        {osCount} OS
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section 16 Host Control: Collapsible Category & Price Random Draw */}
-          {isHost && onDrawRandomPlayer && (
-            <div className="bg-[#0D0D0D] border border-[#FFC857]/40 rounded-2xl p-3.5 space-y-2.5 shadow-xl">
-              <div 
-                onClick={() => setShowHostDraw(!showHostDraw)}
-                className="flex items-center justify-between cursor-pointer select-none"
-              >
-                <span className="text-xs font-bold text-[#FFC857] flex items-center gap-1.5 uppercase tracking-wider">
-                  <Dice5 className="w-3.5 h-3.5 text-[#FFC857]" />
-                  Section 16: Category & Price Random Draw
-                </span>
-                <span className="text-[11px] text-[#8E8E93] flex items-center gap-1 hover:text-white">
-                  <span>{showHostDraw ? 'Collapse' : 'Expand'}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showHostDraw ? 'rotate-180' : ''}`} />
-                </span>
-              </div>
-
-              {showHostDraw && (
-                <div className="pt-2 border-t border-[#262626] space-y-2.5 animate-fadeIn">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <label className="text-[10px] text-[#8E8E93] uppercase font-semibold block mb-1">
-                        Category:
-                      </label>
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value as PlayerCategory)}
-                        className="w-full bg-[#151515] border border-[#262626] text-white text-xs rounded-xl px-2.5 py-1.5 outline-none focus:border-[#FFC857]"
-                      >
-                        <option value="Batsmen">🏏 Batsmen</option>
-                        <option value="Bowlers">🎯 Bowlers</option>
-                        <option value="All-rounders">⚡ All-rounders</option>
-                        <option value="Wicket-keepers">🧤 Wicket-keepers</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] text-[#8E8E93] uppercase font-semibold block mb-1">
-                        Price Bracket:
-                      </label>
-                      <select
-                        value={selectedPriceBracket}
-                        onChange={(e) => setSelectedPriceBracket(Number(e.target.value))}
-                        className="w-full bg-[#151515] border border-[#262626] text-white text-xs rounded-xl px-2.5 py-1.5 outline-none focus:border-[#FFC857]"
-                      >
-                        <option value={20000000}>₹2.00 Crore</option>
-                        <option value={15000000}>₹1.50 Crore</option>
-                        <option value={10000000}>₹1.00 Crore</option>
-                        <option value={7500000}>₹75 Lakh</option>
-                        <option value={5000000}>₹50 Lakh</option>
-                        <option value={4000000}>₹40 Lakh</option>
-                        <option value={3000000}>₹30 Lakh</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => onDrawRandomPlayer(selectedCategory, selectedPriceBracket)}
-                    disabled={lot.status !== 'IN_PROGRESS'}
-                    className="w-full bg-[#FFC857] hover:bg-[#ffcf6e] active:scale-[0.99] text-black font-display font-bold py-2 px-4 rounded-full transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Dice5 className="w-3.5 h-3.5" />
-                    <span>Draw Random {selectedCategory} ({selectedPriceBracket >= 10000000 ? `₹${(selectedPriceBracket / 10000000).toFixed(2)} Cr` : `₹${(selectedPriceBracket / 100000).toFixed(0)}L`})</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Host Standard Controls (Skip, Pause, Restart) */}
-          {isHost && (
-            <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs shadow-md">
-              <span className="font-bold text-[#8E8E93] flex items-center gap-1 text-[11px]">
-                <Shield className="w-3.5 h-3.5 text-[#00E676]" />
-                HOST CONTROLS
-              </span>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setShowSkipModal(true)}
-                  disabled={lot.status !== 'IN_PROGRESS'}
-                  className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-[#FFC857] border border-[#FFC857]/30 rounded-full font-bold transition-all flex items-center gap-1 text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <FastForward className="w-3 h-3" />
-                  <span>Skip</span>
-                </button>
-
-                {roomState.status === 'AUCTION' ? (
-                  <button
-                    onClick={onPauseAuction}
-                    className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-white border border-[#262626] rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
-                  >
-                    <Pause className="w-3 h-3" />
-                    <span>Pause</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={onResumeAuction}
-                    className="px-2.5 py-1 bg-[#00E676]/20 hover:bg-[#00E676]/30 text-[#00E676] border border-[#00E676]/40 rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
-                  >
-                    <Play className="w-3 h-3" />
-                    <span>Resume</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={onRestartAuction}
-                  className="px-2.5 py-1 bg-[#151515] hover:bg-[#FF5252]/20 text-[#8E8E93] hover:text-[#FF5252] border border-[#262626] rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Restart</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Compact Recent Lot Bids Timeline */}
-          {lot.bids.length > 0 && (
-            <div className="bg-[#0D0D0D] rounded-2xl p-3 border border-[#262626] shadow-xl">
-              <div className="flex items-center justify-between text-[11px] text-[#8E8E93] mb-2 px-1 font-semibold uppercase tracking-wider">
-                <span className="flex items-center gap-1">
-                  <History className="w-3.5 h-3.5 text-[#00E676]" />
-                  Lot Bids History ({lot.bids.length})
-                </span>
-              </div>
-              <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1">
-                {lot.bids.slice(0, 4).map((b) => {
-                  const team = IPL_FRANCHISES[b.teamId];
-                  return (
-                    <div
-                      key={b.bidId}
-                      className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-[#151515] border border-[#262626]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <TeamLogo teamId={b.teamId} className="w-4 h-4" />
-                        <span className="font-semibold text-white text-[11px]">
-                          {team.shortName}
-                        </span>
-                        <span className="text-[10px] text-[#8E8E93]">({b.bidderName})</span>
-                      </div>
-                      <span className="font-mono font-bold text-[#00E676] text-xs">
-                        ₹{(b.amount / 10000000).toFixed(2)} Cr
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ======================================================== */}
-        {/* RIGHT COLUMN: ACTIVE PLAYER CARD & BIDDING (7 cols)      */}
-        {/* Order 1 on mobile, Order 2 on Desktop                    */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-7 flex flex-col gap-3.5 order-1 lg:order-2">
-          
-          {/* Active Player Card with DETAILS AT THE TOP */}
-          <div className={`relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all ${
-            player.is_marquee ? 'border-[#FFC857]/60 shadow-[0_0_24px_rgba(255,200,87,0.15)]' : 'border-[#262626]'
-          }`}>
-            
-            {/* 1. TOP OF CARD: PLAYER DETAILS PROMINENTLY DISPLAYED */}
-            <div className="p-4 sm:p-5 bg-gradient-to-b from-[#141414] to-[#0D0D0D] border-b border-[#222222] space-y-2.5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight leading-tight">
-                    {player.name}
-                  </h2>
-                  <p className="text-xs text-[#8E8E93] font-medium mt-0.5">
-                    {player.primary_role} · {player.category}
-                  </p>
-                </div>
-
-                {/* Auction Status Badge */}
-                <div>
-                  {lot.status === 'SOLD' ? (
-                    <span className="bg-[#00E676]/20 text-[#00E676] font-bold px-3 py-1 rounded-full border border-[#00E676]/40 text-xs inline-flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5" /> SOLD
-                    </span>
-                  ) : lot.status === 'UNSOLD' ? (
-                    <span className="bg-[#FF5252]/20 text-[#FF5252] font-bold px-3 py-1 rounded-full border border-[#FF5252]/40 text-xs">
-                      UNSOLD
-                    </span>
-                  ) : lot.status === 'SKIPPED' ? (
-                    <span className="bg-[#FFC857]/20 text-[#FFC857] font-bold px-3 py-1 rounded-full border border-[#FFC857]/40 text-xs">
-                      SKIPPED
-                    </span>
-                  ) : roomState.status === 'PAUSED' ? (
-                    <span className="bg-[#FFC857]/20 text-[#FFC857] font-bold px-3 py-1 rounded-full border border-[#FFC857]/40 text-xs inline-flex items-center gap-1">
-                      <Pause className="w-3 h-3" /> PAUSED
-                    </span>
-                  ) : (
-                    <span className="bg-[#00E676]/20 text-[#00E676] font-bold px-3 py-1 rounded-full border border-[#00E676]/40 text-xs inline-flex items-center gap-1 animate-pulse">
-                      <Flame className="w-3 h-3" /> AVAILABLE / LIVE
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Metadata Pills Row (Base Price, Classification, WK) */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                {/* Base Price */}
-                <div className="flex items-center gap-1.5 bg-[#151515] border border-[#262626] px-3 py-1 rounded-full text-xs font-mono font-bold text-white shadow-sm">
-                  <Tag className="w-3.5 h-3.5 text-[#00E676]" />
-                  <span>Base: <strong className="text-[#00E676]">{player.base_price_display}</strong></span>
-                </div>
-
-                {/* Classification: Indian or Overseas */}
-                {player.is_overseas ? (
-                  <span className="bg-[#00E676]/15 border border-[#00E676]/30 text-[#00E676] text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm">
-                    <Plane className="w-3.5 h-3.5" /> Overseas · {player.nationality}
-                  </span>
-                ) : (
-                  <span className="bg-[#151515] border border-[#262626] text-slate-200 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm">
-                    <span>🇮🇳</span> Indian Player
-                  </span>
-                )}
-
-                {/* Wicketkeeper Tag */}
-                {player.is_wicketkeeper && (
-                  <span className="bg-[#FFC857]/15 border border-[#FFC857]/30 text-[#FFC857] text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                    🧤 Wicket-keeper
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* 2. PLAYER PHOTO / SILHOUETTE IMAGE AREA (BELOW DETAILS) */}
-            <div className="relative w-full h-40 sm:h-44 bg-[#080808] flex items-center justify-center overflow-hidden border-b border-[#222222]">
-              {player.image_url && !imageError ? (
-                <div className="relative w-full h-full flex items-center justify-center p-2">
-                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1 bg-gradient-to-b from-[#262626] via-[#161616] to-[#0a0a0a] shadow-[0_0_20px_rgba(0,0,0,0.85)] border border-[#333333] flex items-center justify-center overflow-hidden">
-                    <img
-                      src={player.image_url}
-                      alt={player.name}
-                      className="w-full h-full object-cover object-top"
-                      onError={() => setImageError(true)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <CricketPlayerSilhouette category={player.category} className="w-full h-full" />
-              )}
-            </div>
-
-            {/* 3. CURRENT HIGHEST BID & LEADING TEAM BANNER */}
-            <div className="p-3.5 bg-[#121212] flex items-center justify-between gap-3 border-t border-[#1C1C1C]">
-              <div className="flex items-center gap-2.5">
-                {lot.currentBidder ? (
-                  <>
-                    <TeamLogo teamId={lot.currentBidder} className="w-9 h-9 shrink-0 shadow-md" />
-                    <div>
-                      <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">
-                        Leading Franchise:
-                      </span>
-                      <h4 className="font-display font-bold text-xs sm:text-sm text-white leading-tight">
-                        {IPL_FRANCHISES[lot.currentBidder].name}{' '}
-                        <span className="text-[#8E8E93] font-normal font-sans">({lot.currentBidderName})</span>
-                      </h4>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">
-                      Opening Price Bracket:
-                    </span>
-                    <h4 className="font-display font-bold text-xs sm:text-sm text-[#FFC857] font-mono">
-                      ₹{(player.base_price_inr / 10000000).toFixed(2)} Crore
-                    </h4>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-right">
-                <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">
-                  Current Highest Bid
-                </span>
-                <span className="text-xl sm:text-2xl font-black font-mono text-[#00E676]">
-                  {currentBid > 0 ? `₹${(currentBid / 10000000).toFixed(2)} Cr` : 'NO BIDS YET'}
-                </span>
-              </div>
-            </div>
-
-            {/* ======================================================== */}
-            {/* FULL-CARD SOLD! CELEBRATION OVERLAY                      */}
-            {/* ======================================================== */}
-            {lot.status === 'SOLD' && lot.winningTeam && (
-              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-md rounded-2xl flex flex-col justify-between p-4 sm:p-5 text-center border-2 border-[#FFC857]/70 shadow-[0_0_50px_rgba(255,200,87,0.3)] animate-sold-glow">
-                {/* Top Bar: Official Confirmation + Mute Control */}
-                <div className="flex items-center justify-between text-xs w-full pb-1 border-b border-[#222222]">
-                  <span className="text-[#FFC857] font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-[#FFC857] animate-spin" />
-                    Confirmed Sale
-                  </span>
-                  
-                  {/* Quick Mute / Unmute Button */}
-                  <button
-                    onClick={handleToggleMute}
-                    aria-label={isMuted ? 'Unmute voice' : 'Mute voice'}
-                    className="p-1 px-2.5 rounded-full bg-[#181818] hover:bg-[#252525] text-white border border-[#333333] transition-colors flex items-center gap-1 text-[11px] font-semibold"
-                  >
-                    {isMuted ? (
-                      <>
-                        <VolumeX className="w-3.5 h-3.5 text-[#FF5252]" />
-                        <span className="text-[#8E8E93]">Muted</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="w-3.5 h-3.5 text-[#00E676]" />
-                        <span className="text-[#00E676]">Audio On</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Center Stage: Auction Hammer, Title, Player & Franchise */}
-                <div className="my-auto py-2 flex flex-col items-center">
-                  {/* Compact Animated Auction Hammer */}
-                  <AuctionHammer className="w-24 h-16 sm:w-28 sm:h-20 mb-1" />
-
-                  {/* Golden Glowing SOLD! Heading */}
-                  <h2 className="text-4xl sm:text-5xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFE082] via-[#FFD700] to-[#FFA000] drop-shadow-[0_0_25px_rgba(255,215,0,0.6)] animate-pulse">
-                    SOLD!
-                  </h2>
-
-                  {/* Player Name & Category */}
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight mt-1">
-                    {player.name}
-                  </div>
-                  <div className="text-xs text-[#8E8E93] mt-0.5">
-                    {player.category} • {player.is_overseas ? `✈️ Overseas (${player.nationality})` : '🇮🇳 Indian Player'}
-                  </div>
-
-                  {/* Winning Team & Price Card */}
-                  <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-3 mt-3 w-full max-w-md flex items-center justify-between gap-3 shadow-inner">
-                    <div className="flex items-center gap-2.5 text-left">
-                      <TeamLogo teamId={lot.winningTeam} className="w-10 h-10 object-contain drop-shadow" />
-                      <div>
-                        <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Sold To Franchise</span>
-                        <span className="text-sm sm:text-base font-bold text-white block leading-tight">
-                          {IPL_FRANCHISES[lot.winningTeam]?.name || lot.winningTeamName}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] text-[#FFC857] uppercase font-semibold block">Final Winning Bid</span>
-                      <span className="text-lg sm:text-xl font-mono font-black text-[#00E676] block">
-                        ₹{((lot.soldPrice || 0) / 10000000).toFixed(2)} Crore
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Countdown Progress Bar (4.5s transition) */}
-                <div className="w-full pt-1">
-                  <div className="flex items-center justify-between text-[10px] text-[#8E8E93] mb-1 font-mono">
-                    <span>AUCTION STAGE ADVANCING</span>
-                    <span className="text-[#FFC857]">Next player in seconds...</span>
-                  </div>
-                  <div className="w-full bg-[#1A1A1A] h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#FFC857] via-[#FFD700] to-[#00E676] h-full animate-sold-progress" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ======================================================== */}
-            {/* UNSOLD OVERLAY: Strictly only the text "UNSOLD"          */}
-            {/* ======================================================== */}
-            {lot.status === 'UNSOLD' && (
-              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn">
-                <span className="text-4xl sm:text-5xl font-black font-display tracking-widest text-[#8E8E93] animate-pulse">
-                  UNSOLD
-                </span>
-                <span className="text-xs text-[#555555] font-mono mt-3">
-                  Player moves to the un-auctioned pool
-                </span>
-              </div>
-            )}
-
-            {/* ======================================================== */}
-            {/* SKIPPED OVERLAY                                          */}
-            {/* ======================================================== */}
-            {lot.status === 'SKIPPED' && (
-              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn">
-                <FastForward className="w-8 h-8 text-[#FFC857] mb-2" />
-                <span className="text-2xl font-black font-display text-[#FFC857] tracking-wider">
-                  SKIPPED BY HOST
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Synchronized Countdown Timer & Bidding Panel */}
-          <div className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#262626] shadow-2xl relative overflow-hidden space-y-3.5">
-            {/* Timer Progress Bar */}
+          {/* A. Bidding Panel & Timer */}
+          <div className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5">
+            {/* Hammer Timer Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#151515]">
               <div
                 className={`h-full transition-all duration-100 ${
@@ -799,64 +239,85 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4 pt-1">
-              {/* Countdown Clock Display */}
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-mono font-black border transition-all ${
+            {/* Timer Clock & Leading Franchise Status */}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center font-mono font-black border transition-all ${
                   remainingSec <= 2
                     ? 'bg-[#FF5252]/20 text-[#FF5252] border-[#FF5252] animate-bounce'
                     : remainingSec <= 5
                     ? 'bg-[#FFC857]/20 text-[#FFC857] border-[#FFC857]'
                     : 'bg-[#151515] text-[#00E676] border-[#00E676]/40'
                 }`}>
-                  <span className="text-2xl leading-none">{remainingSec}</span>
+                  <span className="text-xl leading-none">{remainingSec}</span>
                   <span className="text-[8px] uppercase font-bold text-[#8E8E93]">SEC</span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">
-                    Hammer Timer
+                  <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Hammer Clock</span>
+                  <span className="text-xs text-white font-medium">
+                    {lot.status === 'IN_PROGRESS' ? 'Resets on each bid' : lot.status}
                   </span>
-                  <p className="text-xs text-white font-medium">
-                    {lot.status === 'IN_PROGRESS' ? 'Resets on valid bid' : lot.status}
-                  </p>
                 </div>
               </div>
 
               {/* Leading Indicator */}
-              {lot.currentBidder && (
+              {lot.currentBidder ? (
                 <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold bg-[#00E676]/10 border border-[#00E676]/30 px-3 py-1 rounded-full shadow-sm">
                   <Shield className="w-3.5 h-3.5" />
                   <span>{isHighestBidder ? 'YOU ARE LEADING' : `${lot.currentBidder} LEADING`}</span>
                 </div>
+              ) : (
+                <div className="text-xs text-[#8E8E93] font-mono bg-[#161616] px-2.5 py-1 rounded-full border border-[#262626]">
+                  AWAITING BID
+                </div>
               )}
             </div>
 
-            {/* Error / Disabled Tooltip Notice */}
+            {/* Current Highest Bid Banner */}
+            <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Current Bid</span>
+                <span className="text-xl sm:text-2xl font-black font-mono text-[#00E676]">
+                  {currentBid > 0 ? `₹${(currentBid / 10000000).toFixed(2)} Cr` : 'NO BIDS YET'}
+                </span>
+              </div>
+              {lot.currentBidder && (
+                <div className="flex items-center gap-2 text-right">
+                  <TeamLogo teamId={lot.currentBidder} className="w-7 h-7 object-contain" />
+                  <div className="text-left">
+                    <span className="text-[9px] text-[#8E8E93] block">Leader</span>
+                    <span className="text-xs font-bold text-white block">{lot.currentBidder}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Disabled Bidding Reason Alert */}
             {!canBid && bidDisabledReason && (
-              <div className="bg-[#FF5252]/15 border border-[#FF5252]/30 text-[#FF5252] px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 font-medium">
+              <div className="bg-[#FF5252]/15 border border-[#FF5252]/30 text-[#FF5252] px-3 py-2 rounded-xl text-xs flex items-center gap-2 font-medium">
                 <AlertCircle className="w-4 h-4 text-[#FF5252] shrink-0" />
                 <span>{bidDisabledReason}</span>
               </div>
             )}
 
-            {/* Big Primary Action: Sleek Rounded Pill Bid Button */}
+            {/* Primary Action Button: PLACE BID */}
             <button
               onClick={() => onPlaceBid(nextMinBid)}
               disabled={!canBid}
-              className="w-full bg-white hover:bg-slate-200 active:scale-[0.99] text-black font-display font-black py-3.5 px-6 rounded-full transition-all shadow-[0_4px_20px_rgba(255,255,255,0.15)] flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
+              className="w-full bg-white hover:bg-slate-200 active:scale-[0.99] text-black font-display font-black py-3 px-5 rounded-xl transition-all shadow-[0_4px_20px_rgba(255,255,255,0.15)] flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
             >
               <div className="flex items-center gap-2">
                 <ChevronUp className="w-5 h-5 stroke-[3] transition-transform group-hover:-translate-y-0.5" />
                 <span className="tracking-wide">PLACE BID</span>
               </div>
-              <span className="font-mono text-lg font-black text-black">
+              <span className="font-mono text-base sm:text-lg font-black text-black">
                 ₹{(nextMinBid / 10000000).toFixed(2)} Cr
               </span>
             </button>
 
             {/* Quick Increment Buttons (+20L, +50L, +1Cr, +2Cr) */}
-            <div className="grid grid-cols-4 gap-2 pt-0.5">
+            <div className="grid grid-cols-4 gap-1.5 pt-0.5">
               {quickIncrements.map((inc, i) => {
                 const isIncLegal = inc.amount >= nextMinBid && inc.amount <= maxPossibleBid && canBid;
                 return (
@@ -864,10 +325,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                     key={i}
                     onClick={() => onPlaceBid(inc.amount)}
                     disabled={!isIncLegal}
-                    className="py-2 px-2 rounded-xl bg-[#151515] hover:bg-[#202020] text-slate-200 hover:text-white font-mono text-xs font-bold transition-all border border-[#262626] hover:border-[#00E676]/40 disabled:opacity-25 disabled:cursor-not-allowed flex flex-col items-center gap-0.5"
+                    className="py-1.5 px-1.5 rounded-lg bg-[#151515] hover:bg-[#202020] text-slate-200 hover:text-white font-mono text-xs font-bold transition-all border border-[#262626] hover:border-[#00E676]/40 disabled:opacity-20 disabled:cursor-not-allowed flex flex-col items-center gap-0.5"
                   >
                     <span className="text-[#00E676] text-[11px] font-black">{inc.label}</span>
-                    <span className="text-[10px] text-[#8E8E93] font-normal">
+                    <span className="text-[9px] text-[#8E8E93] font-normal">
                       ₹{(inc.amount / 10000000).toFixed(2)}Cr
                     </span>
                   </button>
@@ -875,10 +336,386 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               })}
             </div>
           </div>
+
+          {/* B. Host Controls Card (Skip, Pause, Draw Random) */}
+          {isHost && (
+            <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-3.5 space-y-2.5 shadow-md">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#8E8E93] flex items-center gap-1.5 text-[11px]">
+                  <Shield className="w-3.5 h-3.5 text-[#00E676]" />
+                  HOST CONTROLS
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowSkipModal(true)}
+                    disabled={lot.status !== 'IN_PROGRESS'}
+                    className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-[#FFC857] border border-[#FFC857]/30 rounded-full font-bold transition-all flex items-center gap-1 text-[11px] disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <FastForward className="w-3 h-3" />
+                    <span>Skip</span>
+                  </button>
+
+                  {roomState.status === 'AUCTION' ? (
+                    <button
+                      onClick={onPauseAuction}
+                      className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-white border border-[#262626] rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
+                    >
+                      <Pause className="w-3 h-3" />
+                      <span>Pause</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onResumeAuction}
+                      className="px-2.5 py-1 bg-[#00E676]/20 hover:bg-[#00E676]/30 text-[#00E676] border border-[#00E676]/40 rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
+                    >
+                      <Play className="w-3 h-3" />
+                      <span>Resume</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onRestartAuction}
+                    className="px-2.5 py-1 bg-[#151515] hover:bg-[#FF5252]/20 text-[#8E8E93] hover:text-[#FF5252] border border-[#262626] rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Restart</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Host Draw Random Player Toggle */}
+              {onDrawRandomPlayer && (
+                <div className="pt-1 border-t border-[#1C1C1C]">
+                  <button
+                    onClick={() => setShowHostDraw(!showHostDraw)}
+                    className="w-full text-left flex items-center justify-between text-xs text-[#8E8E93] hover:text-white py-1 font-semibold transition-colors"
+                  >
+                    <span className="flex items-center gap-1">
+                      <Dice5 className="w-3.5 h-3.5 text-[#FFC857]" />
+                      Custom Random Draw
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showHostDraw ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showHostDraw && (
+                    <div className="space-y-2 pt-2 animate-fadeIn">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-[#8E8E93] block mb-1">Category</label>
+                          <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value as PlayerCategory)}
+                            className="w-full bg-[#151515] border border-[#262626] text-white text-xs rounded-lg px-2 py-1 outline-none"
+                          >
+                            <option value="Batsmen">Batsmen</option>
+                            <option value="All-Rounders">All-Rounders</option>
+                            <option value="Bowlers">Bowlers</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#8E8E93] block mb-1">Price Bracket</label>
+                          <select
+                            value={selectedPriceBracket}
+                            onChange={(e) => setSelectedPriceBracket(Number(e.target.value))}
+                            className="w-full bg-[#151515] border border-[#262626] text-white text-xs rounded-lg px-2 py-1 outline-none"
+                          >
+                            <option value={20000000}>₹2.00 Cr</option>
+                            <option value={15000000}>₹1.50 Cr</option>
+                            <option value={10000000}>₹1.00 Cr</option>
+                            <option value={7500000}>₹75 L</option>
+                            <option value={5000000}>₹50 L</option>
+                            <option value={3000000}>₹30 L</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onDrawRandomPlayer(selectedCategory, selectedPriceBracket)}
+                        disabled={lot.status !== 'IN_PROGRESS'}
+                        className="w-full bg-[#FFC857] hover:bg-[#ffcf6e] active:scale-[0.99] text-black font-display font-bold py-1.5 px-3 rounded-lg transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-30"
+                      >
+                        <Dice5 className="w-3.5 h-3.5" />
+                        <span>Draw Random {selectedCategory}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ======================================================== */}
+        {/* CENTER AREA: CURRENT PLAYER DETAILS & PHOTO (5 Cols)     */}
+        {/* ======================================================== */}
+        <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 order-1 lg:order-2">
+          
+          {/* Active Player Card */}
+          <div className={`relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all ${
+            player.is_marquee ? 'border-[#FFD700]/60 shadow-[0_0_24px_rgba(255,215,0,0.15)]' : 'border-[#222222]'
+          }`}>
+            
+            {/* Top Details: Player Name, Badges & Base Price */}
+            <div className="p-4 sm:p-5 bg-gradient-to-b from-[#141414] to-[#0D0D0D] border-b border-[#222222] space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight leading-tight">
+                    {player.name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold text-[#FFD700] uppercase font-mono tracking-wider">
+                      {player.category}
+                    </span>
+                    <span className="text-[#8E8E93] text-xs">•</span>
+                    <span className="text-xs text-[#8E8E93] font-medium">
+                      Role: <strong className="text-slate-200">{player.primary_role}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Base Price Tag */}
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Base Price</span>
+                  <span className="text-lg sm:text-xl font-mono font-black text-[#00E676] block">
+                    {player.base_price_display}
+                  </span>
+                </div>
+              </div>
+
+              {/* Classification Badges */}
+              <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                {player.is_overseas ? (
+                  <span className="bg-[#00E676]/15 border border-[#00E676]/30 text-[#00E676] text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm">
+                    <Plane className="w-3.5 h-3.5" /> Overseas · {player.nationality}
+                  </span>
+                ) : (
+                  <span className="bg-[#151515] border border-[#262626] text-slate-200 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-sm">
+                    <span>🇮🇳</span> Indian Player
+                  </span>
+                )}
+
+                {player.is_wicketkeeper && (
+                  <span className="bg-[#FFC857]/15 border border-[#FFC857]/30 text-[#FFC857] text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                    🧤 Wicket-keeper
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Prominent Player Photo Display Frame */}
+            <div className="relative w-full h-52 sm:h-60 bg-[#080808] flex items-center justify-center overflow-hidden border-b border-[#222222]">
+              {player.image_url && !imageError ? (
+                <div className="relative w-full h-full flex items-center justify-center p-3">
+                  <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-b from-[#2D2D2D] via-[#1A1A1A] to-[#0A0A0A] shadow-[0_0_25px_rgba(0,0,0,0.85)] border border-[#333333] flex items-center justify-center overflow-hidden">
+                    <img
+                      src={player.image_url}
+                      alt={player.name}
+                      className="w-full h-full object-cover object-top"
+                      onError={() => setImageError(true)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <CricketPlayerSilhouette category={player.category} className="w-full h-full" />
+              )}
+            </div>
+
+            {/* Bottom Card Summary: Status Banner */}
+            <div className="p-3 bg-[#111111] flex items-center justify-between text-xs font-mono text-[#8E8E93]">
+              <span className="flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-[#00E676]" />
+                Status: <strong className="text-white">{lot.status}</strong>
+              </span>
+              <span>Lot #{lot.lotNumber}</span>
+            </div>
+
+            {/* UNSOLD OVERLAY: Strictly only the text "UNSOLD" with clean animation matching black theme */}
+            {lot.status === 'UNSOLD' && (
+              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn select-none">
+                <span className="text-5xl sm:text-6xl font-black font-display tracking-widest text-[#8E8E93] animate-pulse">
+                  UNSOLD
+                </span>
+                <span className="text-xs text-[#555555] font-mono mt-3">
+                  Player moves to the un-auctioned pool
+                </span>
+              </div>
+            )}
+
+            {/* SKIPPED OVERLAY */}
+            {lot.status === 'SKIPPED' && (
+              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn select-none">
+                <FastForward className="w-8 h-8 text-[#FFC857] mb-2" />
+                <span className="text-2xl font-black font-display text-[#FFC857] tracking-wider">
+                  SKIPPED BY HOST
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* RIGHT AREA: MY TEAM SUMMARY & ALL TEAMS SCOREBOARD (3 Cols) */}
+        {/* ======================================================== */}
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 order-3">
+          
+          {/* A. My Franchise Card */}
+          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-4 shadow-xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1E1E1E]">
+              <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider">
+                My Franchise
+              </span>
+              {myTeamId && (
+                <span className="text-xs font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-2 py-0.5 rounded-full border border-[#00E676]/20">
+                  {myTeamId}
+                </span>
+              )}
+            </div>
+
+            {myTeamId ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <TeamLogo teamId={myTeamId} className="w-10 h-10 object-contain drop-shadow" />
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-white leading-tight">
+                      {IPL_FRANCHISES[myTeamId]?.name}
+                    </h3>
+                    <span className="text-[11px] text-[#8E8E93]">
+                      Purse Remaining:
+                    </span>
+                  </div>
+                </div>
+
+                {/* Purse Balance */}
+                <div className="bg-[#141414] p-2.5 rounded-xl border border-[#262626]">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-[#8E8E93] flex items-center gap-1 font-mono">
+                      <Wallet className="w-3.5 h-3.5 text-[#00E676]" /> Balance
+                    </span>
+                    <span className="font-mono font-black text-white text-sm">
+                      ₹{(myPurse / 10000000).toFixed(2)} Cr
+                    </span>
+                  </div>
+                  <div className="w-full bg-[#202020] h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-[#00E676] to-[#FFD700] h-full"
+                      style={{ width: `${Math.min(100, Math.max(0, (myPurse / (roomState.settings.startingPurse || 1200000000)) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Squad Count & Overseas Count */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-[#141414] p-2 rounded-xl border border-[#262626]">
+                    <span className="text-[10px] text-[#8E8E93] block">Squad</span>
+                    <span className="font-bold text-white text-xs">
+                      {mySquad.length} / {roomState.settings.maxSquad}
+                    </span>
+                  </div>
+                  <div className="bg-[#141414] p-2 rounded-xl border border-[#262626]">
+                    <span className="text-[10px] text-[#8E8E93] block">Overseas</span>
+                    <span className={`font-bold text-xs ${myOverseasCount >= 8 ? 'text-[#FF5252]' : 'text-white'}`}>
+                      {myOverseasCount} / 8 max
+                    </span>
+                  </div>
+                </div>
+
+                {/* Squad Reserve Requirement Notice */}
+                {minReserveRequired > 0 && (
+                  <p className="text-[10px] text-[#8E8E93] font-mono leading-tight bg-[#141414] p-2 rounded-lg border border-[#222222]">
+                    🛡️ Min squad reserve: <strong className="text-[#FFC857]">₹{(minReserveRequired / 10000000).toFixed(2)} Cr</strong> required for remaining {slotsRemainingNeeded} slots.
+                  </p>
+                )}
+
+                {/* Toggle Acquired Squad List */}
+                {mySquad.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setShowSquadList(!showSquadList)}
+                      className="w-full text-left text-xs text-[#00E676] font-semibold flex items-center justify-between py-1 transition-colors hover:underline"
+                    >
+                      <span>View My Squad ({mySquad.length})</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showSquadList ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showSquadList && (
+                      <div className="space-y-1.5 mt-2 max-h-36 overflow-y-auto pr-1 animate-fadeIn">
+                        {mySquad.map(sq => (
+                          <div key={sq.id} className="flex items-center justify-between text-[11px] py-1 px-2 rounded-lg bg-[#141414] border border-[#222222]">
+                            <span className="text-white font-medium truncate max-w-[120px]">{sq.name}</span>
+                            <span className="font-mono text-[#00E676] text-[10px]">
+                              ₹{(((sq.sold_price_inr || 0) / 10000000)).toFixed(2)}Cr
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-4 text-center text-xs text-[#8E8E93]">
+                <span>No franchise selected.</span>
+              </div>
+            )}
+          </div>
+
+          {/* B. All Teams Scoreboard Summary Table */}
+          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-3.5 shadow-xl space-y-2">
+            <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider block">
+              League Table · Purses & Squads
+            </span>
+
+            <div className="space-y-1 max-h-56 overflow-y-auto pr-1 text-xs">
+              {ALL_TEAMS.map(teamKey => {
+                const franchise = IPL_FRANCHISES[teamKey];
+                const purse = roomState.teamPurse[teamKey] || 0;
+                const squad = roomState.teamSquads[teamKey] || [];
+                const isMyTeam = teamKey === myTeamId;
+
+                return (
+                  <div
+                    key={teamKey}
+                    className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
+                      isMyTeam ? 'bg-[#181818] border border-[#00E676]/40' : 'bg-[#121212] border border-[#1E1E1E]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TeamLogo teamId={teamKey} className="w-5 h-5 object-contain" />
+                      <span className={`font-bold text-xs ${isMyTeam ? 'text-[#00E676]' : 'text-white'}`}>
+                        {teamKey}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 font-mono text-[11px]">
+                      <span className="text-[#8E8E93]">
+                        {squad.length}/25
+                      </span>
+                      <span className="font-bold text-[#FFD700]">
+                        ₹{(purse / 10000000).toFixed(1)}Cr
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Skip Player Modal */}
+      {/* 3. FULL-SCREEN REALISTIC AUCTIONEER GAVEL MODAL (ON CONFIRMED SALE) */}
+      {lot.status === 'SOLD' && lot.winningTeam && dismissedLotNumber !== lot.lotNumber && (
+        <FullScreenGavelModal
+          lot={lot}
+          myTeamId={myTeamId}
+          onComplete={() => {
+            setDismissedLotNumber(lot.lotNumber);
+            onAdvanceLot?.(lot.lotNumber - 1);
+          }}
+        />
+      )}
+
+      {/* 4. SKIP PLAYER MODAL */}
       {isHost && (
         <SkipPlayerModal
           isOpen={showSkipModal}

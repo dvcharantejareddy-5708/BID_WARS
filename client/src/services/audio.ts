@@ -24,21 +24,35 @@ class SoundManager {
     }
   }
 
+  private activeAnnouncementText: string | null = null;
+  private activeAnnouncementCallback: (() => void) | null = null;
+  private speechKeepAliveInterval: any = null;
+
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
     localStorage.setItem('bid_wars_muted', String(this.isMuted));
     if (this.isMuted) {
       this.stopSpeech();
+      if (this.activeAnnouncementCallback) {
+        const cb = this.activeAnnouncementCallback;
+        this.activeAnnouncementCallback = null;
+        this.activeAnnouncementText = null;
+        cb();
+      }
     }
     return this.isMuted;
   }
 
   /**
-   * Stop any current speech synthesis immediately
+   * Stop speech synthesis only when explicitly called (e.g. user toggles mute)
    */
   public stopSpeech() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
+        if (this.speechKeepAliveInterval) {
+          clearInterval(this.speechKeepAliveInterval);
+          this.speechKeepAliveInterval = null;
+        }
         window.speechSynthesis.cancel();
       } catch {}
     }
@@ -46,22 +60,50 @@ class SoundManager {
 
   /**
    * Authoritative Voice Announcement on confirmed sale:
-   * “SOLD! [Player Name] is sold to [Winning Team Name] for [Final Price]!”
+   * “[Player Name] sold to [Team Abbreviation] for [Final Price]!”
+   * Example: “Steve Smith sold to RCB for 12 crores!”
+   * Awaits completion (onend) naturally without arbitrary timeouts.
    */
-  public speakSoldAnnouncement(playerName: string, teamFullName: string, priceDisplay: string) {
-    if (this.isMuted) return;
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  public speakSoldAnnouncement(
+    playerName: string, 
+    teamAbbreviation: string, 
+    priceDisplay: string,
+    onComplete?: () => void
+  ) {
+    if (this.isMuted) {
+      onComplete?.();
+      return;
+    }
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onComplete?.();
+      return;
+    }
+
+    const text = `${playerName} sold to ${teamAbbreviation} for ${priceDisplay}!`;
+
+    // Prevent duplicate triggers if identical speech is already actively playing
+    if (this.activeAnnouncementText === text && window.speechSynthesis.speaking) {
+      if (onComplete) {
+        this.activeAnnouncementCallback = onComplete;
+      }
+      return;
+    }
 
     try {
-      this.stopSpeech();
+      if (this.speechKeepAliveInterval) {
+        clearInterval(this.speechKeepAliveInterval);
+        this.speechKeepAliveInterval = null;
+      }
 
-      const text = `SOLD! ${playerName} is sold to ${teamFullName} for ${priceDisplay}!`;
+      this.activeAnnouncementText = text;
+      this.activeAnnouncementCallback = onComplete || null;
+
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05; // natural, energetic auctioneer tempo
-      utterance.pitch = 1.02;
+      utterance.rate = 1.0; // natural, clear pacing
+      utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
-      // Select preferred voice if available
+      // Select preferred natural English voice if available
       const voices = window.speechSynthesis.getVoices();
       const preferred = voices.find(v => 
         v.lang.startsWith('en') && (
@@ -76,9 +118,65 @@ class SoundManager {
         utterance.voice = preferred;
       }
 
+      // CRITICAL FIX FOR CHROMIUM: Store in global & instance scope so Chrome GC doesn't drop utterance mid-speech!
+      (window as any).__soldUtterance = utterance;
+
+      let completed = false;
+      let failsafeTimer: any = null;
+
+      const handleDone = (source: string) => {
+        if (!completed) {
+          completed = true;
+          if (failsafeTimer) clearTimeout(failsafeTimer);
+          if (this.speechKeepAliveInterval) {
+            clearInterval(this.speechKeepAliveInterval);
+            this.speechKeepAliveInterval = null;
+          }
+          (window as any).__soldUtterance = null;
+          this.activeAnnouncementText = null;
+
+          const cb = this.activeAnnouncementCallback;
+          this.activeAnnouncementCallback = null;
+          cb?.();
+        }
+      };
+
+      utterance.onend = () => {
+        handleDone('onend');
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('Speech synthesis ended with error or cancel:', e);
+        handleDone('onerror');
+      };
+
+      // Failsafe safety fallback (20s): solely protects against browser engine crashes
+      failsafeTimer = setTimeout(() => {
+        handleDone('failsafe');
+      }, 20000);
+
+      // Chromium keep-alive interval: Chrome can pause speech longer than 2.5s without this
+      this.speechKeepAliveInterval = setInterval(() => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        } else {
+          if (this.speechKeepAliveInterval) {
+            clearInterval(this.speechKeepAliveInterval);
+            this.speechKeepAliveInterval = null;
+          }
+        }
+      }, 1000);
+
+      // Start speaking immediately
+      window.speechSynthesis.resume();
       window.speechSynthesis.speak(utterance);
     } catch (e) {
-      console.warn('Speech synthesis error:', e);
+      console.warn('Speech synthesis exception:', e);
+      this.activeAnnouncementText = null;
+      this.activeAnnouncementCallback = null;
+      onComplete?.();
     }
   }
 
@@ -260,17 +358,22 @@ export const soundManager = new SoundManager();
 
 /**
  * Format numeric INR into clear spoken currency for auction announcement
- * Example: 20000000 -> "2 Crore", 7500000 -> "75 Lakh"
+ * Example:
+ * 120000000 -> "12 crores"
+ * 80000000 -> "8 crores"
+ * 50000000 -> "5 crores"
+ * 15000000 -> "1.5 crores"
+ * 5000000 -> "50 lakhs"
  */
 export function formatPriceForSpeech(priceInr: number): string {
   if (priceInr >= 10000000) {
     const cr = priceInr / 10000000;
-    const formatted = cr % 1 === 0 ? cr.toString() : cr.toFixed(2);
-    return `${formatted} Crore`;
+    const formatted = cr % 1 === 0 ? cr.toString() : cr.toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1');
+    return `${formatted} ${cr === 1 ? 'crore' : 'crores'}`;
   }
   const lakh = priceInr / 100000;
-  const formatted = lakh % 1 === 0 ? lakh.toString() : lakh.toFixed(2);
-  return `${formatted} Lakh`;
+  const formatted = lakh % 1 === 0 ? lakh.toString() : lakh.toFixed(2).replace(/\.00$/, '').replace(/(\.[0-9])0$/, '$1');
+  return `${formatted} ${lakh === 1 ? 'lakh' : 'lakhs'}`;
 }
 
 

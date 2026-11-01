@@ -654,16 +654,34 @@ export class GameRoom {
       teamStats: summary
     });
 
-    // Advance to next lot after strict coordinated sequence (maximum 6 seconds):
-    // SOLD: 4.5s (hammer 0.8s + TTS voice announcement ~3s + next player)
-    // UNSOLD: 2.5s (clean text animation + next player)
-    const transitionDelay = lot.status === 'SOLD' ? 4500 : 2500;
+    // Sequence coordination: No arbitrary fixed timeout interrupts voice announcement.
+    // The client awaits speech synthesis onend and animation completion, then emits ADVANCE_LOT.
+    // Generous fallback ceiling (45s) ensures the auction never gets stuck if every client disconnects.
+    this.clearAllTimers();
     this.lotTransitionTimeout = setTimeout(() => {
       if (this.status === 'AUCTION') {
-        this.currentLotIndex++;
-        this.startCurrentLot();
+        const current = this.lots[this.currentLotIndex];
+        if (current && (current.status === 'SOLD' || current.status === 'UNSOLD')) {
+          this.currentLotIndex++;
+          this.startCurrentLot();
+        }
       }
-    }, transitionDelay);
+    }, 45000);
+  }
+
+  /**
+   * Authoritative Next-Lot Advance after speech and visual sequences complete
+   */
+  public advanceLot(lotIndex?: number) {
+    if (this.status !== 'AUCTION') return;
+    const lot = this.lots[this.currentLotIndex];
+    if (!lot || (lot.status !== 'SOLD' && lot.status !== 'UNSOLD' && lot.status !== 'SKIPPED')) {
+      return;
+    }
+
+    this.clearAllTimers();
+    this.currentLotIndex++;
+    this.startCurrentLot();
   }
 
   public skipCurrentLot(memberId: string): { success: boolean; message?: string } {

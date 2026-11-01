@@ -223,6 +223,10 @@ export class RoomManager {
         }
         break;
       }
+      case 'ADVANCE_LOT': {
+        room.advanceLot(msg.lotIndex);
+        break;
+      }
     }
   }
 
