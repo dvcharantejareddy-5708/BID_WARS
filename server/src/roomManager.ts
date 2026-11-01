@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 import { GameRoom } from './gameEngine.js';
-import { RoomSettings, ClientMessage, ServerMessage, RoomState, IPLTeamId } from './types.js';
+import { RoomSettings, ClientMessage, ServerMessage, RoomState } from './types.js';
 
 interface ClientConnection {
   ws: WebSocket;
@@ -67,11 +67,42 @@ export class RoomManager {
       return;
     }
 
+    if (msg.type === 'VERIFY_PASSWORD') {
+      const room = this.getRoom(msg.roomCode);
+      if (!room) {
+        this.sendError(ws, 'Room not found');
+        return;
+      }
+      if (room.verifyPassword(msg.password)) {
+        ws.send(JSON.stringify({ type: 'PASSWORD_VERIFIED', token: 'pass_ok' }));
+      } else {
+        ws.send(JSON.stringify({ type: 'ERROR', message: 'Incorrect room password', code: 'INVALID_PASSWORD' }));
+      }
+      return;
+    }
+
     if (msg.type === 'JOIN_ROOM') {
       const room = this.getRoom(msg.roomCode);
       if (!room) {
         this.sendError(ws, `Room "${msg.roomCode}" not found`);
         return;
+      }
+
+      // Check password authorization if private
+      if (room.isPrivate) {
+        const isHostReconnect = msg.sessionToken && msg.sessionToken === room.hostId;
+        const isExistingMember = msg.sessionToken && room.members.has(msg.sessionToken);
+
+        if (!isHostReconnect && !isExistingMember) {
+          if (!msg.password || !room.verifyPassword(msg.password)) {
+            ws.send(JSON.stringify({
+              type: 'PASSWORD_REQUIRED',
+              roomCode: room.roomCode,
+              roomName: room.settings.roomName
+            }));
+            return;
+          }
+        }
       }
 
       const member = room.join(msg.nickname, msg.sessionToken);
@@ -81,7 +112,6 @@ export class RoomManager {
         memberId: member.id
       });
 
-      // Send initial SYNC_STATE
       const syncMsg: ServerMessage = {
         type: 'SYNC_STATE',
         state: room.getState(),
@@ -140,6 +170,20 @@ export class RoomManager {
         const res = room.skipCurrentLot(conn.memberId);
         if (!res.success) {
           this.sendError(ws, res.message || 'Failed to skip lot');
+        }
+        break;
+      }
+      case 'DRAW_RANDOM_PLAYER': {
+        const res = room.drawRandomPlayer(conn.memberId, msg.category, msg.basePriceInr);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to draw random lot');
+        }
+        break;
+      }
+      case 'SEND_CHAT_MESSAGE': {
+        const res = room.sendChatMessage(conn.memberId, msg.text);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to send chat message');
         }
         break;
       }
@@ -214,9 +258,9 @@ export class RoomManager {
     }
   }
 
-  private sendError(ws: WebSocket, message: string) {
+  private sendError(ws: WebSocket, message: string, code?: string) {
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'ERROR', message }));
+      ws.send(JSON.stringify({ type: 'ERROR', message, code }));
     }
   }
 }

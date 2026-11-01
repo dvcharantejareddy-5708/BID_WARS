@@ -20,6 +20,7 @@ export interface IPLFranchise {
   accentColor: string;
   textColor: string;
   emblemText: string;
+  logoUrl: string;
 }
 
 export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
@@ -32,7 +33,8 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     secondaryColor: '#005FA2',
     accentColor: '#F9CD05',
     textColor: '#1A1A1A',
-    emblemText: '🦁 Whistle Podu'
+    emblemText: '🦁 Whistle Podu',
+    logoUrl: '/logos/csk.jpg'
   },
   MI: {
     id: 'MI',
@@ -43,7 +45,8 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     secondaryColor: '#D1AB3E',
     accentColor: '#0078FF',
     textColor: '#FFFFFF',
-    emblemText: '🌀 One Family'
+    emblemText: '🌀 One Family',
+    logoUrl: '/logos/mi.jpg'
   },
   RCB: {
     id: 'RCB',
@@ -54,7 +57,8 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     secondaryColor: '#2B2A29',
     accentColor: '#D1AB3E',
     textColor: '#FFFFFF',
-    emblemText: '👑 Play Bold'
+    emblemText: '👑 Play Bold',
+    logoUrl: '/logos/rcb.png'
   },
   KKR: {
     id: 'KKR',
@@ -65,7 +69,8 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     secondaryColor: '#D1AB3E',
     accentColor: '#7B42BC',
     textColor: '#FFFFFF',
-    emblemText: '⚔️ Korbo Lorbo Jeetbo'
+    emblemText: '⚔️ Korbo Lorbo Jeetbo',
+    logoUrl: '/logos/kkr.jpg'
   },
   SRH: {
     id: 'SRH',
@@ -76,7 +81,8 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     secondaryColor: '#000000',
     accentColor: '#FF823A',
     textColor: '#FFFFFF',
-    emblemText: '🦅 Orange Army'
+    emblemText: '🦅 Orange Army',
+    logoUrl: '/logos/srh.jpeg'
   },
   RR: {
     id: 'RR',
@@ -84,21 +90,23 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     shortName: 'RR',
     city: 'Jaipur',
     primaryColor: '#EA1A85',
-    secondaryColor: '#001D48',
-    accentColor: '#FF4D94',
+    secondaryColor: '#004BA0',
+    accentColor: '#FF69B4',
     textColor: '#FFFFFF',
-    emblemText: '👑 Halla Bol'
+    emblemText: '👑 Halla Bol',
+    logoUrl: '/logos/rr.png'
   },
   PBKS: {
     id: 'PBKS',
     name: 'Punjab Kings',
     shortName: 'PBKS',
     city: 'Mohali',
-    primaryColor: '#ED1B24',
-    secondaryColor: '#A7A9AC',
-    accentColor: '#D71921',
+    primaryColor: '#DD1F2D',
+    secondaryColor: '#D1AB3E',
+    accentColor: '#ED1B24',
     textColor: '#FFFFFF',
-    emblemText: '🦁 Sadda Punjab'
+    emblemText: '🦁 Sadda Punjab',
+    logoUrl: '/logos/pbks.jpeg'
   },
   DC: {
     id: 'DC',
@@ -106,32 +114,35 @@ export const IPL_FRANCHISES: Record<IPLTeamId, IPLFranchise> = {
     shortName: 'DC',
     city: 'Delhi',
     primaryColor: '#004C97',
-    secondaryColor: '#EF3B24',
-    accentColor: '#0072CE',
+    secondaryColor: '#EF1B23',
+    accentColor: '#2563EB',
     textColor: '#FFFFFF',
-    emblemText: '🐯 Roar Macha'
+    emblemText: '🐯 Roar Macha',
+    logoUrl: '/logos/dc.jpg'
   },
   GT: {
     id: 'GT',
     name: 'Gujarat Titans',
-    shortName: 'GT',
     city: 'Ahmedabad',
+    shortName: 'GT',
     primaryColor: '#1B2133',
-    secondaryColor: '#BCA136',
-    accentColor: '#2C3E6B',
+    secondaryColor: '#D1AB3E',
+    accentColor: '#0B4973',
     textColor: '#FFFFFF',
-    emblemText: '⚡ Aava De'
+    emblemText: '⚡ Aava De',
+    logoUrl: '/logos/gt.jpg'
   },
   LSG: {
     id: 'LSG',
     name: 'Lucknow Super Giants',
     shortName: 'LSG',
     city: 'Lucknow',
-    primaryColor: '#0057B8',
-    secondaryColor: '#E65828',
-    accentColor: '#00A3E0',
+    primaryColor: '#A72056',
+    secondaryColor: '#F9CD05',
+    accentColor: '#0057B7',
     textColor: '#FFFFFF',
-    emblemText: '🦅 Ab Apni Baari Hai'
+    emblemText: '🐘 Gazab Andaz',
+    logoUrl: '/logos/lsg.webp'
   }
 };
 
@@ -140,17 +151,24 @@ export type PrimaryRole = 'BATTER' | 'BOWLER' | 'ALL_ROUNDER';
 
 export interface Player {
   id: string;
+  player_id: string;
   s_no: number;
   name: string;
   raw_name: string;
+  country: string;
   nationality: string;
+  player_category: 'INDIAN' | 'OVERSEAS';
   is_overseas: boolean;
   primary_role: PrimaryRole;
+  role: PrimaryRole;
   category: PlayerCategory;
   is_wicketkeeper: boolean;
   year: number;
   base_price_inr: number;
   base_price_display: string;
+  auction_status: 'AVAILABLE' | 'SOLD' | 'UNSOLD' | 'SKIPPED';
+  sold_price_inr?: number;
+  team_id?: IPLTeamId;
   set_code: string;
   set_name: string;
   set_order: number;
@@ -167,6 +185,8 @@ export type BotStrategy = 'balanced' | 'aggressive' | 'budget' | 'specialist';
 
 export interface RoomSettings {
   roomName: string;
+  isPrivate: boolean;
+  password?: string;
   season: '2026' | '2025';
   poolMode: 'auction_pool' | 'mega_all';
   startingPurse: number;       // default 120,00,00,000 (120 Cr)
@@ -231,10 +251,16 @@ export interface AuditLogEntry {
 
 export interface TeamStats {
   teamId: IPLTeamId;
+  teamName: string;
+  managerName: string | null;
+  isBot: boolean;
+  initialPurse: number;
   totalSpent: number;
   remainingPurse: number;
   squadCount: number;
+  indianCount: number;
   overseasCount: number;
+  remainingOverseasSlots: number;
   battersCount: number;
   bowlersCount: number;
   allRoundersCount: number;
@@ -243,20 +269,33 @@ export interface TeamStats {
   minSpendRequired: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  teamId?: IPLTeamId;
+  text: string;
+  timestamp: number;
+  isSystem?: boolean;
+}
+
 export interface RoomState {
   roomCode: string;
   status: 'LOBBY' | 'AUCTION' | 'PAUSED' | 'COMPLETED';
+  isPrivate: boolean;
   settings: RoomSettings;
   hostId: string;
   members: Record<string, RoomMember>;
   teamPurse: Record<IPLTeamId, number>;
   teamSquads: Record<IPLTeamId, Player[]>;
+  teamStats: Record<IPLTeamId, TeamStats>;
   currentLotIndex: number;
   currentLot: AuctionLot | null;
   deadlineTimestamp: number | null;
   remainingSeconds: number;
   history: AuctionLot[];
   auditLog: AuditLogEntry[];
+  chatMessages: ChatMessage[];
   poolSize: number;
   totalSets: number;
   currentSetOrder: number;
@@ -265,13 +304,16 @@ export interface RoomState {
 
 // Client to Server Message Events
 export type ClientMessage =
-  | { type: 'JOIN_ROOM'; roomCode: string; nickname: string; sessionToken?: string }
+  | { type: 'JOIN_ROOM'; roomCode: string; nickname: string; sessionToken?: string; password?: string }
+  | { type: 'VERIFY_PASSWORD'; roomCode: string; password: string }
   | { type: 'SELECT_TEAM'; teamId: IPLTeamId }
   | { type: 'TOGGLE_READY'; isReady: boolean }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<RoomSettings> }
   | { type: 'START_AUCTION' }
-  | { type: 'PLACE_BID'; amount?: number } // if omitted, uses next legal increment
+  | { type: 'PLACE_BID'; amount?: number }
   | { type: 'SKIP_PLAYER' }
+  | { type: 'DRAW_RANDOM_PLAYER'; category: PlayerCategory; basePriceInr: number }
+  | { type: 'SEND_CHAT_MESSAGE'; text: string }
   | { type: 'PAUSE_AUCTION' }
   | { type: 'RESUME_AUCTION' }
   | { type: 'RESTART_AUCTION' }
@@ -282,12 +324,15 @@ export type ClientMessage =
 // Server to Client Message Events
 export type ServerMessage =
   | { type: 'SYNC_STATE'; state: RoomState; myMemberId: string }
+  | { type: 'PASSWORD_REQUIRED'; roomCode: string; roomName: string }
+  | { type: 'PASSWORD_VERIFIED'; token: string }
   | { type: 'TIMER_TICK'; remainingSeconds: number; deadlineTimestamp: number }
   | { type: 'BID_PLACED'; bid: BidRecord; nextMinBid: number; deadlineTimestamp: number }
-  | { type: 'LOT_FINALIZED'; lot: AuctionLot; teamPurse: Record<IPLTeamId, number> }
+  | { type: 'LOT_FINALIZED'; lot: AuctionLot; teamPurse: Record<IPLTeamId, number>; teamSquads: Record<IPLTeamId, Player[]>; teamStats: Record<IPLTeamId, TeamStats> }
   | { type: 'NEW_LOT'; lot: AuctionLot; deadlineTimestamp: number }
+  | { type: 'CHAT_MESSAGE'; message: ChatMessage }
   | { type: 'AUCTION_PAUSED'; reason?: string }
   | { type: 'AUCTION_RESUMED'; deadlineTimestamp: number }
-  | { type: 'AUCTION_COMPLETED'; summary: any }
+  | { type: 'AUCTION_COMPLETED'; summary: Record<IPLTeamId, TeamStats> }
   | { type: 'ERROR'; message: string; code?: string }
   | { type: 'PONG' };

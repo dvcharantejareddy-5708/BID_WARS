@@ -1,26 +1,49 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Copy, Check, Radio, Users, Shield, Compass, FileText, Settings, LogOut } from 'lucide-react';
-import { IPLTeamId, IPL_FRANCHISES, RoomMember } from '../types.js';
+import { 
+  Volume2, 
+  VolumeX, 
+  Copy, 
+  Check, 
+  Radio, 
+  Shield, 
+  Users, 
+  History, 
+  LogOut, 
+  Lock,
+  MessageSquare,
+  ListFilter,
+  Trophy
+} from 'lucide-react';
+import { IPL_FRANCHISES, RoomMember } from '../types.js';
 import { soundManager } from '../services/audio.js';
+import { TeamLogo } from './TeamLogo.js';
 
 interface NavbarProps {
   roomCode?: string;
+  isPrivate?: boolean;
   connected: boolean;
   myMember?: RoomMember;
-  activeTab: 'auction' | 'my-team' | 'all-teams' | 'explorer' | 'audit' | 'settings';
+  activeTab: 'auction' | 'my-team' | 'all-teams' | 'players' | 'history' | 'settings';
   setActiveTab: (tab: any) => void;
   onLeaveRoom?: () => void;
   squadCount?: number;
+  onToggleChat?: () => void;
+  isChatOpen?: boolean;
+  unreadChatCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   roomCode,
+  isPrivate,
   connected,
   myMember,
   activeTab,
   setActiveTab,
   onLeaveRoom,
-  squadCount = 0
+  squadCount = 0,
+  onToggleChat,
+  isChatOpen = false,
+  unreadChatCount = 0
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.isMuted);
   const [copied, setCopied] = useState(false);
@@ -40,56 +63,49 @@ export const Navbar: React.FC<NavbarProps> = ({
   const myTeam = myMember?.teamId ? IPL_FRANCHISES[myMember.teamId] : null;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0B1020]/90 backdrop-blur-md border-b border-navy-700/80 px-4 lg:px-8 py-3 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Logo & Tagline */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏏</span>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-extrabold tracking-wider font-display text-white">
-                  BID<span className="text-cyan-400">WARS</span>
-                </span>
-                <span className="bg-amber-400/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-400/30 uppercase tracking-wider">
-                  2026
-                </span>
-              </div>
-              <span className="text-[10px] text-slate-400 font-medium tracking-wide hidden sm:block">
-                BUILD YOUR XI. WIN THE AUCTION.
-              </span>
-            </div>
+    <header className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-[#262626] px-4 lg:px-6 py-2.5 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        {/* Logo & Brand */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className="text-xl">🏏</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg font-black tracking-wider font-display text-white">
+              BID<span className="text-[#00E676]">WARS</span>
+            </span>
+            <span className="bg-[#FFC857]/15 text-[#FFC857] text-[9px] font-bold px-1.5 py-0.5 rounded border border-[#FFC857]/30 uppercase">
+              2026
+            </span>
           </div>
         </div>
 
-        {/* Center Navigation Tabs (Only visible when in a room) */}
+        {/* Center Navigation Tabs (When inside a room) */}
         {roomCode && (
-          <nav className="hidden md:flex items-center bg-navy-800/80 p-1 rounded-xl border border-navy-700">
+          <nav className="hidden md:flex items-center bg-[#0D0D0D] p-1 rounded-xl border border-[#262626] gap-1">
             <button
               onClick={() => setActiveTab('auction')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === 'auction'
-                  ? 'bg-cyan-400 text-black shadow-glow-cyan'
-                  : 'text-slate-300 hover:text-white hover:bg-navy-700/60'
+                  ? 'bg-[#00E676] text-black font-bold shadow-sm'
+                  : 'text-[#8E8E93] hover:text-white hover:bg-[#151515]'
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>Auction Arena</span>
+              <span>Auction</span>
             </button>
 
             <button
               onClick={() => setActiveTab('my-team')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === 'my-team'
-                  ? 'bg-cyan-400 text-black shadow-glow-cyan'
-                  : 'text-slate-300 hover:text-white hover:bg-navy-700/60'
+                  ? 'bg-[#00E676] text-black font-bold shadow-sm'
+                  : 'text-[#8E8E93] hover:text-white hover:bg-[#151515]'
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
               <span>My Team</span>
               {squadCount > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'my-team' ? 'bg-black text-cyan-400' : 'bg-navy-600 text-slate-200'
+                  activeTab === 'my-team' ? 'bg-black text-[#00E676]' : 'bg-[#262626] text-white'
                 }`}>
                   {squadCount}
                 </span>
@@ -100,97 +116,110 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('all-teams')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === 'all-teams'
-                  ? 'bg-cyan-400 text-black shadow-glow-cyan'
-                  : 'text-slate-300 hover:text-white hover:bg-navy-700/60'
+                  ? 'bg-[#00E676] text-black font-bold shadow-sm'
+                  : 'text-[#8E8E93] hover:text-white hover:bg-[#151515]'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Trophy className="w-3.5 h-3.5" />
               <span>All Teams</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('explorer')}
+              onClick={() => setActiveTab('players')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'explorer'
-                  ? 'bg-cyan-400 text-black shadow-glow-cyan'
-                  : 'text-slate-300 hover:text-white hover:bg-navy-700/60'
+                activeTab === 'players'
+                  ? 'bg-[#00E676] text-black font-bold shadow-sm'
+                  : 'text-[#8E8E93] hover:text-white hover:bg-[#151515]'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5" />
               <span>Players</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('audit')}
+              onClick={() => setActiveTab('history')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'audit'
-                  ? 'bg-cyan-400 text-black shadow-glow-cyan'
-                  : 'text-slate-300 hover:text-white hover:bg-navy-700/60'
+                activeTab === 'history'
+                  ? 'bg-[#00E676] text-black font-bold shadow-sm'
+                  : 'text-[#8E8E93] hover:text-white hover:bg-[#151515]'
               }`}
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Audit Log</span>
+              <History className="w-3.5 h-3.5" />
+              <span>Auction History</span>
             </button>
           </nav>
         )}
 
-        {/* Right Controls: Room Code, Team Badge, Sound & Leave */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Right Controls: Chat Button + Room info + Profile */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Live Chat Toggle Button with Unread Badge */}
+          {roomCode && onToggleChat && (
+            <button
+              onClick={onToggleChat}
+              title="Toggle Live Chat"
+              className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm ${
+                isChatOpen
+                  ? 'bg-[#00E676] text-black border-[#00E676]'
+                  : 'bg-[#0D0D0D] hover:bg-[#151515] text-[#8E8E93] hover:text-white border-[#262626]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Chat</span>
+              {unreadChatCount > 0 && !isChatOpen && (
+                <span className="bg-[#00E676] text-black text-[10px] font-black px-1.5 py-0.2 rounded-full animate-bounce">
+                  {unreadChatCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {roomCode && (
             <button
               onClick={handleCopyCode}
               title="Click to copy Room Code"
-              className="flex items-center gap-1.5 bg-navy-800 hover:bg-navy-700 text-cyan-300 border border-cyan-400/30 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all shadow-sm"
+              className="flex items-center gap-1.5 bg-[#0D0D0D] hover:bg-[#151515] text-[#00E676] border border-[#262626] px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shadow-sm"
             >
+              {isPrivate && <Lock className="w-3 h-3 text-[#FFC857]" />}
               <span>{roomCode}</span>
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#00E676]" /> : <Copy className="w-3.5 h-3.5 opacity-60" />}
             </button>
           )}
 
-          {/* User & Team Badge */}
           {myMember && (
-            <div className="flex items-center gap-2 bg-navy-800/90 border border-navy-700 px-2.5 py-1 rounded-lg">
+            <div className="flex items-center gap-1.5 bg-[#0D0D0D] border border-[#262626] px-2.5 py-1.5 rounded-xl">
               {myTeam ? (
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-sm"
-                  style={{ backgroundColor: myTeam.primaryColor, color: myTeam.textColor }}
-                >
-                  {myTeam.id.slice(0, 2)}
-                </div>
+                <TeamLogo teamId={myTeam.id} className="w-5 h-5" />
               ) : (
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-[#FFC857] animate-pulse" />
               )}
-              <span className="text-xs font-semibold text-slate-200 max-w-[90px] truncate">
+              <span className="text-xs font-semibold text-white max-w-[80px] truncate">
                 {myMember.nickname}
               </span>
               {myMember.isHost && (
-                <span className="text-[9px] bg-amber-400/20 text-amber-300 font-bold px-1 rounded">
+                <span className="text-[9px] bg-[#FFC857]/20 text-[#FFC857] font-bold px-1 rounded">
                   HOST
                 </span>
               )}
             </div>
           )}
 
-          {/* Connection Status indicator */}
-          <div className="flex items-center gap-1" title={connected ? 'Live Connected' : 'Connecting...'}>
-            <span className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-400 shadow-glow-emerald' : 'bg-ruby-500 animate-ping'}`} />
+          <div className="flex items-center" title={connected ? 'Live Connected' : 'Connecting...'}>
+            <span className={`w-2 h-2 rounded-full ${connected ? 'bg-[#00E676]' : 'bg-[#FF5252] animate-ping'}`} />
           </div>
 
-          {/* Sound Toggle */}
           <button
             onClick={handleToggleSound}
-            aria-label={isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
-            className="p-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 text-slate-300 hover:text-white border border-navy-700 transition-colors"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+            className="p-1.5 rounded-xl bg-[#0D0D0D] hover:bg-[#151515] text-[#8E8E93] hover:text-white border border-[#262626] transition-colors"
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-ruby-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-[#FF5252]" /> : <Volume2 className="w-4 h-4 text-[#00E676]" />}
           </button>
 
-          {/* Leave Room */}
           {roomCode && onLeaveRoom && (
             <button
               onClick={onLeaveRoom}
               title="Leave Room"
-              className="p-1.5 rounded-lg bg-navy-800 hover:bg-ruby-500/20 text-slate-400 hover:text-ruby-400 border border-navy-700 transition-colors"
+              className="p-1.5 rounded-xl bg-[#0D0D0D] hover:bg-[#FF5252]/15 text-[#8E8E93] hover:text-[#FF5252] border border-[#262626] transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -200,11 +229,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Tab Navigation Bar */}
       {roomCode && (
-        <div className="flex md:hidden items-center justify-around mt-2 pt-2 border-t border-navy-700/60 overflow-x-auto gap-1">
+        <div className="flex md:hidden items-center justify-around mt-2 pt-2 border-t border-[#262626] overflow-x-auto gap-1">
           <button
             onClick={() => setActiveTab('auction')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center gap-1 ${
-              activeTab === 'auction' ? 'bg-cyan-400 text-black font-bold' : 'text-slate-400'
+            className={`px-2 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 ${
+              activeTab === 'auction' ? 'bg-[#00E676] text-black font-bold' : 'text-[#8E8E93]'
             }`}
           >
             <Radio className="w-3 h-3" />
@@ -212,8 +241,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('my-team')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center gap-1 ${
-              activeTab === 'my-team' ? 'bg-cyan-400 text-black font-bold' : 'text-slate-400'
+            className={`px-2 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 ${
+              activeTab === 'my-team' ? 'bg-[#00E676] text-black font-bold' : 'text-[#8E8E93]'
             }`}
           >
             <Shield className="w-3 h-3" />
@@ -221,30 +250,30 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('all-teams')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center gap-1 ${
-              activeTab === 'all-teams' ? 'bg-cyan-400 text-black font-bold' : 'text-slate-400'
+            className={`px-2 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 ${
+              activeTab === 'all-teams' ? 'bg-[#00E676] text-black font-bold' : 'text-[#8E8E93]'
             }`}
           >
-            <Users className="w-3 h-3" />
+            <Trophy className="w-3 h-3" />
             <span>Teams</span>
           </button>
           <button
-            onClick={() => setActiveTab('explorer')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center gap-1 ${
-              activeTab === 'explorer' ? 'bg-cyan-400 text-black font-bold' : 'text-slate-400'
+            onClick={() => setActiveTab('players')}
+            className={`px-2 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 ${
+              activeTab === 'players' ? 'bg-[#00E676] text-black font-bold' : 'text-[#8E8E93]'
             }`}
           >
-            <Compass className="w-3 h-3" />
+            <Users className="w-3 h-3" />
             <span>Players</span>
           </button>
           <button
-            onClick={() => setActiveTab('audit')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md flex items-center gap-1 ${
-              activeTab === 'audit' ? 'bg-cyan-400 text-black font-bold' : 'text-slate-400'
+            onClick={() => setActiveTab('history')}
+            className={`px-2 py-1 text-xs font-semibold rounded-lg flex items-center gap-1 ${
+              activeTab === 'history' ? 'bg-[#00E676] text-black font-bold' : 'text-[#8E8E93]'
             }`}
           >
-            <FileText className="w-3 h-3" />
-            <span>Logs</span>
+            <History className="w-3 h-3" />
+            <span>History</span>
           </button>
         </div>
       )}

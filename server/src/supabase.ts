@@ -18,3 +18,4 @@ if (supabaseUrl && supabaseKey && !supabaseUrl.includes('your-project')) {
 } else {
   console.log('[Engine] Running in high-performance server-authoritative in-memory mode (Zero-config ready)');
 }
+

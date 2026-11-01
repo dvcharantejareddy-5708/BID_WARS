@@ -132,3 +132,4 @@ To deploy to Supabase:
 | **DC** | Delhi Capitals | 🐯 Roar Macha | Navy Blue / Red |
 | **GT** | Gujarat Titans | ⚡ Aava De | Dark Navy / Gold |
 | **LSG** | Lucknow Super Giants | 🦅 Ab Apni Baari Hai | Cyan / Blue / Orange |
+

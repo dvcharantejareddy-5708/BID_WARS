@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Globe, Sparkles, X, Shield, Award, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Globe, Sparkles, X, Shield, Award, CheckCircle2, Plane } from 'lucide-react';
 import { Player, PlayerCategory } from '../types.js';
 import playersData2026 from '../data/players2026.json';
 import playersData2025 from '../data/players2025.json';
@@ -25,8 +25,8 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const matchesName = p.name.toLowerCase().includes(q);
-        const matchesCountry = p.nationality.toLowerCase().includes(q);
-        const matchesSet = p.set_name.toLowerCase().includes(q);
+        const matchesCountry = (p.country || p.nationality || '').toLowerCase().includes(q);
+        const matchesSet = (p.set_name || '').toLowerCase().includes(q);
         if (!matchesName && !matchesCountry && !matchesSet) return false;
       }
 
@@ -57,38 +57,38 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 relative">
       {/* Header */}
-      <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-navy-600/70 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="bg-cyan-400/20 text-cyan-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-cyan-400/30">
-              OFFICIAL PLAYER DATABASE
+            <span className="bg-[#00E676]/10 text-[#00E676] text-xs font-bold px-3 py-0.5 rounded-full border border-[#00E676]/30">
+              OFFICIAL VERIFIED PLAYER DATABASE
             </span>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-[#8E8E93] font-mono">
               Total {rawPlayers.length} Verified Players
             </span>
           </div>
           <h1 className="text-3xl font-extrabold font-display text-white">
             Player Explorer
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Search and filter the complete 532-player master list with authentic base prices and auction sets.
+          <p className="text-xs sm:text-sm text-[#8E8E93] mt-1">
+            Search and inspect the complete 532-player master database with official base prices and verified Indian/Overseas status.
           </p>
         </div>
 
         {/* Season Switcher */}
-        <div className="flex items-center gap-2 bg-navy-900/90 border border-navy-700 p-1.5 rounded-xl">
+        <div className="flex items-center gap-2 bg-[#151515] border border-[#262626] p-1.5 rounded-2xl">
           <button
             onClick={() => setCurrentSeason('2026')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              currentSeason === '2026' ? 'bg-cyan-400 text-black shadow-glow-cyan' : 'text-slate-400 hover:text-white'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              currentSeason === '2026' ? 'bg-[#00E676] text-black font-extrabold shadow-md' : 'text-[#8E8E93] hover:text-white'
             }`}
           >
             2026 Season
           </button>
           <button
             onClick={() => setCurrentSeason('2025')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              currentSeason === '2025' ? 'bg-cyan-400 text-black shadow-glow-cyan' : 'text-slate-400 hover:text-white'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              currentSeason === '2025' ? 'bg-[#00E676] text-black font-extrabold shadow-md' : 'text-[#8E8E93] hover:text-white'
             }`}
           >
             2025 Historical
@@ -97,21 +97,21 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="glass-panel rounded-2xl p-5 border border-navy-600/70 space-y-4">
+      <div className="bg-[#0D0D0D] border border-[#262626] rounded-3xl p-5 space-y-4 shadow-xl">
         {/* Search Input */}
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by player name, nationality (e.g. Australia, England), or set name..."
-            className="w-full pl-10 pr-4 py-2.5 bg-navy-900/90 border border-navy-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            placeholder="Search by player name, nationality, or set name..."
+            className="w-full pl-10 pr-4 py-2.5 bg-[#151515] border border-[#262626] rounded-2xl text-sm text-white placeholder-[#8E8E93] focus:outline-none focus:border-[#00E676] transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -122,11 +122,11 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           {/* Category */}
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Role Category</label>
+            <label className="block text-[10px] text-[#8E8E93] uppercase font-bold mb-1">Role Category</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-slate-200 rounded-lg p-2 outline-none focus:border-cyan-400"
+              className="w-full bg-[#151515] border border-[#262626] text-white rounded-xl p-2.5 outline-none focus:border-[#00E676]"
             >
               <option value="ALL">All Categories</option>
               <option value="Batsmen">Batsmen</option>
@@ -138,11 +138,11 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
 
           {/* Base Price */}
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Base Price Bracket</label>
+            <label className="block text-[10px] text-[#8E8E93] uppercase font-bold mb-1">Base Price Bracket</label>
             <select
               value={selectedPrice}
               onChange={(e) => setSelectedPrice(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-slate-200 rounded-lg p-2 outline-none focus:border-cyan-400"
+              className="w-full bg-[#151515] border border-[#262626] text-white rounded-xl p-2.5 outline-none focus:border-[#00E676]"
             >
               <option value="ALL">All Prices</option>
               <option value="2 Crore">₹2 Crore</option>
@@ -158,25 +158,25 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
 
           {/* Nationality */}
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Nationality</label>
+            <label className="block text-[10px] text-[#8E8E93] uppercase font-bold mb-1">Nationality</label>
             <select
               value={selectedNationality}
               onChange={(e) => setSelectedNationality(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-slate-200 rounded-lg p-2 outline-none focus:border-cyan-400"
+              className="w-full bg-[#151515] border border-[#262626] text-white rounded-xl p-2.5 outline-none focus:border-[#00E676]"
             >
               <option value="ALL">All Nationalities</option>
-              <option value="INDIAN">Indian Players</option>
-              <option value="OVERSEAS">Overseas Players</option>
+              <option value="INDIAN">Indian Players (🇮🇳)</option>
+              <option value="OVERSEAS">Overseas Players (✈)</option>
             </select>
           </div>
 
           {/* Pool Status */}
           <div>
-            <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Pool Status</label>
+            <label className="block text-[10px] text-[#8E8E93] uppercase font-bold mb-1">Pool Status</label>
             <select
               value={selectedPool}
               onChange={(e) => setSelectedPool(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-slate-200 rounded-lg p-2 outline-none focus:border-cyan-400"
+              className="w-full bg-[#151515] border border-[#262626] text-white rounded-xl p-2.5 outline-none focus:border-[#00E676]"
             >
               <option value="ALL">All Pools</option>
               <option value="AUCTION_POOL">Auction Pool (359)</option>
@@ -186,7 +186,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+        <div className="flex items-center justify-between text-xs text-[#8E8E93] pt-1">
           <span>Showing <strong>{filteredPlayers.length}</strong> of {rawPlayers.length} players</span>
           {(search || selectedCategory !== 'ALL' || selectedPrice !== 'ALL' || selectedNationality !== 'ALL' || selectedPool !== 'ALL') && (
             <button
@@ -197,7 +197,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
                 setSelectedNationality('ALL');
                 setSelectedPool('ALL');
               }}
-              className="text-cyan-400 hover:underline"
+              className="text-[#00E676] hover:underline font-semibold"
             >
               Reset Filters
             </button>
@@ -211,25 +211,32 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
           <div
             key={player.id}
             onClick={() => setSelectedPlayer(player)}
-            className={`glass-card rounded-2xl p-4 border transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.02] ${
-              player.is_marquee ? 'border-amber-400/40 bg-navy-800/80 shadow-glow-amber' : 'border-navy-700/80 bg-navy-900/70'
+            className={`bg-[#0D0D0D] rounded-3xl p-5 border transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.02] hover:border-[#00E676]/60 shadow-lg ${
+              player.is_marquee ? 'border-[#FFC857]/60 shadow-[0_0_15px_rgba(255,200,87,0.15)]' : 'border-[#262626]'
             }`}
           >
             <div>
               {/* Top Tags */}
-              <div className="flex items-center justify-between gap-1 mb-2">
-                <span className="text-[10px] font-bold bg-navy-800 px-2 py-0.5 rounded text-cyan-300">
+              <div className="flex items-center justify-between gap-1 mb-3">
+                <span className="text-[10px] font-bold bg-[#151515] border border-[#262626] px-2.5 py-0.5 rounded-full text-white">
                   {player.category}
                 </span>
 
                 <div className="flex items-center gap-1">
+                  {player.is_overseas ? (
+                    <span className="text-[9px] bg-[#00E676]/10 text-[#00E676] font-bold px-2 py-0.5 rounded-full border border-[#00E676]/30 flex items-center gap-0.5">
+                      <Plane className="w-2.5 h-2.5" /> OS
+                    </span>
+                  ) : (
+                    <span className="text-[10px]">🇮🇳</span>
+                  )}
                   {player.is_marquee && (
-                    <span className="text-[9px] bg-amber-400/20 text-amber-300 font-bold px-1.5 py-0.2 rounded border border-amber-400/30">
+                    <span className="text-[9px] bg-[#FFC857]/20 text-[#FFC857] font-bold px-1.5 py-0.5 rounded-full border border-[#FFC857]/30">
                       MARQUEE
                     </span>
                   )}
                   {player.is_retained && (
-                    <span className="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.2 rounded border border-purple-500/30">
+                    <span className="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded-full border border-purple-500/30">
                       RETAINED
                     </span>
                   )}
@@ -238,7 +245,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
 
               {/* Player Portrait & Name */}
               <div className="flex items-center gap-3 my-2">
-                <div className="w-12 h-12 rounded-xl bg-navy-800 border border-navy-700 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-[#151515] border border-[#262626] overflow-hidden flex items-center justify-center shrink-0">
                   <img
                     src={player.image_url}
                     alt={player.name}
@@ -247,7 +254,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
                     }}
                     className="w-full h-full object-cover object-top"
                   />
-                  <span className="font-display font-bold text-xs text-cyan-400">
+                  <span className="font-display font-bold text-xs text-[#00E676]">
                     {player.name.slice(0, 2)}
                   </span>
                 </div>
@@ -256,8 +263,8 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
                   <h4 className="font-display font-bold text-sm text-white leading-tight">
                     {player.name}
                   </h4>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                    <Globe className="w-3 h-3 text-slate-500" />
+                  <p className="text-[11px] text-[#8E8E93] flex items-center gap-1 mt-0.5">
+                    <Globe className="w-3 h-3 text-[#8E8E93]" />
                     <span>{player.nationality}</span>
                   </p>
                 </div>
@@ -265,9 +272,9 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
             </div>
 
             {/* Bottom: Base Price & Set */}
-            <div className="pt-2.5 border-t border-navy-800/80 flex items-center justify-between text-xs">
-              <span className="text-slate-500 text-[11px] font-mono">Lot #{player.s_no}</span>
-              <span className="font-mono font-bold text-amber-300">
+            <div className="pt-3 border-t border-[#262626] flex items-center justify-between text-xs">
+              <span className="text-[#8E8E93] text-[11px] font-mono">Lot #{player.s_no}</span>
+              <span className="font-mono font-bold text-[#FFC857]">
                 {player.base_price_display}
               </span>
             </div>
@@ -276,66 +283,78 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
       </div>
 
       {filteredPlayers.length > 100 && (
-        <p className="text-center text-xs text-slate-500 italic py-4">
-          Showing first 100 results. Use the search bar to find specific players.
+        <p className="text-center text-xs text-[#8E8E93] italic py-4">
+          Showing first 100 results. Use the search bar above to filter specific players.
         </p>
       )}
 
       {/* Player Detail Modal */}
       {selectedPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="glass-panel max-w-md w-full rounded-2xl p-6 border border-cyan-400/40 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#0D0D0D] max-w-md w-full rounded-3xl p-6 sm:p-7 border border-[#262626] shadow-2xl relative">
             <button
               onClick={() => setSelectedPlayer(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              className="absolute top-5 right-5 text-[#8E8E93] hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-navy-800 border border-cyan-400/30 overflow-hidden flex items-center justify-center shrink-0">
-                <img
-                  src={selectedPlayer.image_url}
-                  alt={selectedPlayer.name}
-                  onError={(e: any) => { e.target.style.display = 'none'; }}
-                  className="w-full h-full object-cover object-top"
-                />
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-14 h-14 rounded-2xl bg-[#151515] border border-[#262626] overflow-hidden flex items-center justify-center shrink-0">
+                {selectedPlayer.image_url ? (
+                  <img
+                    src={selectedPlayer.image_url}
+                    alt={selectedPlayer.name}
+                    onError={(e: any) => { e.target.style.display = 'none'; }}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <span className="font-display font-bold text-sm text-[#00E676]">
+                    {selectedPlayer.name.slice(0, 2)}
+                  </span>
+                )}
               </div>
 
               <div>
                 <h3 className="font-display font-bold text-lg text-white">
                   {selectedPlayer.name}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#8E8E93]">
                   {selectedPlayer.nationality} · {selectedPlayer.category}
                 </p>
               </div>
             </div>
 
-            <div className="bg-navy-900/90 border border-navy-700 rounded-xl p-4 space-y-2 text-xs mb-5">
-              <div className="flex justify-between py-1 border-b border-navy-800">
-                <span className="text-slate-400">Master List S.No:</span>
+            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 space-y-2.5 text-xs mb-5">
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Master List S.No:</span>
                 <span className="font-mono font-bold text-white">#{selectedPlayer.s_no}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-navy-800">
-                <span className="text-slate-400">Official Base Price:</span>
-                <span className="font-mono font-bold text-amber-300">{selectedPlayer.base_price_display}</span>
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Official Base Price:</span>
+                <span className="font-mono font-bold text-[#FFC857]">{selectedPlayer.base_price_display}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-navy-800">
-                <span className="text-slate-400">Auction Set:</span>
-                <span className="font-medium text-cyan-300">{selectedPlayer.set_name}</span>
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Classification:</span>
+                <span className="font-semibold text-white">
+                  {selectedPlayer.is_overseas ? '✈ Overseas Player' : '🇮🇳 Indian Domestic Player'}
+                </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-navy-800">
-                <span className="text-slate-400">Wicket-Keeper:</span>
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Auction Set:</span>
+                <span className="font-medium text-[#00E676]">{selectedPlayer.set_name}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Wicket-Keeper:</span>
                 <span className="font-medium text-white">{selectedPlayer.is_wicketkeeper ? 'Yes' : 'No'}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-navy-800">
-                <span className="text-slate-400">Eligibility Status:</span>
-                <span className="font-medium text-emerald-400 capitalize">{selectedPlayer.eligibility.replace('_', ' ')}</span>
+              <div className="flex justify-between py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Eligibility Status:</span>
+                <span className="font-medium text-[#00E676] capitalize">{selectedPlayer.eligibility.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400">Verification:</span>
-                <span className="text-emerald-400 flex items-center gap-1 font-semibold">
+                <span className="text-[#8E8E93]">Verification:</span>
+                <span className="text-[#00E676] flex items-center gap-1 font-semibold">
                   <CheckCircle2 className="w-3.5 h-3.5" /> {selectedPlayer.verification_status}
                 </span>
               </div>
@@ -343,7 +362,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
 
             <button
               onClick={() => setSelectedPlayer(null)}
-              className="w-full py-2.5 px-4 rounded-xl bg-navy-800 hover:bg-navy-700 text-slate-200 text-xs font-semibold border border-navy-600"
+              className="w-full py-3 px-4 rounded-full bg-[#151515] hover:bg-[#202020] text-slate-200 text-xs font-semibold border border-[#262626] transition-all"
             >
               Close
             </button>

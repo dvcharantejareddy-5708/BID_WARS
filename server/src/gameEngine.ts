@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { 
   IPLTeamId, 
   IPL_FRANCHISES, 
@@ -9,9 +10,11 @@ import {
   AuditLogEntry, 
   RoomState, 
   BotStrategy,
-  TeamStats
+  TeamStats,
+  PlayerCategory,
+  ChatMessage
 } from './types.js';
-import { buildAuctionLots } from './playerService.js';
+import { buildAuctionLots, shuffleArray } from './playerService.js';
 import { evaluateBotBid } from './botEngine.js';
 
 export class GameRoom {
@@ -19,6 +22,9 @@ export class GameRoom {
   public settings: RoomSettings;
   public status: 'LOBBY' | 'AUCTION' | 'PAUSED' | 'COMPLETED' = 'LOBBY';
   public hostId: string;
+  public isPrivate: boolean = false;
+  private passwordHash: string | null = null;
+
   public members: Map<string, RoomMember> = new Map();
   public teamPurse: Record<IPLTeamId, number> = {} as any;
   public teamSquads: Record<IPLTeamId, Player[]> = {} as any;
@@ -27,17 +33,18 @@ export class GameRoom {
   public deadlineTimestamp: number | null = null;
   public history: AuctionLot[] = [];
   public auditLog: AuditLogEntry[] = [];
+  public chatMessages: ChatMessage[] = [];
   public reAuctionRound: boolean = false;
-
-  public get currentLot(): AuctionLot | null {
-    return this.currentLotIndex < this.lots.length ? this.lots[this.currentLotIndex] : null;
-  }
 
   private timerInterval: NodeJS.Timeout | null = null;
   private botTimeouts: NodeJS.Timeout[] = [];
   private broadcastCallback: (state: RoomState, eventMsg?: any) => void;
   private isProcessingBid: boolean = false;
   private pauseRemainingMs: number | null = null;
+
+  public get currentLot(): AuctionLot | null {
+    return this.currentLotIndex < this.lots.length ? this.lots[this.currentLotIndex] : null;
+  }
 
   constructor(
     roomCode: string, 
@@ -48,15 +55,21 @@ export class GameRoom {
     this.roomCode = roomCode;
     this.broadcastCallback = broadcastCallback;
     
+    this.isPrivate = Boolean(initialSettings.isPrivate);
+    if (this.isPrivate && initialSettings.password && initialSettings.password.trim()) {
+      this.passwordHash = crypto.createHash('sha256').update(initialSettings.password.trim()).digest('hex');
+    }
+
     this.settings = {
       roomName: initialSettings.roomName || `Auction Room ${roomCode}`,
+      isPrivate: this.isPrivate,
       season: initialSettings.season || '2026',
       poolMode: initialSettings.poolMode || 'auction_pool',
       startingPurse: initialSettings.startingPurse || 1200000000, // 120 Cr
       timerDuration: initialSettings.timerDuration || 10,
       minSquad: initialSettings.minSquad || 18,
       maxSquad: initialSettings.maxSquad || 25,
-      maxOverseas: initialSettings.maxOverseas || 8,
+      maxOverseas: 8, // Master rule: 8 overseas maximum
       minBidIncrement: initialSettings.minBidIncrement || 2000000, // 20 Lakh
       playMode: initialSettings.playMode || 'friends_only',
       botCount: initialSettings.botCount || 0,
@@ -85,6 +98,14 @@ export class GameRoom {
     });
 
     this.addAuditLog('ROOM_CREATED', `Room ${roomCode} created by ${hostNickname}`, hostNickname);
+  }
+
+  public verifyPassword(inputPassword?: string): boolean {
+    if (!this.isPrivate) return true;
+    if (!this.passwordHash) return true;
+    if (!inputPassword) return false;
+    const hash = crypto.createHash('sha256').update(inputPassword.trim()).digest('hex');
+    return hash === this.passwordHash;
   }
 
   public addAuditLog(action: string, details: string, performer: string) {
@@ -182,7 +203,6 @@ export class GameRoom {
     }
     if (newSettings.startingPurse !== undefined) {
       this.settings.startingPurse = Math.max(500000000, newSettings.startingPurse);
-      // update all team purses
       const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
       for (const t of allTeams) {
         this.teamPurse[t] = this.settings.startingPurse;
@@ -192,7 +212,6 @@ export class GameRoom {
     if (newSettings.poolMode !== undefined) this.settings.poolMode = newSettings.poolMode;
     if (newSettings.minSquad !== undefined) this.settings.minSquad = newSettings.minSquad;
     if (newSettings.maxSquad !== undefined) this.settings.maxSquad = newSettings.maxSquad;
-    if (newSettings.maxOverseas !== undefined) this.settings.maxOverseas = newSettings.maxOverseas;
     if (newSettings.minBidIncrement !== undefined) this.settings.minBidIncrement = newSettings.minBidIncrement;
     if (newSettings.playMode !== undefined) this.settings.playMode = newSettings.playMode;
     if (newSettings.botCount !== undefined) this.settings.botCount = newSettings.botCount;
@@ -206,7 +225,6 @@ export class GameRoom {
   public addBot(teamId: IPLTeamId, strategy: BotStrategy = 'balanced'): { success: boolean; message?: string } {
     if (this.status !== 'LOBBY') return { success: false, message: 'Cannot add bots after auction start' };
     
-    // Check if team is occupied
     for (const member of this.members.values()) {
       if (member.teamId === teamId) {
         return { success: false, message: `${IPL_FRANCHISES[teamId].name} is already occupied` };
@@ -253,14 +271,12 @@ export class GameRoom {
       return { success: false, message: 'Auction is already started' };
     }
 
-    // Verify all human participants have selected a franchise
     for (const m of this.members.values()) {
       if (!m.isBot && !m.teamId) {
         return { success: false, message: `Participant "${m.nickname}" has not selected a franchise.` };
       }
     }
 
-    // If playMode is friends_bots and botCount > 0, auto-fill remaining franchises up to requested bot count
     if (this.settings.playMode === 'friends_bots') {
       const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
       const strategies: BotStrategy[] = ['balanced', 'aggressive', 'budget', 'specialist'];
@@ -274,7 +290,6 @@ export class GameRoom {
       }
     }
 
-    // Build ordered auction lots
     this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
     if (this.lots.length === 0) {
       return { success: false, message: 'No eligible auction lots found for this season/pool mode' };
@@ -284,9 +299,81 @@ export class GameRoom {
     this.currentLotIndex = 0;
     this.addAuditLog('AUCTION_STARTED', `Auction started with ${this.lots.length} lots.`, 'Host');
 
-    // Start first lot
     this.startCurrentLot();
     return { success: true };
+  }
+
+  /**
+   * SECTION 16: Random Player Selection by Category and Price Bracket
+   */
+  public drawRandomPlayer(
+    memberId: string, 
+    category: PlayerCategory, 
+    basePriceInr: number
+  ): { success: boolean; message?: string; lot?: AuctionLot } {
+    if (memberId !== this.hostId) {
+      return { success: false, message: 'Only the host can draw a random player lot' };
+    }
+    if (this.status !== 'AUCTION') {
+      return { success: false, message: 'Auction must be active to draw lots' };
+    }
+
+    // Filter available pending lots matching category and price bracket
+    // Criteria:
+    // 1. Belongs to selected category
+    // 2. Base price matches selected bracket
+    // 3. Status is PENDING (not already sold, unsold, or skipped)
+    // 4. Not currently being auctioned
+    const eligibleIndices: number[] = [];
+    for (let idx = 0; idx < this.lots.length; idx++) {
+      if (idx === this.currentLotIndex && this.lots[idx].status === 'IN_PROGRESS') {
+        continue; // Currently active lot
+      }
+      const l = this.lots[idx];
+      const matchesCategory =
+        l.player.category === category ||
+        (category === 'Batsmen' && l.player.primary_role === 'BATTER') ||
+        (category === 'Bowlers' && l.player.primary_role === 'BOWLER') ||
+        (category === 'All-rounders' && l.player.primary_role === 'ALL_ROUNDER') ||
+        (category === 'Wicket-keepers' && l.player.is_wicketkeeper);
+
+      if (
+        l.status === 'PENDING' &&
+        matchesCategory &&
+        l.player.base_price_inr === basePriceInr &&
+        l.player.auction_status === 'AVAILABLE'
+      ) {
+        eligibleIndices.push(idx);
+      }
+    }
+
+    if (eligibleIndices.length === 0) {
+      return { 
+        success: false, 
+        message: `No available unauctioned players found in ${category} at ₹${(basePriceInr / 10000000).toFixed(2)} Cr.` 
+      };
+    }
+
+    // Pick random eligible lot index
+    const randomIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+
+    // Finalize or pause current lot if active without bids, or advance directly
+    const currentActive = this.lots[this.currentLotIndex];
+    if (currentActive && currentActive.status === 'IN_PROGRESS' && currentActive.currentBid === 0) {
+      currentActive.status = 'PENDING'; // Return to pending
+    }
+
+    this.clearAllTimers();
+    this.currentLotIndex = randomIdx;
+    this.startCurrentLot();
+
+    this.addAuditLog(
+      'RANDOM_LOT_DRAWN',
+      `Host randomly drew ${this.lots[randomIdx].player.name} from ${category} (${this.lots[randomIdx].player.base_price_display})`,
+      'Host'
+    );
+
+    return { success: true, lot: this.lots[randomIdx] };
   }
 
   private startCurrentLot() {
@@ -332,7 +419,6 @@ export class GameRoom {
         this.clearAllTimers();
         this.finalizeCurrentLot();
       } else {
-        // Broadcast periodic sync every second
         this.broadcastCallback(this.getState(), {
           type: 'TIMER_TICK',
           remainingSeconds: remainingSec,
@@ -360,7 +446,6 @@ export class GameRoom {
       return { success: false, message: 'Current lot is not active for bidding' };
     }
 
-    // Atomic serialization lock
     if (this.isProcessingBid) {
       return { success: false, message: 'Bid collision detected, please retry' };
     }
@@ -383,22 +468,24 @@ export class GameRoom {
         return { success: false, message: `Minimum legal bid is ₹${(minRequired / 10000000).toFixed(2)} Cr` };
       }
 
-      // 3. Team squad limit check
+      // 3. Team squad limit check (Max 25)
       const currentSquad = this.teamSquads[teamId] || [];
       if (currentSquad.length >= this.settings.maxSquad) {
         return { success: false, message: `Maximum squad limit of ${this.settings.maxSquad} reached` };
       }
 
-      // 4. Overseas player limit check
+      // 4. CRITICAL: Strict Overseas Player Limit Check (Max 8)
       if (lot.player.is_overseas) {
         const overseasCount = currentSquad.filter(p => p.is_overseas).length;
-        if (overseasCount >= this.settings.maxOverseas) {
-          return { success: false, message: `Maximum overseas limit of ${this.settings.maxOverseas} reached` };
+        if (overseasCount >= 8) {
+          return { 
+            success: false, 
+            message: 'Overseas limit reached. Your team already has 8 overseas players.' 
+          };
         }
       }
 
       // 5. Mathematical squad reserve feasibility check:
-      // Team must retain enough purse to fill minimum squad (18 players) at min base price (30 Lakh)
       const purse = this.teamPurse[teamId] || 0;
       if (bidAmount > purse) {
         return { success: false, message: 'Insufficient purse balance for this bid' };
@@ -440,7 +527,6 @@ export class GameRoom {
         member.nickname
       );
 
-      // Trigger bot reaction to new bid
       this.triggerBotBidding();
 
       const nextMin = bidAmount + this.settings.minBidIncrement;
@@ -458,7 +544,6 @@ export class GameRoom {
   }
 
   private triggerBotBidding() {
-    // Clear any pending bot bid timeouts
     for (const timeout of this.botTimeouts) clearTimeout(timeout);
     this.botTimeouts = [];
 
@@ -466,7 +551,6 @@ export class GameRoom {
     const lot = this.lots[this.currentLotIndex];
     if (!lot || lot.status !== 'IN_PROGRESS') return;
 
-    // Iterate through all bots
     for (const member of this.members.values()) {
       if (!member.isBot || !member.teamId) continue;
       const teamId = member.teamId;
@@ -495,40 +579,78 @@ export class GameRoom {
     }
   }
 
+  /**
+   * ATOMIC AUTHORITATIVE PURCHASE TRANSACTION
+   */
   private finalizeCurrentLot() {
     const lot = this.lots[this.currentLotIndex];
     if (!lot) return;
 
     if (lot.currentBid > 0 && lot.currentBidder) {
-      // SOLD!
-      lot.status = 'SOLD';
-      lot.soldPrice = lot.currentBid;
-      lot.winningTeam = lot.currentBidder;
-      lot.winningTeamName = IPL_FRANCHISES[lot.currentBidder].name;
-      lot.winningBidderName = lot.currentBidderName || undefined;
+      const winningTeam = lot.currentBidder;
+      const winningPrice = lot.currentBid;
+      const currentSquad = this.teamSquads[winningTeam] || [];
+      const overseasCount = currentSquad.filter(p => p.is_overseas).length;
 
-      // Deduct purse
-      this.teamPurse[lot.currentBidder] -= lot.currentBid;
-      // Add player to squad
-      this.teamSquads[lot.currentBidder].push(lot.player);
+      // Final server-side validation checks
+      if (lot.player.is_overseas && overseasCount >= 8) {
+        // Violates overseas limit! Mark lot unsold and cancel transaction
+        lot.status = 'UNSOLD';
+        this.addAuditLog('PURCHASE_FAILED', `Purchase rejected: ${winningTeam} exceeded 8 overseas players limit.`, 'System');
+      } else if (currentSquad.length >= this.settings.maxSquad) {
+        lot.status = 'UNSOLD';
+        this.addAuditLog('PURCHASE_FAILED', `Purchase rejected: ${winningTeam} reached maximum 25 squad limit.`, 'System');
+      } else if (this.teamPurse[winningTeam] < winningPrice) {
+        lot.status = 'UNSOLD';
+        this.addAuditLog('PURCHASE_FAILED', `Purchase rejected: ${winningTeam} has insufficient purse.`, 'System');
+      } else {
+        // EXECUTE TRANSACTION ATOMICALLY:
+        lot.status = 'SOLD';
+        lot.soldPrice = winningPrice;
+        lot.winningTeam = winningTeam;
+        lot.winningTeamName = IPL_FRANCHISES[winningTeam].name;
+        lot.winningBidderName = lot.currentBidderName || undefined;
 
-      this.addAuditLog(
-        'PLAYER_SOLD',
-        `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[lot.currentBidder].name} (${lot.currentBidder}) for ₹${(lot.currentBid / 10000000).toFixed(2)} Cr`,
-        'System'
-      );
+        // 1. Mark player metadata
+        lot.player.auction_status = 'SOLD';
+        lot.player.sold_price_inr = winningPrice;
+        lot.player.team_id = winningTeam;
+
+        // 2. Deduct purse
+        this.teamPurse[winningTeam] -= winningPrice;
+
+        // 3. Add cloned player to squad
+        const purchasedPlayer: Player = {
+          ...lot.player,
+          auction_status: 'SOLD',
+          sold_price_inr: winningPrice,
+          team_id: winningTeam
+        };
+        this.teamSquads[winningTeam].push(purchasedPlayer);
+
+        this.addAuditLog(
+          'PLAYER_SOLD',
+          `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`,
+          'System'
+        );
+      }
     } else {
       // UNSOLD
       lot.status = 'UNSOLD';
+      lot.player.auction_status = 'UNSOLD';
       this.addAuditLog('PLAYER_UNSOLD', `UNSOLD: ${lot.player.name}`, 'System');
     }
 
     this.history.unshift({ ...lot });
 
+    // CRITICAL FIX: Broadcast full teamSquads and teamStats with LOT_FINALIZED!
+    const summary = this.getTeamSummary();
     this.broadcastCallback(this.getState(), {
       type: 'LOT_FINALIZED',
       lot,
-      teamPurse: this.teamPurse
+      teamPurse: { ...this.teamPurse },
+      teamSquads: { ...this.teamSquads },
+      teamStats: summary
     });
 
     // Advance to next lot after 2.8s transition pause
@@ -555,16 +677,19 @@ export class GameRoom {
 
     this.clearAllTimers();
     lot.status = 'SKIPPED';
+    lot.player.auction_status = 'SKIPPED';
     this.addAuditLog('PLAYER_SKIPPED', `Host skipped lot #${lot.lotNumber}: ${lot.player.name}`, 'Host');
     this.history.unshift({ ...lot });
 
+    const summary = this.getTeamSummary();
     this.broadcastCallback(this.getState(), {
       type: 'LOT_FINALIZED',
       lot,
-      teamPurse: this.teamPurse
+      teamPurse: { ...this.teamPurse },
+      teamSquads: { ...this.teamSquads },
+      teamStats: summary
     });
 
-    // Advance to next lot
     setTimeout(() => {
       if (this.status === 'AUCTION') {
         this.currentLotIndex++;
@@ -634,6 +759,43 @@ export class GameRoom {
     return { success: true };
   }
 
+  public sendChatMessage(memberId: string, text: string): { success: boolean; message?: string; chat?: ChatMessage } {
+    const member = this.members.get(memberId);
+    if (!member) {
+      return { success: false, message: 'Member not found in room' };
+    }
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return { success: false, message: 'Message cannot be empty' };
+    }
+    if (trimmed.length > 300) {
+      return { success: false, message: 'Message exceeds 300 characters limit' };
+    }
+
+    const chatMsg: ChatMessage = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      senderId: memberId,
+      senderName: member.nickname,
+      teamId: member.teamId || undefined,
+      text: trimmed,
+      timestamp: Date.now()
+    };
+
+    this.chatMessages.push(chatMsg);
+    if (this.chatMessages.length > 100) {
+      this.chatMessages.shift();
+    }
+
+    // Broadcast chat message immediately to room
+    this.broadcastCallback(this.getState(), {
+      type: 'CHAT_MESSAGE',
+      message: chatMsg
+    });
+
+    return { success: true, chat: chatMsg };
+  }
+
   public finishAuction() {
     this.clearAllTimers();
     this.status = 'COMPLETED';
@@ -647,17 +809,47 @@ export class GameRoom {
       return { success: false, message: 'Only the host can initiate the re-auction round' };
     }
 
-    // Collect all unsold and skipped lots
     const unassignedLots = this.lots.filter(l => l.status === 'UNSOLD' || l.status === 'SKIPPED');
     if (unassignedLots.length === 0) {
       return { success: false, message: 'No unsold or skipped players remaining to re-auction' };
     }
 
     this.reAuctionRound = true;
-    this.lots = unassignedLots.map((l, i) => ({
+    const unassignedPlayers = unassignedLots.map(l => ({ ...l.player, auction_status: 'AVAILABLE' as const }));
+
+    // Group by descending price brackets and category sequence: Batsmen -> All-Rounders -> Bowlers
+    const priceBrackets = Array.from(new Set(unassignedPlayers.map(p => p.base_price_inr))).sort((a, b) => b - a);
+    const CATEGORY_SEQUENCE: Array<{ role: 'BATTER' | 'ALL_ROUNDER' | 'BOWLER'; label: string }> = [
+      { role: 'BATTER', label: 'Batsmen' },
+      { role: 'ALL_ROUNDER', label: 'All-Rounders' },
+      { role: 'BOWLER', label: 'Bowlers' }
+    ];
+
+    const reorderedPlayers: Player[] = [];
+    let setCounter = 0;
+    for (const price of priceBrackets) {
+      const priceDisplay = price >= 10000000
+        ? `₹${(price / 10000000).toFixed(2)} Cr`
+        : `₹${(price / 100000).toFixed(0)} Lakh`;
+
+      for (const cat of CATEGORY_SEQUENCE) {
+        const catPlayers = unassignedPlayers.filter(
+          p => p.base_price_inr === price && p.primary_role === cat.role
+        );
+        if (catPlayers.length === 0) continue;
+        setCounter++;
+        const setName = `Re-Auction: ${priceDisplay} ${cat.label}`;
+        const shuffled = shuffleArray(catPlayers);
+        shuffled.forEach(p => {
+          reorderedPlayers.push({ ...p, set_name: setName, set_order: setCounter });
+        });
+      }
+    }
+
+    this.lots = reorderedPlayers.map((player, i) => ({
       lotNumber: i + 1,
-      totalLots: unassignedLots.length,
-      player: l.player,
+      totalLots: reorderedPlayers.length,
+      player,
       status: 'PENDING',
       currentBid: 0,
       currentBidder: null,
@@ -685,11 +877,20 @@ export class GameRoom {
     const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
     const summary = {} as Record<IPLTeamId, TeamStats>;
 
+    // Find manager for each team
+    const managers: Record<IPLTeamId, { nickname: string; isBot: boolean }> = {} as any;
+    for (const m of this.members.values()) {
+      if (m.teamId) {
+        managers[m.teamId] = { nickname: m.nickname, isBot: m.isBot };
+      }
+    }
+
     for (const teamId of allTeams) {
       const squad = this.teamSquads[teamId] || [];
       const spent = this.settings.startingPurse - (this.teamPurse[teamId] || 0);
       const remaining = this.teamPurse[teamId] || 0;
       const overseas = squad.filter(p => p.is_overseas).length;
+      const indian = squad.filter(p => !p.is_overseas).length;
       const batters = squad.filter(p => p.primary_role === 'BATTER' && !p.is_wicketkeeper).length;
       const bowlers = squad.filter(p => p.primary_role === 'BOWLER').length;
       const allRounders = squad.filter(p => p.primary_role === 'ALL_ROUNDER').length;
@@ -698,7 +899,7 @@ export class GameRoom {
       const isValid = 
         squad.length >= this.settings.minSquad &&
         squad.length <= this.settings.maxSquad &&
-        overseas <= this.settings.maxOverseas &&
+        overseas <= 8 &&
         remaining >= 0;
 
       const needed = Math.max(0, this.settings.minSquad - squad.length);
@@ -706,10 +907,16 @@ export class GameRoom {
 
       summary[teamId] = {
         teamId,
+        teamName: IPL_FRANCHISES[teamId].name,
+        managerName: managers[teamId] ? managers[teamId].nickname : null,
+        isBot: managers[teamId] ? managers[teamId].isBot : false,
+        initialPurse: this.settings.startingPurse,
         totalSpent: spent,
         remainingPurse: remaining,
         squadCount: squad.length,
+        indianCount: indian,
         overseasCount: overseas,
+        remainingOverseasSlots: Math.max(0, 8 - overseas),
         battersCount: batters,
         bowlersCount: bowlers,
         allRoundersCount: allRounders,
@@ -732,24 +939,34 @@ export class GameRoom {
       membersObj[id] = { ...m };
     }
 
+    // Deep clone squads and purse to prevent stale reference leaks
+    const safeSquads: Record<IPLTeamId, Player[]> = {} as any;
+    const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
+    for (const t of allTeams) {
+      safeSquads[t] = [...(this.teamSquads[t] || [])];
+    }
+
     return {
       roomCode: this.roomCode,
       status: this.status,
-      settings: { ...this.settings },
+      isPrivate: this.isPrivate,
+      settings: { ...this.settings, isPrivate: this.isPrivate },
       hostId: this.hostId,
       members: membersObj,
       teamPurse: { ...this.teamPurse },
-      teamSquads: { ...this.teamSquads },
+      teamSquads: safeSquads,
+      teamStats: this.getTeamSummary(),
       currentLotIndex: this.currentLotIndex,
       currentLot: currentLot ? { ...currentLot } : null,
       deadlineTimestamp: this.deadlineTimestamp,
       remainingSeconds,
       history: [...this.history],
       auditLog: [...this.auditLog],
+      chatMessages: [...this.chatMessages],
       poolSize: this.lots.length,
-      totalSets: 12,
+      totalSets: this.lots.length > 0 ? Math.max(...this.lots.map(l => l.player.set_order)) : 1,
       currentSetOrder: currentLot ? currentLot.player.set_order : 1,
-      currentSetName: currentLot ? currentLot.player.set_name : 'SET -1 — MARQUEE PLAYERS'
+      currentSetName: currentLot ? currentLot.player.set_name : '₹2.00 Cr Batsmen'
     };
   }
 

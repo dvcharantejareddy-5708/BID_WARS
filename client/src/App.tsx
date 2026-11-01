@@ -6,17 +6,20 @@ import { WaitingLobby } from './components/WaitingLobby.js';
 import { AuctionArena } from './components/AuctionArena.js';
 import { MyTeamView } from './components/MyTeamView.js';
 import { AllTeamsView } from './components/AllTeamsView.js';
-import { PlayerExplorer } from './components/PlayerExplorer.js';
+import { PlayersView } from './components/PlayersView.js';
+import { AuctionHistoryView } from './components/AuctionHistoryView.js';
+import { LiveChatPanel } from './components/LiveChatPanel.js';
 import { AuctionResults } from './components/AuctionResults.js';
-import { AuditLogModal } from './components/AuditLogModal.js';
 import { SettingsModal } from './components/SettingsModal.js';
+import { PasswordModal } from './components/PasswordModal.js';
 import { socketService } from './services/socket.js';
 import { 
   RoomState, 
   ServerMessage, 
   IPLTeamId, 
   RoomSettings, 
-  BotStrategy 
+  BotStrategy,
+  PlayerCategory 
 } from './types.js';
 
 export function App() {
@@ -29,11 +32,17 @@ export function App() {
   // Flow State
   // 'landing' | 'onboarding' | 'in_room'
   const [view, setView] = useState<'landing' | 'onboarding' | 'in_room'>('landing');
-  const [activeTab, setActiveTab] = useState<'auction' | 'my-team' | 'all-teams' | 'explorer' | 'audit' | 'settings'>('auction');
+  const [activeTab, setActiveTab] = useState<'auction' | 'my-team' | 'all-teams' | 'players' | 'history' | 'settings'>('auction');
+
+  // Live Chat State
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
 
   // Modals
-  const [showAuditModal, setShowAuditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalRoomCode, setPasswordModalRoomCode] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Onboarding temporary state
   const [pendingRoomCode, setPendingRoomCode] = useState<string>('');
@@ -43,7 +52,10 @@ export function App() {
   const handleServerMessage = useCallback((msg: ServerMessage) => {
     switch (msg.type) {
       case 'SYNC_STATE': {
-        setRoomState(msg.state);
+        setRoomState({
+          ...msg.state,
+          chatMessages: msg.state.chatMessages || []
+        });
         if (msg.myMemberId) {
           setMyMemberId(msg.myMemberId);
           // Save session
@@ -56,6 +68,34 @@ export function App() {
         if (myMem?.teamId || msg.state.status !== 'LOBBY') {
           setView('in_room');
         }
+        break;
+      }
+      case 'CHAT_MESSAGE': {
+        setRoomState(prev => {
+          if (!prev) return prev;
+          const existing = prev.chatMessages || [];
+          return {
+            ...prev,
+            chatMessages: [...existing, msg.message]
+          };
+        });
+        setIsChatOpen(open => {
+          if (!open) {
+            setUnreadChatCount(count => count + 1);
+          }
+          return open;
+        });
+        break;
+      }
+      case 'PASSWORD_REQUIRED': {
+        setPasswordModalRoomCode(msg.roomCode);
+        setShowPasswordModal(true);
+        setPasswordError('This room is password-protected. Please enter the password.');
+        break;
+      }
+      case 'PASSWORD_VERIFIED': {
+        setShowPasswordModal(false);
+        setPasswordError('');
         break;
       }
       case 'TIMER_TICK': {
@@ -106,6 +146,8 @@ export function App() {
             ...prev,
             currentLot: msg.lot,
             teamPurse: msg.teamPurse,
+            teamSquads: msg.teamSquads || prev.teamSquads,
+            teamStats: msg.teamStats || prev.teamStats,
             history: [msg.lot, ...prev.history]
           };
         });
@@ -124,8 +166,12 @@ export function App() {
         break;
       }
       case 'ERROR': {
-        setErrorMessage(msg.message);
-        setTimeout(() => setErrorMessage(''), 4000);
+        if (msg.code === 'INVALID_PASSWORD') {
+          setPasswordError(msg.message);
+        } else {
+          setErrorMessage(msg.message);
+          setTimeout(() => setErrorMessage(''), 4000);
+        }
         break;
       }
     }
@@ -252,6 +298,19 @@ export function App() {
     socketService.send({ type: 'SKIP_PLAYER' });
   };
 
+  const handleDrawRandomPlayer = (category: PlayerCategory, basePriceInr: number) => {
+    socketService.send({ type: 'DRAW_RANDOM_PLAYER', category, basePriceInr });
+  };
+
+  const handlePasswordSubmit = (password: string) => {
+    socketService.send({
+      type: 'JOIN_ROOM',
+      roomCode: passwordModalRoomCode,
+      nickname: pendingNickname || 'Manager',
+      password
+    });
+  };
+
   const handlePauseAuction = () => {
     socketService.send({ type: 'PAUSE_AUCTION' });
   };
@@ -272,6 +331,17 @@ export function App() {
     socketService.send({ type: 'REAUCTION_UNSOLD' });
   };
 
+  const handleSendChatMessage = (text: string) => {
+    socketService.send({ type: 'SEND_CHAT_MESSAGE', text });
+  };
+
+  const handleToggleChat = () => {
+    setIsChatOpen(open => {
+      if (!open) setUnreadChatCount(0);
+      return !open;
+    });
+  };
+
   const handleLeaveRoom = () => {
     socketService.disconnect();
     sessionStorage.removeItem('bid_wars_member_id');
@@ -285,7 +355,7 @@ export function App() {
   const mySquadCount = myMember?.teamId && roomState ? (roomState.teamSquads[myMember.teamId] || []).length : 0;
 
   return (
-    <div className="min-h-screen bg-[#0B1020] text-slate-100 flex flex-col selection:bg-cyan-400 selection:text-black">
+    <div className="min-h-screen bg-[#000000] text-slate-100 flex flex-col selection:bg-[#00E676] selection:text-black">
       {/* Top Navigation */}
       <Navbar
         roomCode={roomState?.roomCode}
@@ -293,9 +363,7 @@ export function App() {
         myMember={myMember}
         activeTab={activeTab}
         setActiveTab={(t) => {
-          if (t === 'audit') {
-            setShowAuditModal(true);
-          } else if (t === 'settings') {
+          if (t === 'settings') {
             setShowSettingsModal(true);
           } else {
             setActiveTab(t);
@@ -303,6 +371,9 @@ export function App() {
         }}
         onLeaveRoom={handleLeaveRoom}
         squadCount={mySquadCount}
+        onToggleChat={handleToggleChat}
+        isChatOpen={isChatOpen}
+        unreadChatCount={unreadChatCount}
       />
 
       {/* Global Error Notification */}
@@ -313,7 +384,7 @@ export function App() {
       )}
 
       {/* Main Content Views */}
-      <main className="flex-1">
+      <main className="flex-1 relative">
         {/* VIEW 1: LANDING PAGE */}
         {view === 'landing' && (
           <LandingPage
@@ -361,6 +432,7 @@ export function App() {
                     myMemberId={myMemberId}
                     onPlaceBid={handlePlaceBid}
                     onSkipPlayer={handleSkipPlayer}
+                    onDrawRandomPlayer={handleDrawRandomPlayer}
                     onPauseAuction={handlePauseAuction}
                     onResumeAuction={handleResumeAuction}
                     onRestartAuction={handleRestartAuction}
@@ -382,9 +454,17 @@ export function App() {
                   />
                 )}
 
-                {activeTab === 'explorer' && (
-                  <PlayerExplorer
+                {activeTab === 'players' && (
+                  <PlayersView
+                    roomState={roomState}
+                  />
+                )}
+
+                {activeTab === 'history' && (
+                  <AuctionHistoryView
+                    history={roomState.history}
                     season={roomState.settings.season}
+                    roomCode={roomState.roomCode}
                   />
                 )}
               </>
@@ -399,29 +479,39 @@ export function App() {
                 onRestartAuction={handleRestartAuction}
               />
             )}
+
+            {/* Live Real-Time Chat Drawer */}
+            <LiveChatPanel
+              isOpen={isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+              messages={roomState.chatMessages || []}
+              myMemberId={myMemberId}
+              onSendMessage={handleSendChatMessage}
+            />
           </>
         )}
       </main>
 
       {/* Modals */}
-      {roomState && (
-        <>
-          <AuditLogModal
-            logs={roomState.auditLog}
-            isOpen={showAuditModal}
-            onClose={() => setShowAuditModal(false)}
-          />
+      <PasswordModal
+        isOpen={showPasswordModal}
+        roomCode={passwordModalRoomCode}
+        onClose={() => setShowPasswordModal(false)}
+        onSubmit={handlePasswordSubmit}
+        error={passwordError}
+      />
 
-          <SettingsModal
-            settings={roomState.settings}
-            isHost={myMember?.isHost ?? false}
-            isOpen={showSettingsModal}
-            onClose={() => setShowSettingsModal(false)}
-          />
-        </>
+      {roomState && (
+        <SettingsModal
+          settings={roomState.settings}
+          isHost={myMember?.isHost ?? false}
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />
       )}
     </div>
   );
 }
 
 export default App;
+

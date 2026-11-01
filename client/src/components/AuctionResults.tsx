@@ -12,6 +12,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { RoomState, IPL_FRANCHISES, IPLTeamId } from '../types.js';
+import { TeamLogo } from './TeamLogo.js';
 
 interface AuctionResultsProps {
   roomState: RoomState;
@@ -99,16 +100,16 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 relative">
       {/* Celebration Header */}
-      <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#0D0D0D] border border-[#FFC857]/40 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 bg-amber-400/20 text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30 mb-2">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+          <div className="inline-flex items-center gap-2 bg-[#FFC857]/20 text-[#FFC857] text-xs font-bold px-3.5 py-1 rounded-full border border-[#FFC857]/30 mb-2">
+            <Trophy className="w-3.5 h-3.5 text-[#FFC857]" />
             AUCTION COMPLETE
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white">
             Official Auction Results
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-[#8E8E93] mt-1">
             Season {roomState.settings.season} · Room Code: {roomState.roomCode}
           </p>
         </div>
@@ -116,7 +117,7 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-display font-bold rounded-xl text-xs transition-all shadow-glow-cyan flex items-center gap-1.5"
+            className="px-5 py-3 bg-[#00E676] hover:bg-[#00c966] text-black font-display font-extrabold rounded-full text-xs transition-all shadow-lg flex items-center gap-1.5"
           >
             <Download className="w-4 h-4" />
             <span>Export CSV Report</span>
@@ -125,7 +126,7 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
           {isHost && (unsoldLots.length > 0 || skippedLots.length > 0) && (
             <button
               onClick={onReAuctionUnsold}
-              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-black font-display font-bold rounded-xl text-xs transition-all shadow-glow-amber flex items-center gap-1.5"
+              className="px-5 py-3 bg-[#FFC857] hover:bg-[#ffcf6e] text-black font-display font-extrabold rounded-full text-xs transition-all shadow-lg flex items-center gap-1.5"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Re-Auction Round ({unsoldLots.length + skippedLots.length})</span>
@@ -135,7 +136,7 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
           {isHost && (
             <button
               onClick={onRestartAuction}
-              className="px-4 py-2.5 bg-navy-800 hover:bg-navy-700 text-slate-300 hover:text-white border border-navy-700 rounded-xl text-xs font-bold transition-all"
+              className="px-5 py-3 bg-[#151515] hover:bg-[#202020] text-white border border-[#262626] rounded-full text-xs font-bold transition-all"
             >
               Restart Lobby
             </button>
@@ -145,99 +146,94 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
 
       {/* Aggregate KPI Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-        <div className="glass-card rounded-xl p-4 border border-navy-700/60">
-          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Lots</span>
+        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-4">
+          <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Total Lots</span>
           <div className="text-2xl font-mono font-bold text-white mt-1">{history.length}</div>
         </div>
 
-        <div className="glass-card rounded-xl p-4 border border-emerald-500/30">
-          <span className="text-[10px] text-emerald-400 uppercase font-semibold block">Players Sold</span>
-          <div className="text-2xl font-mono font-bold text-emerald-300 mt-1">{soldLots.length}</div>
+        <div className="bg-[#0D0D0D] border border-[#00E676]/30 rounded-2xl p-4">
+          <span className="text-[10px] text-[#00E676] uppercase font-semibold block">Players Sold</span>
+          <div className="text-2xl font-mono font-bold text-[#00E676] mt-1">{soldLots.length}</div>
         </div>
 
-        <div className="glass-card rounded-xl p-4 border border-navy-700/60">
-          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Unsold</span>
+        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-4">
+          <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Unsold</span>
           <div className="text-2xl font-mono font-bold text-slate-300 mt-1">{unsoldLots.length}</div>
         </div>
 
-        <div className="glass-card rounded-xl p-4 border border-amber-500/30">
-          <span className="text-[10px] text-amber-400 uppercase font-semibold block">Skipped</span>
-          <div className="text-2xl font-mono font-bold text-amber-300 mt-1">{skippedLots.length}</div>
+        <div className="bg-[#0D0D0D] border border-[#FFC857]/30 rounded-2xl p-4">
+          <span className="text-[10px] text-[#FFC857] uppercase font-semibold block">Skipped</span>
+          <div className="text-2xl font-mono font-bold text-[#FFC857] mt-1">{skippedLots.length}</div>
         </div>
 
-        <div className="glass-card rounded-xl p-4 border border-cyan-400/30">
-          <span className="text-[10px] text-cyan-400 uppercase font-semibold block">Total Spent</span>
-          <div className="text-xl font-mono font-bold text-cyan-300 mt-1">
+        <div className="bg-[#0D0D0D] border border-[#00E676]/30 rounded-2xl p-4">
+          <span className="text-[10px] text-[#00E676] uppercase font-semibold block">Total Spent</span>
+          <div className="text-xl font-mono font-bold text-[#00E676] mt-1">
             ₹{(totalSpentAll / 10000000).toFixed(1)} Cr
           </div>
         </div>
       </div>
 
       {/* Squad Validation Audit Table */}
-      <div className="glass-panel rounded-2xl p-6 border border-navy-600/70">
+      <div className="bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 shadow-2xl">
         <h3 className="font-display font-bold text-lg text-white mb-2 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-cyan-400" />
+          <Shield className="w-5 h-5 text-[#00E676]" />
           <span>Final Squad Compliance Audit</span>
         </h3>
-        <p className="text-xs text-slate-400 mb-4">
-          Strict verification of min 18 players, max 25 players, max 8 overseas, and positive purse constraints.
+        <p className="text-xs text-[#8E8E93] mb-4">
+          Verification of min 18 players, max 25 players, max 8 overseas, and non-negative purse balances.
         </p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-navy-700/80 text-slate-400 font-semibold uppercase tracking-wider">
-                <th className="pb-3 pl-2">Franchise</th>
+              <tr className="border-b border-[#262626] text-[#8E8E93] font-semibold uppercase tracking-wider">
+                <th className="pb-3 pl-3">Franchise</th>
                 <th className="pb-3">Squad Count</th>
                 <th className="pb-3">Overseas</th>
                 <th className="pb-3">Remaining Purse</th>
                 <th className="pb-3">Spent</th>
-                <th className="pb-3 pr-2 text-right">Compliance Status</th>
+                <th className="pb-3 pr-3 text-right">Compliance Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/80">
+            <tbody className="divide-y divide-[#202020]">
               {teamAudits.map(({ team, squad, purse, spent, overseas, isValid, errors }) => (
-                <tr key={team.id} className="hover:bg-navy-800/40 transition-colors">
-                  <td className="py-3.5 pl-2 font-display font-bold text-white flex items-center gap-2.5">
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0"
-                      style={{ backgroundColor: team.primaryColor, color: team.textColor }}
-                    >
-                      {team.shortName}
-                    </div>
+                <tr key={team.id} className="hover:bg-[#151515] transition-colors">
+                  <td className="py-3.5 pl-3 font-display font-bold text-white flex items-center gap-2.5">
+                    <TeamLogo teamId={team.id} className="w-8 h-8 shrink-0 shadow-sm" />
                     <span>{team.name}</span>
                   </td>
                   <td className="py-3.5 font-mono">
-                    <span className={squad.length < minSquad ? 'text-ruby-400 font-bold' : 'text-slate-200'}>
+                    <span className={squad.length < minSquad ? 'text-[#FF5252] font-bold' : 'text-white'}>
                       {squad.length}
                     </span>
-                    <span className="text-slate-500"> / {minSquad}-{maxSquad}</span>
+                    <span className="text-[#8E8E93]"> / {minSquad}-{maxSquad}</span>
                   </td>
                   <td className="py-3.5 font-mono">
-                    <span className={overseas > maxOverseas ? 'text-ruby-400 font-bold' : 'text-slate-200'}>
+                    <span className={overseas > maxOverseas ? 'text-[#FF5252] font-bold' : 'text-white'}>
                       {overseas}
                     </span>
-                    <span className="text-slate-500"> / {maxOverseas}</span>
+                    <span className="text-[#8E8E93]"> / {maxOverseas}</span>
                   </td>
-                  <td className="py-3.5 font-mono font-bold text-cyan-300">
+                  <td className="py-3.5 font-mono font-bold text-[#00E676]">
                     ₹{(purse / 10000000).toFixed(2)} Cr
                   </td>
-                  <td className="py-3.5 font-mono text-amber-300">
+                  <td className="py-3.5 font-mono text-[#FFC857]">
                     ₹{(spent / 10000000).toFixed(2)} Cr
                   </td>
-                  <td className="py-3.5 pr-2 text-right">
+                  <td className="py-3.5 pr-3 text-right">
                     {isValid ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/30 px-3 py-1 rounded-full">
                         <CheckCircle className="w-3.5 h-3.5" />
                         COMPLIANT
                       </span>
                     ) : (
                       <div className="inline-flex flex-col items-end">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-ruby-400 bg-ruby-500/10 border border-ruby-500/20 px-2 py-0.5 rounded-md">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF5252] bg-[#FF5252]/10 border border-[#FF5252]/30 px-2.5 py-0.5 rounded-full">
                           <XCircle className="w-3.5 h-3.5" />
                           INVALID SQUAD
                         </span>
-                        <span className="text-[10px] text-ruby-300/80 mt-0.5">
+                        <span className="text-[10px] text-[#FF5252]/80 mt-0.5">
                           {errors[0]}
                         </span>
                       </div>
