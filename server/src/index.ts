@@ -25,9 +25,30 @@ app.use(express.urlencoded({ extended: true }));
 
 const roomManager = new RoomManager();
 
-// Serve static frontend from client/dist if available locally (standalone/dev mode)
-const clientDistPath = path.join(__dirname, '../../client/dist');
+// Serve static frontend from client/dist if available (unified fullstack deployment / Render)
+const resolveClientDistPath = (): string => {
+  const candidates = [
+    path.join(__dirname, '../../client/dist'),
+    path.join(__dirname, '../client/dist'),
+    path.join(process.cwd(), 'client/dist'),
+    path.join(process.cwd(), '../client/dist')
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.existsSync(path.join(candidate, 'index.html'))) {
+      return candidate;
+    }
+  }
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+};
+
+const clientDistPath = resolveClientDistPath();
 if (fs.existsSync(clientDistPath)) {
+  console.log(`[Static] Serving frontend from ${clientDistPath}`);
   app.use(express.static(clientDistPath));
 }
 
