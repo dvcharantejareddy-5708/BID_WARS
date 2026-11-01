@@ -1,0 +1,5322 @@
+[
+  {
+    "s_no": 1,
+    "raw_name": "Abdul Samad (R)",
+    "name": "Abdul Samad",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 2,
+    "raw_name": "Aiden Markram (R)",
+    "name": "Aiden Markram",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 3,
+    "raw_name": "Ajinkya Rahane (R)",
+    "name": "Ajinkya Rahane",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 4,
+    "raw_name": "Angkrish Raghuvanshi (R)",
+    "name": "Angkrish Raghuvanshi",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 5,
+    "raw_name": "Aniket Verma (R)",
+    "name": "Aniket Verma",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 6,
+    "raw_name": "Ayush Badoni (R)",
+    "name": "Ayush Badoni",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 7,
+    "raw_name": "Ayush Mhatre (R)",
+    "name": "Ayush Mhatre",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 8,
+    "raw_name": "Cameron Green",
+    "name": "Cameron Green",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 9,
+    "raw_name": "David Miller",
+    "name": "David Miller",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 10,
+    "raw_name": "Devdutt Padikkal (R)",
+    "name": "Devdutt Padikkal",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 11,
+    "raw_name": "Devon Conway",
+    "name": "Devon Conway",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 12,
+    "raw_name": "Dewald Brevis (R)",
+    "name": "Dewald Brevis",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 13,
+    "raw_name": "Donovan Ferreira (R)",
+    "name": "Donovan Ferreira",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 14,
+    "raw_name": "Harnoor Pannu (R)",
+    "name": "Harnoor Pannu",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 15,
+    "raw_name": "Himmat Singh (R)",
+    "name": "Himmat Singh",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 16,
+    "raw_name": "Jake Fraser-McGurk",
+    "name": "Jake Fraser-McGurk",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 17,
+    "raw_name": "Karun Nair (R)",
+    "name": "Karun Nair",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 18,
+    "raw_name": "Manish Pandey (R)",
+    "name": "Manish Pandey",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 19,
+    "raw_name": "Matthew Breetzke (R)",
+    "name": "Matthew Breetzke",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 20,
+    "raw_name": "Nehal Wadhera (R)",
+    "name": "Nehal Wadhera",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 21,
+    "raw_name": "Nitish Rana (R)",
+    "name": "Nitish Rana",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 22,
+    "raw_name": "Priyansh Arya (R)",
+    "name": "Priyansh Arya",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 23,
+    "raw_name": "Pyla Avinash (R)",
+    "name": "Pyla Avinash",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 24,
+    "raw_name": "Rajat Patidar (R)",
+    "name": "Rajat Patidar",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 25,
+    "raw_name": "Rinku Singh (R)",
+    "name": "Rinku Singh",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 26,
+    "raw_name": "Riyan Parag (R)",
+    "name": "Riyan Parag",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 1
+  },
+  {
+    "s_no": 27,
+    "raw_name": "Rohit Sharma (R)",
+    "name": "Rohit Sharma",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 28,
+    "raw_name": "Rovman Powell (R)",
+    "name": "Rovman Powell",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 29,
+    "raw_name": "Ruturaj Gaikwad (R)",
+    "name": "Ruturaj Gaikwad",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 30,
+    "raw_name": "Sai Sudharsan (R)",
+    "name": "Sai Sudharsan",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 31,
+    "raw_name": "Shahrukh Khan (R)",
+    "name": "Shahrukh Khan",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 32,
+    "raw_name": "Sherfane Rutherford (R)",
+    "name": "Sherfane Rutherford",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 33,
+    "raw_name": "Shimron Hetmyer (R)",
+    "name": "Shimron Hetmyer",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 34,
+    "raw_name": "Shreyas Iyer (R)",
+    "name": "Shreyas Iyer",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 35,
+    "raw_name": "Shubham Dubey (R)",
+    "name": "Shubham Dubey",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 36,
+    "raw_name": "Shubman Gill (R)",
+    "name": "Shubman Gill",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 37,
+    "raw_name": "Smaran Ravichandaran (R)",
+    "name": "Smaran Ravichandaran",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 38,
+    "raw_name": "Steve Smith",
+    "name": "Steve Smith",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 39,
+    "raw_name": "Suryakumar Yadav (R)",
+    "name": "Suryakumar Yadav",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 40,
+    "raw_name": "Tilak Verma (R)",
+    "name": "Tilak Verma",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 41,
+    "raw_name": "Tim David (R)",
+    "name": "Tim David",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 42,
+    "raw_name": "Travis Head (R)",
+    "name": "Travis Head",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 43,
+    "raw_name": "Tristan Stubbs (R)",
+    "name": "Tristan Stubbs",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 44,
+    "raw_name": "Vaibhav Suryavanshi (R)",
+    "name": "Vaibhav Suryavanshi",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 45,
+    "raw_name": "Virat Kohli (R)",
+    "name": "Virat Kohli",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 46,
+    "raw_name": "Yashaswi Jaiswal (R)",
+    "name": "Yashaswi Jaiswal",
+    "is_retained": true,
+    "category": "Batsmen",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 47,
+    "raw_name": "Abhishek Sharma (R)",
+    "name": "Abhishek Sharma",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 48,
+    "raw_name": "Ajay Mandal (R)",
+    "name": "Ajay Mandal",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 49,
+    "raw_name": "Anukul Roy (R)",
+    "name": "Anukul Roy",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 50,
+    "raw_name": "Arjun Tendulkar (R)",
+    "name": "Arjun Tendulkar",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 51,
+    "raw_name": "Arshin Kulkarni (R)",
+    "name": "Arshin Kulkarni",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 52,
+    "raw_name": "Ashutosh Sharma (R)",
+    "name": "Ashutosh Sharma",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 53,
+    "raw_name": "Axar Patel (R)",
+    "name": "Axar Patel",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 54,
+    "raw_name": "Azmatullah Omarzai (R)",
+    "name": "Azmatullah Omarzai",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 55,
+    "raw_name": "Cooper Connolly",
+    "name": "Cooper Connolly",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 56,
+    "raw_name": "Corbin Bosch (R)",
+    "name": "Corbin Bosch",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 57,
+    "raw_name": "Daniel Lawrence",
+    "name": "Daniel Lawrence",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 2
+  },
+  {
+    "s_no": 58,
+    "raw_name": "Daryl Mitchell",
+    "name": "Daryl Mitchell",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 59,
+    "raw_name": "Glenn Phillips (R)",
+    "name": "Glenn Phillips",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 60,
+    "raw_name": "Gus Atkinson",
+    "name": "Gus Atkinson",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 61,
+    "raw_name": "Hardik Pandya (R)",
+    "name": "Hardik Pandya",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 62,
+    "raw_name": "Harpreet Brar (R)",
+    "name": "Harpreet Brar",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 63,
+    "raw_name": "Harsh Dubey (R)",
+    "name": "Harsh Dubey",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 64,
+    "raw_name": "Jacob Bethell (R)",
+    "name": "Jacob Bethell",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 65,
+    "raw_name": "Jamie Overton (R)",
+    "name": "Jamie Overton",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 66,
+    "raw_name": "Jason Holder",
+    "name": "Jason Holder",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 67,
+    "raw_name": "Jayant Yadav (R)",
+    "name": "Jayant Yadav",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 68,
+    "raw_name": "Kamindu Mendis (R)",
+    "name": "Kamindu Mendis",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 69,
+    "raw_name": "Krunal Pandya (R)",
+    "name": "Krunal Pandya",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 70,
+    "raw_name": "Liam Dawson",
+    "name": "Liam Dawson",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 71,
+    "raw_name": "Liam Livingstone",
+    "name": "Liam Livingstone",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 72,
+    "raw_name": "Madhav Tiwari (R)",
+    "name": "Madhav Tiwari",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 73,
+    "raw_name": "Marco Jansen (R)",
+    "name": "Marco Jansen",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 74,
+    "raw_name": "Marcus Stoinis (R)",
+    "name": "Marcus Stoinis",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 75,
+    "raw_name": "Michael Bracewell",
+    "name": "Michael Bracewell",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 76,
+    "raw_name": "Mitch Owen (R)",
+    "name": "Mitch Owen",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 77,
+    "raw_name": "Mitchell Marsh (R)",
+    "name": "Mitchell Marsh",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 78,
+    "raw_name": "Mitchell Santner (R)",
+    "name": "Mitchell Santner",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 79,
+    "raw_name": "Mohd. Arshad Khan (R)",
+    "name": "Mohd. Arshad Khan",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 80,
+    "raw_name": "Musheer Khan (R)",
+    "name": "Musheer Khan",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 81,
+    "raw_name": "Naman Dhir (R)",
+    "name": "Naman Dhir",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 82,
+    "raw_name": "Nishant Sindhu (R)",
+    "name": "Nishant Sindhu",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 83,
+    "raw_name": "Nitish Kumar Reddy (R)",
+    "name": "Nitish Kumar Reddy",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 84,
+    "raw_name": "Rachin Ravindra",
+    "name": "Rachin Ravindra",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 85,
+    "raw_name": "Rahul Tewatia (R)",
+    "name": "Rahul Tewatia",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 86,
+    "raw_name": "Raj Angad Bawa (R)",
+    "name": "Raj Angad Bawa",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 87,
+    "raw_name": "Ramakrishna Ghosh (R)",
+    "name": "Ramakrishna Ghosh",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 88,
+    "raw_name": "Ramandeep Singh (R)",
+    "name": "Ramandeep Singh",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 3
+  },
+  {
+    "s_no": 89,
+    "raw_name": "Ravindra Jadeja (R)",
+    "name": "Ravindra Jadeja",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 90,
+    "raw_name": "Romario Shepherd (R)",
+    "name": "Romario Shepherd",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 91,
+    "raw_name": "Sam Curran (R)",
+    "name": "Sam Curran",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 92,
+    "raw_name": "Sameer Rizvi (R)",
+    "name": "Sameer Rizvi",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 93,
+    "raw_name": "Sean Abbott",
+    "name": "Sean Abbott",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 94,
+    "raw_name": "Shahbaz Ahmed (R)",
+    "name": "Shahbaz Ahmed",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 95,
+    "raw_name": "Shardul Thakur (R)",
+    "name": "Shardul Thakur",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 96,
+    "raw_name": "Shashank Singh (R)",
+    "name": "Shashank Singh",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 97,
+    "raw_name": "Shivam Dube (R)",
+    "name": "Shivam Dube",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 98,
+    "raw_name": "Shreyas Gopal (R)",
+    "name": "Shreyas Gopal",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 99,
+    "raw_name": "Sunil Narine (R)",
+    "name": "Sunil Narine",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 100,
+    "raw_name": "Suryansh Shedge (R)",
+    "name": "Suryansh Shedge",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 101,
+    "raw_name": "Swapnil Singh (R)",
+    "name": "Swapnil Singh",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 102,
+    "raw_name": "Tom Curran",
+    "name": "Tom Curran",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 103,
+    "raw_name": "Tripurana Vijay (R)",
+    "name": "Tripurana Vijay",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 104,
+    "raw_name": "Venkatesh Iyer",
+    "name": "Venkatesh Iyer",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 105,
+    "raw_name": "Vipraj Nigam (R)",
+    "name": "Vipraj Nigam",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 106,
+    "raw_name": "Wanindu Hasaranga",
+    "name": "Wanindu Hasaranga",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 107,
+    "raw_name": "Washington Sundar (R)",
+    "name": "Washington Sundar",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 108,
+    "raw_name": "Will Jacks (R)",
+    "name": "Will Jacks",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 109,
+    "raw_name": "Yudhvir Charak (R)",
+    "name": "Yudhvir Charak",
+    "is_retained": true,
+    "category": "All-rounders",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 110,
+    "raw_name": "Abhinandan Singh (R)",
+    "name": "Abhinandan Singh",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 111,
+    "raw_name": "Adam Milne",
+    "name": "Adam Milne",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 112,
+    "raw_name": "Akash Singh (R)",
+    "name": "Akash Singh",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 113,
+    "raw_name": "Akeal Hosein",
+    "name": "Akeal Hosein",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 114,
+    "raw_name": "Allah Ghazanfar (R)",
+    "name": "Allah Ghazanfar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 115,
+    "raw_name": "Alzarri Joseph",
+    "name": "Alzarri Joseph",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 116,
+    "raw_name": "Anrich Nortje",
+    "name": "Anrich Nortje",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 117,
+    "raw_name": "Anshul Kamboj (R)",
+    "name": "Anshul Kamboj",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 118,
+    "raw_name": "Arshdeep Singh (R)",
+    "name": "Arshdeep Singh",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 119,
+    "raw_name": "Ashwani Kumar (R)",
+    "name": "Ashwani Kumar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 4
+  },
+  {
+    "s_no": 120,
+    "raw_name": "Avesh Khan (R)",
+    "name": "Avesh Khan",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 121,
+    "raw_name": "Bhuvneshwar Kumar (R)",
+    "name": "Bhuvneshwar Kumar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 122,
+    "raw_name": "Brydon Carse (R)",
+    "name": "Brydon Carse",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 123,
+    "raw_name": "Deepak Chahar (R)",
+    "name": "Deepak Chahar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 124,
+    "raw_name": "Digvesh Rathi (R)",
+    "name": "Digvesh Rathi",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 125,
+    "raw_name": "Dushmantha Chameera (R)",
+    "name": "Dushmantha Chameera",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 126,
+    "raw_name": "Eshan Malinga (R)",
+    "name": "Eshan Malinga",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 127,
+    "raw_name": "Gerald Coetzee",
+    "name": "Gerald Coetzee",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 128,
+    "raw_name": "Gurjapneet Singh (R)",
+    "name": "Gurjapneet Singh",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 129,
+    "raw_name": "Gurnoor Singh Brar (R)",
+    "name": "Gurnoor Singh Brar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 130,
+    "raw_name": "Harshal Patel (R)",
+    "name": "Harshal Patel",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 131,
+    "raw_name": "Harshit Rana (R)",
+    "name": "Harshit Rana",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 132,
+    "raw_name": "Ishant Sharma (R)",
+    "name": "Ishant Sharma",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 133,
+    "raw_name": "Jacob Duffy",
+    "name": "Jacob Duffy",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 134,
+    "raw_name": "Jasprit Bumrah (R)",
+    "name": "Jasprit Bumrah",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 135,
+    "raw_name": "Jaydev Unadkat (R)",
+    "name": "Jaydev Unadkat",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 136,
+    "raw_name": "Jofra Archer (R)",
+    "name": "Jofra Archer",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 137,
+    "raw_name": "Josh Hazlewood (R)",
+    "name": "Josh Hazlewood",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 138,
+    "raw_name": "Kagiso Rabada (R)",
+    "name": "Kagiso Rabada",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 139,
+    "raw_name": "Kuldeep Yadav (R)",
+    "name": "Kuldeep Yadav",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 140,
+    "raw_name": "Kwena Maphaka (R)",
+    "name": "Kwena Maphaka",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 141,
+    "raw_name": "Kyle Jamieson",
+    "name": "Kyle Jamieson",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 142,
+    "raw_name": "Lockie Ferguson (R)",
+    "name": "Lockie Ferguson",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 143,
+    "raw_name": "Lungisani Ngidi",
+    "name": "Lungisani Ngidi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 144,
+    "raw_name": "Maheesh Theekshana",
+    "name": "Maheesh Theekshana",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 145,
+    "raw_name": "Manav Suthar (R)",
+    "name": "Manav Suthar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 146,
+    "raw_name": "Manimaran Siddharth (R)",
+    "name": "Manimaran Siddharth",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 147,
+    "raw_name": "Matheesha Pathirana",
+    "name": "Matheesha Pathirana",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 148,
+    "raw_name": "Matt Henry",
+    "name": "Matt Henry",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 149,
+    "raw_name": "Mayank Markande (R)",
+    "name": "Mayank Markande",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 150,
+    "raw_name": "Mayank Yadav (R)",
+    "name": "Mayank Yadav",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 5
+  },
+  {
+    "s_no": 151,
+    "raw_name": "Md Shami (R)",
+    "name": "Md Shami",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 152,
+    "raw_name": "Mitchell Starc (R)",
+    "name": "Mitchell Starc",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 153,
+    "raw_name": "Mohammad Siraj (R)",
+    "name": "Mohammad Siraj",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 154,
+    "raw_name": "Mohsin Khan (R)",
+    "name": "Mohsin Khan",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 155,
+    "raw_name": "Mujeeb Rahman",
+    "name": "Mujeeb Rahman",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 156,
+    "raw_name": "Mukesh Choudhary (R)",
+    "name": "Mukesh Choudhary",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 157,
+    "raw_name": "Mukesh Kumar (R)",
+    "name": "Mukesh Kumar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 158,
+    "raw_name": "Mustafizur Rahman",
+    "name": "Mustafizur Rahman",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 159,
+    "raw_name": "Nandre Burger (R)",
+    "name": "Nandre Burger",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 160,
+    "raw_name": "Nathan Ellis (R)",
+    "name": "Nathan Ellis",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 161,
+    "raw_name": "Naveen Ul Haq",
+    "name": "Naveen Ul Haq",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 162,
+    "raw_name": "Noor Ahmad (R)",
+    "name": "Noor Ahmad",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 163,
+    "raw_name": "Nuwan Thushara (R)",
+    "name": "Nuwan Thushara",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 164,
+    "raw_name": "Pat Cummins (R)",
+    "name": "Pat Cummins",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 165,
+    "raw_name": "Prasidh Krishna (R)",
+    "name": "Prasidh Krishna",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 166,
+    "raw_name": "Prince Yadav (R)",
+    "name": "Prince Yadav",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 167,
+    "raw_name": "R. Sai Kishore (R)",
+    "name": "R. Sai Kishore",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 168,
+    "raw_name": "Raghu Sharma (R)",
+    "name": "Raghu Sharma",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 169,
+    "raw_name": "Rashid Khan (R)",
+    "name": "Rashid Khan",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 170,
+    "raw_name": "Rasikh Dar (R)",
+    "name": "Rasikh Dar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 171,
+    "raw_name": "Ravi Bishnoi",
+    "name": "Ravi Bishnoi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 172,
+    "raw_name": "Sandeep Sharma (R)",
+    "name": "Sandeep Sharma",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 173,
+    "raw_name": "Suyash Sharma (R)",
+    "name": "Suyash Sharma",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 174,
+    "raw_name": "Syed Khaleel Ahmed (R)",
+    "name": "Syed Khaleel Ahmed",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 175,
+    "raw_name": "T. Natarajan (R)",
+    "name": "T. Natarajan",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 176,
+    "raw_name": "Trent Boult (R)",
+    "name": "Trent Boult",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 177,
+    "raw_name": "Tushar Deshpande (R)",
+    "name": "Tushar Deshpande",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 178,
+    "raw_name": "Umran Malik (R)",
+    "name": "Umran Malik",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 179,
+    "raw_name": "Vaibhav Arora (R)",
+    "name": "Vaibhav Arora",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 180,
+    "raw_name": "Varun Chakaravarthy (R)",
+    "name": "Varun Chakaravarthy",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 181,
+    "raw_name": "Vyshak Vijaykumar (R)",
+    "name": "Vyshak Vijaykumar",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 6
+  },
+  {
+    "s_no": 182,
+    "raw_name": "William Orourke",
+    "name": "William Orourke",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 183,
+    "raw_name": "Xavier Bartlett (R)",
+    "name": "Xavier Bartlett",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 184,
+    "raw_name": "Yash Dayal (R)",
+    "name": "Yash Dayal",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 185,
+    "raw_name": "Yash Thakur (R)",
+    "name": "Yash Thakur",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 186,
+    "raw_name": "Yuzvendra Chahal (R)",
+    "name": "Yuzvendra Chahal",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 187,
+    "raw_name": "Zeeshan Ansari (R)",
+    "name": "Zeeshan Ansari",
+    "is_retained": true,
+    "category": "Bowlers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 188,
+    "raw_name": "Abhishek Porel (R)",
+    "name": "Abhishek Porel",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 189,
+    "raw_name": "Anuj Rawat (R)",
+    "name": "Anuj Rawat",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 190,
+    "raw_name": "Ben Duckett",
+    "name": "Ben Duckett",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 191,
+    "raw_name": "Dhruv Jurel (R)",
+    "name": "Dhruv Jurel",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 192,
+    "raw_name": "Finn Allen",
+    "name": "Finn Allen",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 193,
+    "raw_name": "Heinrich Klaasen (R)",
+    "name": "Heinrich Klaasen",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 194,
+    "raw_name": "Ishan Kishan (R)",
+    "name": "Ishan Kishan",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 195,
+    "raw_name": "Jamie Smith",
+    "name": "Jamie Smith",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 196,
+    "raw_name": "Jitesh Sharma (R)",
+    "name": "Jitesh Sharma",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 197,
+    "raw_name": "Jos Buttler (R)",
+    "name": "Jos Buttler",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 198,
+    "raw_name": "Josh Inglis",
+    "name": "Josh Inglis",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 199,
+    "raw_name": "KL Rahul (R)",
+    "name": "KL Rahul",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 200,
+    "raw_name": "Kumar Kushagra (R)",
+    "name": "Kumar Kushagra",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 201,
+    "raw_name": "Lhuan-Dre Pretorious (R)",
+    "name": "Lhuan-Dre Pretorious",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 202,
+    "raw_name": "MS Dhoni (R)",
+    "name": "MS Dhoni",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 203,
+    "raw_name": "Nicholas Pooran (R)",
+    "name": "Nicholas Pooran",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 204,
+    "raw_name": "Phil Salt (R)",
+    "name": "Phil Salt",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 205,
+    "raw_name": "Prabhsimran Singh (R)",
+    "name": "Prabhsimran Singh",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 206,
+    "raw_name": "Rishabh Pant (R)",
+    "name": "Rishabh Pant",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 207,
+    "raw_name": "Robin Minz (R)",
+    "name": "Robin Minz",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 208,
+    "raw_name": "Ryan Rickelton (R)",
+    "name": "Ryan Rickelton",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 209,
+    "raw_name": "Sanju Samson (R)",
+    "name": "Sanju Samson",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 210,
+    "raw_name": "Shai Hope",
+    "name": "Shai Hope",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 211,
+    "raw_name": "Tom Banton",
+    "name": "Tom Banton",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 212,
+    "raw_name": "Urvil Patel (R)",
+    "name": "Urvil Patel",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 7
+  },
+  {
+    "s_no": 213,
+    "raw_name": "Vishnu Vinod (R)",
+    "name": "Vishnu Vinod",
+    "is_retained": true,
+    "category": "Wicket-keepers",
+    "base_price_display": "2 Crore",
+    "base_price_inr": 20000000,
+    "page": 8
+  },
+  {
+    "s_no": 214,
+    "raw_name": "Matthew Short",
+    "name": "Matthew Short",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 215,
+    "raw_name": "Jason Behrendorff",
+    "name": "Jason Behrendorff",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 216,
+    "raw_name": "Jhye Richardson",
+    "name": "Jhye Richardson",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 217,
+    "raw_name": "Riley Meredith",
+    "name": "Riley Meredith",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 218,
+    "raw_name": "Saqib Mahmood",
+    "name": "Saqib Mahmood",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 219,
+    "raw_name": "Spencer Johnson",
+    "name": "Spencer Johnson",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 220,
+    "raw_name": "Umesh Yadav",
+    "name": "Umesh Yadav",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 221,
+    "raw_name": "Rahmanullah Gurbaz",
+    "name": "Rahmanullah Gurbaz",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 222,
+    "raw_name": "Tim Seifert",
+    "name": "Tim Seifert",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "1.5 Crore",
+    "base_price_inr": 15000000,
+    "page": 8
+  },
+  {
+    "s_no": 223,
+    "raw_name": "Beau Webster",
+    "name": "Beau Webster",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1.25 Crore",
+    "base_price_inr": 12500000,
+    "page": 8
+  },
+  {
+    "s_no": 224,
+    "raw_name": "Kyle Mayers",
+    "name": "Kyle Mayers",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1.25 Crore",
+    "base_price_inr": 12500000,
+    "page": 8
+  },
+  {
+    "s_no": 225,
+    "raw_name": "Roston Chase",
+    "name": "Roston Chase",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1.25 Crore",
+    "base_price_inr": 12500000,
+    "page": 8
+  },
+  {
+    "s_no": 226,
+    "raw_name": "Olly Stone",
+    "name": "Olly Stone",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1.25 Crore",
+    "base_price_inr": 12500000,
+    "page": 8
+  },
+  {
+    "s_no": 227,
+    "raw_name": "Reeza Hendricks",
+    "name": "Reeza Hendricks",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 228,
+    "raw_name": "Ben Dwarshuis",
+    "name": "Ben Dwarshuis",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 229,
+    "raw_name": "Charith Asalanka",
+    "name": "Charith Asalanka",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 230,
+    "raw_name": "Daniel Sams",
+    "name": "Daniel Sams",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 231,
+    "raw_name": "Dwaine Pretorius",
+    "name": "Dwaine Pretorius",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 232,
+    "raw_name": "George Linde",
+    "name": "George Linde",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 233,
+    "raw_name": "Gulbadin Naib",
+    "name": "Gulbadin Naib",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 234,
+    "raw_name": "Wiaan Mulder",
+    "name": "Wiaan Mulder",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 235,
+    "raw_name": "William Sutherland",
+    "name": "William Sutherland",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 236,
+    "raw_name": "Akash Deep",
+    "name": "Akash Deep",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 237,
+    "raw_name": "Fazalhaq Farooqi",
+    "name": "Fazalhaq Farooqi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 238,
+    "raw_name": "Joshua Tongue",
+    "name": "Joshua Tongue",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 239,
+    "raw_name": "Mohammad Waqar Salamkheil",
+    "name": "Mohammad Waqar Salamkheil",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 240,
+    "raw_name": "Rahul Chahar",
+    "name": "Rahul Chahar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 241,
+    "raw_name": "Jonny Bairstow",
+    "name": "Jonny Bairstow",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 242,
+    "raw_name": "Kusal Perera",
+    "name": "Kusal Perera",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 243,
+    "raw_name": "Quinton De Kock",
+    "name": "Quinton De Kock",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "1 Crore",
+    "base_price_inr": 10000000,
+    "page": 8
+  },
+  {
+    "s_no": 244,
+    "raw_name": "Ackeem Auguste",
+    "name": "Ackeem Auguste",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 245,
+    "raw_name": "Mayank Agarawal",
+    "name": "Mayank Agarawal",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 246,
+    "raw_name": "Pathum Nissanka",
+    "name": "Pathum Nissanka",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 247,
+    "raw_name": "Prithvi Shaw",
+    "name": "Prithvi Shaw",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 248,
+    "raw_name": "Rahul Tripathi",
+    "name": "Rahul Tripathi",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 249,
+    "raw_name": "Sarfaraz Khan",
+    "name": "Sarfaraz Khan",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 250,
+    "raw_name": "Sediqullah Atal",
+    "name": "Sediqullah Atal",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 251,
+    "raw_name": "Tim Robinson",
+    "name": "Tim Robinson",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 252,
+    "raw_name": "Bevon-John Jacobs",
+    "name": "Bevon-John Jacobs",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 253,
+    "raw_name": "Chris Green",
+    "name": "Chris Green",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 254,
+    "raw_name": "Dasun Shanaka",
+    "name": "Dasun Shanaka",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 255,
+    "raw_name": "Deepak Hooda",
+    "name": "Deepak Hooda",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 256,
+    "raw_name": "Dunith Wellalage",
+    "name": "Dunith Wellalage",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 257,
+    "raw_name": "Eathan Bosch",
+    "name": "Eathan Bosch",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 258,
+    "raw_name": "George Garton",
+    "name": "George Garton",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 259,
+    "raw_name": "Muhammad Abbas",
+    "name": "Muhammad Abbas",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 260,
+    "raw_name": "Nathan Smith",
+    "name": "Nathan Smith",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 261,
+    "raw_name": "Rehan Ahmed",
+    "name": "Rehan Ahmed",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 262,
+    "raw_name": "Zak Foulkes",
+    "name": "Zak Foulkes",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 263,
+    "raw_name": "Billy Stanlake",
+    "name": "Billy Stanlake",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 264,
+    "raw_name": "Binura Fernando",
+    "name": "Binura Fernando",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 265,
+    "raw_name": "Chetan Sakariya",
+    "name": "Chetan Sakariya",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 266,
+    "raw_name": "Joshua Little",
+    "name": "Joshua Little",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 267,
+    "raw_name": "Kuldeep Sen",
+    "name": "Kuldeep Sen",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 268,
+    "raw_name": "Luke Wood",
+    "name": "Luke Wood",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 269,
+    "raw_name": "Matthew Potts",
+    "name": "Matthew Potts",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 270,
+    "raw_name": "Md Shoriful Islam",
+    "name": "Md Shoriful Islam",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 271,
+    "raw_name": "Nahid Rana",
+    "name": "Nahid Rana",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 272,
+    "raw_name": "Navdeep Saini",
+    "name": "Navdeep Saini",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 273,
+    "raw_name": "Obed McCoy",
+    "name": "Obed McCoy",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 274,
+    "raw_name": "Qais Ahmad",
+    "name": "Qais Ahmad",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 9
+  },
+  {
+    "s_no": 275,
+    "raw_name": "Richard Gleeson",
+    "name": "Richard Gleeson",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 276,
+    "raw_name": "Rishad Hossain",
+    "name": "Rishad Hossain",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 277,
+    "raw_name": "Sandeep Warrier",
+    "name": "Sandeep Warrier",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 278,
+    "raw_name": "Shamar Joseph",
+    "name": "Shamar Joseph",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 279,
+    "raw_name": "Shivam Mavi",
+    "name": "Shivam Mavi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 280,
+    "raw_name": "Tanzim Hasan Sakib",
+    "name": "Tanzim Hasan Sakib",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 281,
+    "raw_name": "Taskin Ahmed",
+    "name": "Taskin Ahmed",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 282,
+    "raw_name": "Viyaskanth Vijayakanth",
+    "name": "Viyaskanth Vijayakanth",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 283,
+    "raw_name": "Wesley Agar",
+    "name": "Wesley Agar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 284,
+    "raw_name": "Benjamin McDermott",
+    "name": "Benjamin McDermott",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 285,
+    "raw_name": "Jordan Cox",
+    "name": "Jordan Cox",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 286,
+    "raw_name": "K.S. Bharat",
+    "name": "K.S. Bharat",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 287,
+    "raw_name": "Kusal Mendis",
+    "name": "Kusal Mendis",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "75 Lakh",
+    "base_price_inr": 7500000,
+    "page": 10
+  },
+  {
+    "s_no": 288,
+    "raw_name": "Jack Edwards",
+    "name": "Jack Edwards",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "50 Lakh",
+    "base_price_inr": 5000000,
+    "page": 10
+  },
+  {
+    "s_no": 289,
+    "raw_name": "Mahipal Lomror",
+    "name": "Mahipal Lomror",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "50 Lakh",
+    "base_price_inr": 5000000,
+    "page": 10
+  },
+  {
+    "s_no": 290,
+    "raw_name": "Karn Sharma",
+    "name": "Karn Sharma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "50 Lakh",
+    "base_price_inr": 5000000,
+    "page": 10
+  },
+  {
+    "s_no": 291,
+    "raw_name": "Joe Clarke",
+    "name": "Joe Clarke",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "50 Lakh",
+    "base_price_inr": 5000000,
+    "page": 10
+  },
+  {
+    "s_no": 292,
+    "raw_name": "Jalaj Saxena",
+    "name": "Jalaj Saxena",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 293,
+    "raw_name": "Nikhil Chaudhary",
+    "name": "Nikhil Chaudhary",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 294,
+    "raw_name": "Rajvardhan Hangargekar",
+    "name": "Rajvardhan Hangargekar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 295,
+    "raw_name": "Arab Gul",
+    "name": "Arab Gul",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 296,
+    "raw_name": "K.M Asif",
+    "name": "K.M Asif",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 297,
+    "raw_name": "Shubham Agrawal",
+    "name": "Shubham Agrawal",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 298,
+    "raw_name": "Tom Moores",
+    "name": "Tom Moores",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "40 Lakh",
+    "base_price_inr": 4000000,
+    "page": 10
+  },
+  {
+    "s_no": 299,
+    "raw_name": "Aaron Varghese",
+    "name": "Aaron Varghese",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 300,
+    "raw_name": "Aarya Desai",
+    "name": "Aarya Desai",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 301,
+    "raw_name": "Abhinav Manohar",
+    "name": "Abhinav Manohar",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 302,
+    "raw_name": "Abhinav Tejrana",
+    "name": "Abhinav Tejrana",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 303,
+    "raw_name": "Adarsh Singh",
+    "name": "Adarsh Singh",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 304,
+    "raw_name": "Ahammed Imran",
+    "name": "Ahammed Imran",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 305,
+    "raw_name": "Akshat Raghuwanshi",
+    "name": "Akshat Raghuwanshi",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 10
+  },
+  {
+    "s_no": 306,
+    "raw_name": "Aman Rao Perala",
+    "name": "Aman Rao Perala",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 307,
+    "raw_name": "Ankit Kumar",
+    "name": "Ankit Kumar",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 308,
+    "raw_name": "Anmolpreet Singh",
+    "name": "Anmolpreet Singh",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 309,
+    "raw_name": "Arsh Kabir Ranga",
+    "name": "Arsh Kabir Ranga",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 310,
+    "raw_name": "Atharva Taide",
+    "name": "Atharva Taide",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 311,
+    "raw_name": "Ayaz Khan",
+    "name": "Ayaz Khan",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 312,
+    "raw_name": "Ayush Doseja",
+    "name": "Ayush Doseja",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 313,
+    "raw_name": "Bhanu Pania",
+    "name": "Bhanu Pania",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 314,
+    "raw_name": "Daniel Lategan",
+    "name": "Daniel Lategan",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 315,
+    "raw_name": "Danish Malewar",
+    "name": "Danish Malewar",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 316,
+    "raw_name": "Kunal Chandela",
+    "name": "Kunal Chandela",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 317,
+    "raw_name": "M.Dheeraj Kumar",
+    "name": "M.Dheeraj Kumar",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 318,
+    "raw_name": "Manan Vohra",
+    "name": "Manan Vohra",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 319,
+    "raw_name": "Miles Hammond",
+    "name": "Miles Hammond",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 320,
+    "raw_name": "Pukhraj Mann",
+    "name": "Pukhraj Mann",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 321,
+    "raw_name": "Qamran Iqbal",
+    "name": "Qamran Iqbal",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 322,
+    "raw_name": "Rahul Raj Namala",
+    "name": "Rahul Raj Namala",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 323,
+    "raw_name": "Rohan Kunnummal",
+    "name": "Rohan Kunnummal",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 324,
+    "raw_name": "Sachin Dhas",
+    "name": "Sachin Dhas",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 325,
+    "raw_name": "Sahil Parakh",
+    "name": "Sahil Parakh",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 326,
+    "raw_name": "Salman Nizar",
+    "name": "Salman Nizar",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 327,
+    "raw_name": "Siddhant Rana",
+    "name": "Siddhant Rana",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 328,
+    "raw_name": "Swastik Chikara",
+    "name": "Swastik Chikara",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 329,
+    "raw_name": "Virat Singh",
+    "name": "Virat Singh",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 330,
+    "raw_name": "Vishvarajsinh Jadeja",
+    "name": "Vishvarajsinh Jadeja",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 331,
+    "raw_name": "Yash Dhull",
+    "name": "Yash Dhull",
+    "is_retained": false,
+    "category": "Batsmen",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 332,
+    "raw_name": "Abdul Bazith",
+    "name": "Abdul Bazith",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 333,
+    "raw_name": "Abhimanyusingh Rajput",
+    "name": "Abhimanyusingh Rajput",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 334,
+    "raw_name": "Abid Mushtaq",
+    "name": "Abid Mushtaq",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 335,
+    "raw_name": "Akash Pugazhanthi",
+    "name": "Akash Pugazhanthi",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 336,
+    "raw_name": "Akhil Scaria",
+    "name": "Akhil Scaria",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 11
+  },
+  {
+    "s_no": 337,
+    "raw_name": "Akshu Bajwa",
+    "name": "Akshu Bajwa",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 338,
+    "raw_name": "Aman Khan",
+    "name": "Aman Khan",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 339,
+    "raw_name": "Anuj Thakral",
+    "name": "Anuj Thakral",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 340,
+    "raw_name": "Arfaz Mohammad",
+    "name": "Arfaz Mohammad",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 341,
+    "raw_name": "Arpit Rana",
+    "name": "Arpit Rana",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 342,
+    "raw_name": "Aryaman Singh Dhaliwal",
+    "name": "Aryaman Singh Dhaliwal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 343,
+    "raw_name": "Atharva Ankolekar",
+    "name": "Atharva Ankolekar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 344,
+    "raw_name": "Atit Sheth",
+    "name": "Atit Sheth",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 345,
+    "raw_name": "Auqib Dar",
+    "name": "Auqib Dar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 346,
+    "raw_name": "Ayush Vartak",
+    "name": "Ayush Vartak",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 347,
+    "raw_name": "Bal Krishna",
+    "name": "Bal Krishna",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 348,
+    "raw_name": "Chama Milind",
+    "name": "Chama Milind",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 349,
+    "raw_name": "Daksh Kamra",
+    "name": "Daksh Kamra",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 350,
+    "raw_name": "Darshan Nalkande",
+    "name": "Darshan Nalkande",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 351,
+    "raw_name": "Delano Potgieter",
+    "name": "Delano Potgieter",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 352,
+    "raw_name": "Dhurmil Matkar",
+    "name": "Dhurmil Matkar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 353,
+    "raw_name": "Dian Forrester",
+    "name": "Dian Forrester",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 354,
+    "raw_name": "Edhen Tom",
+    "name": "Edhen Tom",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 355,
+    "raw_name": "Emanjot Chahal",
+    "name": "Emanjot Chahal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 356,
+    "raw_name": "Hardik Raj",
+    "name": "Hardik Raj",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 357,
+    "raw_name": "Harsh Tyagi",
+    "name": "Harsh Tyagi",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 358,
+    "raw_name": "Hemang Patel",
+    "name": "Hemang Patel",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 359,
+    "raw_name": "Himanshu Bisht",
+    "name": "Himanshu Bisht",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 360,
+    "raw_name": "Hritik Shokeen",
+    "name": "Hritik Shokeen",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 361,
+    "raw_name": "Ishan Mulchandani",
+    "name": "Ishan Mulchandani",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 362,
+    "raw_name": "Jagadeesha Suchith",
+    "name": "Jagadeesha Suchith",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 363,
+    "raw_name": "K.Ajay Singh",
+    "name": "K.Ajay Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 364,
+    "raw_name": "Kamlesh Nagarkoti",
+    "name": "Kamlesh Nagarkoti",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 365,
+    "raw_name": "Kanishk Chouhan",
+    "name": "Kanishk Chouhan",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 366,
+    "raw_name": "Karan Lal",
+    "name": "Karan Lal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 367,
+    "raw_name": "Khilan Patel",
+    "name": "Khilan Patel",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 12
+  },
+  {
+    "s_no": 368,
+    "raw_name": "Krains Fuletra",
+    "name": "Krains Fuletra",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 369,
+    "raw_name": "Krish Bhagat",
+    "name": "Krish Bhagat",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 370,
+    "raw_name": "Lalit Yadav",
+    "name": "Lalit Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 371,
+    "raw_name": "Luckyrajsinh Vaghela",
+    "name": "Luckyrajsinh Vaghela",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 372,
+    "raw_name": "Macneil Noronha",
+    "name": "Macneil Noronha",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 373,
+    "raw_name": "Madhav Bajaj",
+    "name": "Madhav Bajaj",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 374,
+    "raw_name": "Mangesh Yadav",
+    "name": "Mangesh Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 375,
+    "raw_name": "Mani Sankar Mura Singh",
+    "name": "Mani Sankar Mura Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 376,
+    "raw_name": "Manoj Bhandage",
+    "name": "Manoj Bhandage",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 377,
+    "raw_name": "Manvanth Kumar",
+    "name": "Manvanth Kumar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 378,
+    "raw_name": "Maramreddy Reddy",
+    "name": "Maramreddy Reddy",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 379,
+    "raw_name": "Mayank Dagar",
+    "name": "Mayank Dagar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 380,
+    "raw_name": "Mayank Gusain",
+    "name": "Mayank Gusain",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 381,
+    "raw_name": "Mayank Rawat",
+    "name": "Mayank Rawat",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 382,
+    "raw_name": "Mohamed Ali",
+    "name": "Mohamed Ali",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 383,
+    "raw_name": "Mridul Surroch",
+    "name": "Mridul Surroch",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 384,
+    "raw_name": "Muhammed Sharafuddeen",
+    "name": "Muhammed Sharafuddeen",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 385,
+    "raw_name": "Nasir Lone",
+    "name": "Nasir Lone",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 386,
+    "raw_name": "Ninad Rathva",
+    "name": "Ninad Rathva",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 387,
+    "raw_name": "Nitin Sai Yadav",
+    "name": "Nitin Sai Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 388,
+    "raw_name": "Parikshit Valsangkar",
+    "name": "Parikshit Valsangkar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 389,
+    "raw_name": "Parth Rekhade",
+    "name": "Parth Rekhade",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 390,
+    "raw_name": "Parth Vats",
+    "name": "Parth Vats",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 391,
+    "raw_name": "Prashant Veer",
+    "name": "Prashant Veer",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 392,
+    "raw_name": "Prerit Dutta",
+    "name": "Prerit Dutta",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 393,
+    "raw_name": "Prince Rai",
+    "name": "Prince Rai",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 394,
+    "raw_name": "R Rajkumar",
+    "name": "R Rajkumar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 395,
+    "raw_name": "R.S Ambrish",
+    "name": "R.S Ambrish",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 396,
+    "raw_name": "R.Sonu Yadav",
+    "name": "R.Sonu Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 397,
+    "raw_name": "Raghav Goyal",
+    "name": "Raghav Goyal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 398,
+    "raw_name": "Ripal Patel",
+    "name": "Ripal Patel",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 13
+  },
+  {
+    "s_no": 399,
+    "raw_name": "Rishabh Chauhan",
+    "name": "Rishabh Chauhan",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 400,
+    "raw_name": "Ritik Tada",
+    "name": "Ritik Tada",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 401,
+    "raw_name": "Sagar Solanki",
+    "name": "Sagar Solanki",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 402,
+    "raw_name": "Sairaj Patil",
+    "name": "Sairaj Patil",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 403,
+    "raw_name": "Sammar Gajjar",
+    "name": "Sammar Gajjar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 404,
+    "raw_name": "Sanjay Yadav",
+    "name": "Sanjay Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 405,
+    "raw_name": "Sanvir Singh",
+    "name": "Sanvir Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 406,
+    "raw_name": "Sarthak Ranjan",
+    "name": "Sarthak Ranjan",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 407,
+    "raw_name": "Satvik Deswal",
+    "name": "Satvik Deswal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 408,
+    "raw_name": "Shams Mulani",
+    "name": "Shams Mulani",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 409,
+    "raw_name": "Shiva Singh",
+    "name": "Shiva Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 410,
+    "raw_name": "Shivalik Sharma",
+    "name": "Shivalik Sharma",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 411,
+    "raw_name": "Shivang Kumar",
+    "name": "Shivang Kumar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 412,
+    "raw_name": "Shreyan Chakraborty",
+    "name": "Shreyan Chakraborty",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 413,
+    "raw_name": "Shubham Rana",
+    "name": "Shubham Rana",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 414,
+    "raw_name": "Shubhang Hegde",
+    "name": "Shubhang Hegde",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 415,
+    "raw_name": "Siddharth Yadav",
+    "name": "Siddharth Yadav",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 416,
+    "raw_name": "Sunny Sandhu",
+    "name": "Sunny Sandhu",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 417,
+    "raw_name": "Suyash Prabhudessai",
+    "name": "Suyash Prabhudessai",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 418,
+    "raw_name": "Tanay Thyagarajann",
+    "name": "Tanay Thyagarajann",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 419,
+    "raw_name": "Tanush Kotian",
+    "name": "Tanush Kotian",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 420,
+    "raw_name": "Tiaan Van Vuuren",
+    "name": "Tiaan Van Vuuren",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 421,
+    "raw_name": "Utkarsh Singh",
+    "name": "Utkarsh Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 422,
+    "raw_name": "Varun Raj Singh Bisht",
+    "name": "Varun Raj Singh Bisht",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 423,
+    "raw_name": "Vicky Ostwal",
+    "name": "Vicky Ostwal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 424,
+    "raw_name": "Vihaan Malhotra",
+    "name": "Vihaan Malhotra",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 425,
+    "raw_name": "Vijay Shankar",
+    "name": "Vijay Shankar",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 426,
+    "raw_name": "Virandeep Singh",
+    "name": "Virandeep Singh",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 427,
+    "raw_name": "Vishal Mandwal",
+    "name": "Vishal Mandwal",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 428,
+    "raw_name": "Vivrant Sharma",
+    "name": "Vivrant Sharma",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 429,
+    "raw_name": "Yuvraj Chaudhary",
+    "name": "Yuvraj Chaudhary",
+    "is_retained": false,
+    "category": "All-rounders",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 14
+  },
+  {
+    "s_no": 430,
+    "raw_name": "Aaqib Khan",
+    "name": "Aaqib Khan",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 431,
+    "raw_name": "Abhilash Shetty",
+    "name": "Abhilash Shetty",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 432,
+    "raw_name": "Akash Madhwal",
+    "name": "Akash Madhwal",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 433,
+    "raw_name": "Aman Shekhawat",
+    "name": "Aman Shekhawat",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 434,
+    "raw_name": "Amit Kumar",
+    "name": "Amit Kumar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 435,
+    "raw_name": "Arpit Guleria",
+    "name": "Arpit Guleria",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 436,
+    "raw_name": "Ashok Sharma",
+    "name": "Ashok Sharma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 437,
+    "raw_name": "Atal Rai",
+    "name": "Atal Rai",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 438,
+    "raw_name": "Atif Mushtaq",
+    "name": "Atif Mushtaq",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 439,
+    "raw_name": "Bailapudi Yeswanth",
+    "name": "Bailapudi Yeswanth",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 440,
+    "raw_name": "Bayanda Majola",
+    "name": "Bayanda Majola",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 441,
+    "raw_name": "Brijesh Sharma",
+    "name": "Brijesh Sharma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 442,
+    "raw_name": "C.Rakshann Readdi",
+    "name": "C.Rakshann Readdi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 443,
+    "raw_name": "Chintal Gandhi",
+    "name": "Chintal Gandhi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 444,
+    "raw_name": "Deependra Singh",
+    "name": "Deependra Singh",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 445,
+    "raw_name": "Dharmendrasinh Jadeja",
+    "name": "Dharmendrasinh Jadeja",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 446,
+    "raw_name": "Divesh Sharma",
+    "name": "Divesh Sharma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 447,
+    "raw_name": "Esakkimuthu Ayyakutti",
+    "name": "Esakkimuthu Ayyakutti",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 448,
+    "raw_name": "Himanshu Sharma",
+    "name": "Himanshu Sharma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 449,
+    "raw_name": "Irfan Umair",
+    "name": "Irfan Umair",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 450,
+    "raw_name": "Ishan Porel",
+    "name": "Ishan Porel",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 451,
+    "raw_name": "Izaz Sawariya",
+    "name": "Izaz Sawariya",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 452,
+    "raw_name": "Jhathavedh Subramanyan",
+    "name": "Jhathavedh Subramanyan",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 453,
+    "raw_name": "Jikku Bright",
+    "name": "Jikku Bright",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 454,
+    "raw_name": "K.C. Cariappa",
+    "name": "K.C. Cariappa",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 455,
+    "raw_name": "Kartik Chadha",
+    "name": "Kartik Chadha",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 456,
+    "raw_name": "Kartik Tyagi",
+    "name": "Kartik Tyagi",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 457,
+    "raw_name": "Kuldip Yadav",
+    "name": "Kuldip Yadav",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 458,
+    "raw_name": "Kulwant Khejroliya",
+    "name": "Kulwant Khejroliya",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 459,
+    "raw_name": "Kumar Kartikeya Singh",
+    "name": "Kumar Kartikeya Singh",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 460,
+    "raw_name": "Manan Bhardwaj",
+    "name": "Manan Bhardwaj",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 15
+  },
+  {
+    "s_no": 461,
+    "raw_name": "Manish Reddy",
+    "name": "Manish Reddy",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 462,
+    "raw_name": "Mohammad Izhar",
+    "name": "Mohammad Izhar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 463,
+    "raw_name": "Mohit Rathee",
+    "name": "Mohit Rathee",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 464,
+    "raw_name": "Money Grewal",
+    "name": "Money Grewal",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 465,
+    "raw_name": "Murugan Ashwin",
+    "name": "Murugan Ashwin",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 466,
+    "raw_name": "Naman Pushpak",
+    "name": "Naman Pushpak",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 467,
+    "raw_name": "Naman Tiwari",
+    "name": "Naman Tiwari",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 468,
+    "raw_name": "Nishanth Saranu",
+    "name": "Nishanth Saranu",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 469,
+    "raw_name": "Onkar Tarmale",
+    "name": "Onkar Tarmale",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 470,
+    "raw_name": "Pankaj Jaswal",
+    "name": "Pankaj Jaswal",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 471,
+    "raw_name": "Parikshit Dhanak",
+    "name": "Parikshit Dhanak",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 472,
+    "raw_name": "Praful Hinge",
+    "name": "Praful Hinge",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 473,
+    "raw_name": "Prashant Solanki",
+    "name": "Prashant Solanki",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 474,
+    "raw_name": "Pravin Dubey",
+    "name": "Pravin Dubey",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 475,
+    "raw_name": "Prithviraj Yarra",
+    "name": "Prithviraj Yarra",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 476,
+    "raw_name": "Purav Agarwal",
+    "name": "Purav Agarwal",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 477,
+    "raw_name": "PV.Satyanarayana Raju",
+    "name": "PV.Satyanarayana Raju",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 478,
+    "raw_name": "Raj Limbani",
+    "name": "Raj Limbani",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 479,
+    "raw_name": "Rajan Kumar",
+    "name": "Rajan Kumar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 480,
+    "raw_name": "Rajat Verma",
+    "name": "Rajat Verma",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 481,
+    "raw_name": "Rakibul Hasan",
+    "name": "Rakibul Hasan",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 482,
+    "raw_name": "Ravi Kumar",
+    "name": "Ravi Kumar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 483,
+    "raw_name": "Rohit Yadav",
+    "name": "Rohit Yadav",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 484,
+    "raw_name": "Roshan Wagshare",
+    "name": "Roshan Wagshare",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 485,
+    "raw_name": "Sabir Khan",
+    "name": "Sabir Khan",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 486,
+    "raw_name": "Sadek Hussain",
+    "name": "Sadek Hussain",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 487,
+    "raw_name": "Safvan Patel",
+    "name": "Safvan Patel",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 488,
+    "raw_name": "Sakib Hussain",
+    "name": "Sakib Hussain",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 489,
+    "raw_name": "Saumy Pandey",
+    "name": "Saumy Pandey",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 490,
+    "raw_name": "Sayan Ghosh",
+    "name": "Sayan Ghosh",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 491,
+    "raw_name": "Sayed Irfan Aftab",
+    "name": "Sayed Irfan Aftab",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 16
+  },
+  {
+    "s_no": 492,
+    "raw_name": "Shivam Shukla",
+    "name": "Shivam Shukla",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 493,
+    "raw_name": "Shreevatsha Acharya",
+    "name": "Shreevatsha Acharya",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 494,
+    "raw_name": "Shreyas Chavan",
+    "name": "Shreyas Chavan",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 495,
+    "raw_name": "Shubham Kapse",
+    "name": "Shubham Kapse",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 496,
+    "raw_name": "Simarjeet Singh",
+    "name": "Simarjeet Singh",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 497,
+    "raw_name": "Srihari Nair",
+    "name": "Srihari Nair",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 498,
+    "raw_name": "Sunil Kumar",
+    "name": "Sunil Kumar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 499,
+    "raw_name": "Sushant Mishra",
+    "name": "Sushant Mishra",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 500,
+    "raw_name": "Tejas Baroka",
+    "name": "Tejas Baroka",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 501,
+    "raw_name": "Traveen Mathew",
+    "name": "Traveen Mathew",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 502,
+    "raw_name": "Tristan Luus",
+    "name": "Tristan Luus",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 503,
+    "raw_name": "Vidwath Kaverappa",
+    "name": "Vidwath Kaverappa",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 504,
+    "raw_name": "Vidyadhar Patil",
+    "name": "Vidyadhar Patil",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 505,
+    "raw_name": "Vignesh Puthur",
+    "name": "Vignesh Puthur",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 506,
+    "raw_name": "Vijay Kumar",
+    "name": "Vijay Kumar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 507,
+    "raw_name": "Vishal Nishad",
+    "name": "Vishal Nishad",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 508,
+    "raw_name": "Wahidullah Zadran",
+    "name": "Wahidullah Zadran",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 509,
+    "raw_name": "Waseem Khanday",
+    "name": "Waseem Khanday",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 510,
+    "raw_name": "Yash Dicholkar",
+    "name": "Yash Dicholkar",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 511,
+    "raw_name": "Yash Raj Punja",
+    "name": "Yash Raj Punja",
+    "is_retained": false,
+    "category": "Bowlers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 512,
+    "raw_name": "Abhishek Pathak",
+    "name": "Abhishek Pathak",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 513,
+    "raw_name": "Ajitesh Guruswamy",
+    "name": "Ajitesh Guruswamy",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 514,
+    "raw_name": "Bipin Saurabh",
+    "name": "Bipin Saurabh",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 515,
+    "raw_name": "Connor Esterhuizen",
+    "name": "Connor Esterhuizen",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 516,
+    "raw_name": "Hardik Tamore",
+    "name": "Hardik Tamore",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 517,
+    "raw_name": "K.L. Shrijith",
+    "name": "K.L. Shrijith",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 518,
+    "raw_name": "Kartik Sharma",
+    "name": "Kartik Sharma",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 519,
+    "raw_name": "Kunal Rathore",
+    "name": "Kunal Rathore",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 520,
+    "raw_name": "Mukul Choudhary",
+    "name": "Mukul Choudhary",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 521,
+    "raw_name": "Rahul Buddhi",
+    "name": "Rahul Buddhi",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 522,
+    "raw_name": "Ravi Singh",
+    "name": "Ravi Singh",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 17
+  },
+  {
+    "s_no": 523,
+    "raw_name": "Ricky Bhui",
+    "name": "Ricky Bhui",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 524,
+    "raw_name": "Ruchit Ahir",
+    "name": "Ruchit Ahir",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 525,
+    "raw_name": "Salil Arora",
+    "name": "Salil Arora",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 526,
+    "raw_name": "Saurav Chuahan",
+    "name": "Saurav Chuahan",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 527,
+    "raw_name": "Siddharth Joon",
+    "name": "Siddharth Joon",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 528,
+    "raw_name": "Tejasvi Singh",
+    "name": "Tejasvi Singh",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 529,
+    "raw_name": "Tushar Raheja",
+    "name": "Tushar Raheja",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 530,
+    "raw_name": "Vansh Bedi",
+    "name": "Vansh Bedi",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 531,
+    "raw_name": "Vishnu Solanki",
+    "name": "Vishnu Solanki",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  },
+  {
+    "s_no": 532,
+    "raw_name": "Yashvardhan Dalal",
+    "name": "Yashvardhan Dalal",
+    "is_retained": false,
+    "category": "Wicket-keepers",
+    "base_price_display": "30 Lakh",
+    "base_price_inr": 3000000,
+    "page": 18
+  }
+]

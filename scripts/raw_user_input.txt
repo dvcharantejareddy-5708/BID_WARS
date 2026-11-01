@@ -1,0 +1,707 @@
+<USER_REQUEST>
+# MASTER PROMPT — BID WARS
+## Real-Time Multiplayer IPL Auction Game | 2026 Edition
+
+Build a complete, responsive, production-quality web application named **BID WARS** — a multiplayer IPL cricket auction simulator where friends compete to build the strongest cricket team through live bidding.
+
+Do not build just a landing page or a static UI prototype. Build a fully functional game with persistent data, real-time multiplayer synchronization, working auction rules, team management, bot bidding, reconnection handling, and a complete auction lifecycle.
+
+**Priority order:** Correct game logic → accurate player database → reliable multiplayer → excellent UI → animations and extra features.
+
+---
+
+# 1. TECH STACK AND ARCHITECTURE
+
+Use the following stack where supported by the development environment:
+
+- Frontend: React, TypeScript, and Vite.
+- Styling: Tailwind CSS with reusable components and custom CSS.
+- Backend and database: Supabase PostgreSQL.
+- Authentication: Supabase Auth with guest-friendly nickname-based joining where appropriate.
+- Real-time multiplayer: Supabase Realtime or a reliable server-authoritative WebSocket implementation.
+- Server-side game logic: PostgreSQL transactions and secure server functions, or a trusted backend.
+- Player images: Use image URLs from the provided player-data document and verified official sources.
+- Hosting: Configure the application for deployment to a supported platform.
+
+Keep the auction engine separate from the UI. Use strict TypeScript types, input validation, reusable components, and database constraints.
+
+Never trust the browser to decide the winner, accept a bid, change a purse, assign a player, or skip an auction lot. All important game actions must be validated by the server.
+
+Do not expose secret API keys in frontend code. Include an `.env.example` with placeholders and document the required configuration.
+
+# 2. PLAYER DATABASE — USE THE UPLOADED DOCUMENT
+
+First, inspect the uploaded player-data document and all available supporting player CSV files.
+
+Treat those files as the primary source for the player records they contain. Import the actual records instead of creating fake names, prices, categories, or image links.
+
+Create a normalized player database with these fields:
+
+- Unique player ID
+- Full player name
+- Nationality
+- Primary playing role
+- Optional secondary role
+- Wicketkeeper flag
+- IPL auction year
+- Official base price in INR
+- Auction set code and set order
+- Marquee flag
+- Player portrait URL
+- Image attribution/source URL
+- Data source and verification status
+- Auction eligibility status
+
+Use these main gameplay categories:
+
+1. BATTERS
+2. BOWLERS
+3. ALL-ROUNDERS
+
+Treat wicketkeepers as a separate optional filter and attribute, not a mutually exclusive role. A wicketkeeper-batter should remain eligible for the batter category.
+
+### Critical player-data rules
+
+- Use the latest available 2026 auction data as the default season.
+- Support 2025 data as a separate selectable historical dataset.
+- Preserve each season's actual base prices and official auction set information.
+- Do not use a player's final sale price, salary, retention value, or previous contract as their auction base price.
+- Do not treat every 2026 franchise squad member as an auction-eligible player.
+- Do not invent missing base prices, nationality, player roles, or images.
+- If the supplied document is incomplete, identify the missing records and provide an import workflow for the official auction list.
+- Clearly mark unverified records instead of silently treating them as correct.
+- Avoid duplicate players within the same season's auction pool.
+- Keep the original source and year for every imported price.
+
+The game must not claim that the dataset is complete until the actual imported data has been checked against the corresponding official auction list.
+
+If the player document contains only partial data, build the import pipeline and validation report without filling gaps with fictional players or guessed prices.
+
+# 3. AUCTION SET SYSTEM AND PLAYER ORDER
+
+Create a professional auction sequence with marquee players first and the remaining players organized by category and official auction sets.
+
+### Set -1: Marquee Auction
+
+Create a dedicated first set named **SET -1 — MARQUEE PLAYERS**.
+
+It should contain the biggest auction stars according to the applicable season's official marquee classification and verified auction data.
+
+Use the official marquee classification when one exists. For a custom auction pool without an official marquee designation, allow the room host to manually select marquee players before starting.
+
+Do not automatically call every expensive player an official marquee player.
+
+### Remaining auction sets
+
+After Set -1, organize the players into role-based groups:
+
+- BATTERS
+- ALL-ROUNDERS
+- BOWLERS
+
+Within each role, preserve official auction-set boundaries and their order where available. Do not merge distinct official sets merely because they contain players with the same role.
+
+For custom player pools, create configurable sets based on category and base-price ranges.
+
+### Sorting rules
+
+- Marquee set comes first.
+- Within a set, order players from highest base price to lowest base price.
+- Use the official auction order to break ties when it is available.
+- Otherwise, use a stable deterministic order.
+- Do not sort alphabetically when doing so would change the official auction order.
+- Show the set number, set name, player number, category, and base price on the auction screen.
+- Show the progress indicator, for example: `Set 2 of 12 · Player 18 of 350`, using the actual loaded dataset.
+
+Provide an admin-only option to configure custom ordering before the auction starts. Once a room's auction begins, preserve its frozen player order so every participant sees the same sequence.
+
+# 4. IPL FRANCHISES
+
+Include all 10 IPL franchises as selectable team identities:
+
+1. Chennai Super Kings — CSK
+2. Mumbai Indians — MI
+3. Royal Challengers Bengaluru — RCB
+4. Kolkata Knight Riders — KKR
+5. Sunrisers Hyderabad — SRH
+6. Rajasthan Royals — RR
+7. Punjab Kings — PBKS
+8. Delhi Capitals — DC
+9. Gujarat Titans — GT
+10. Lucknow Super Giants — LSG
+
+Use franchise logos only from reliable sources and respect image usage terms. If a logo is unavailable, use a clean team abbreviation or a custom typographic emblem.
+
+Default mode: one participant controls one franchise. Prevent two participants from selecting the same franchise in a room unless the host explicitly enables duplicate teams in custom mode.
+
+# 5. ROOM CREATION AND MULTIPLAYER
+
+Build a complete private-room system.
+
+### Create room
+
+The host can configure:
+
+- Room name
+- Unique join code
+- Maximum human participants
+- Selected auction season: 2025 or 2026
+- Selected player dataset
+- Starting purse
+- Bid timer
+- Minimum bid increments
+- Squad size limits
+- Overseas-player limit
+- Bot participation
+- Auction order and optional custom marquee set
+- Public/private visibility, if public rooms are supported
+
+### Join room
+
+Players can:
+
+- Enter a room code or open a shareable invitation link.
+- Choose a display name.
+- Select an available IPL franchise.
+- See who has joined.
+- See which teams are already taken.
+- See the host and participant readiness status.
+- Leave and reconnect without losing their team or progress.
+
+Do not allow the auction to start until the minimum required participants are ready, the room settings are valid, and the host confirms the start.
+
+### Host/admin controls
+
+Only the room host or an explicitly authorized co-host can:
+
+- Start the auction.
+- Pause and resume it.
+- Skip the current player.
+- Change the timer before the auction starts.
+- Add or remove bots before the auction starts.
+- Change valid pre-auction settings.
+- Cancel the room.
+- Restart the auction with an explicit confirmation.
+- End the auction and show results.
+
+During the auction, display a clear host-control panel without obstructing bidding.
+
+Record important administrative actions in an audit log.
+
+# 6. BIDDING TIMER — 5 TO 20 SECONDS
+
+Add a timer setting with every integer value from 5 to 20 seconds.
+
+Use a slider or segmented selector with clear labels.
+
+Default: 10 seconds.
+
+The countdown must be synchronized for every participant using server-authoritative timestamps.
+
+### Timer rules
+
+- Start the timer when a player becomes active for bidding.
+- A valid new bid resets the timer to the room's configured duration.
+- Invalid bids do not reset the timer.
+- When the timer reaches zero, atomically finalize the player.
+- If there were no valid bids, mark the player UNSOLD.
+- If bids exist, assign the player to the highest valid bidder.
+- Prevent late bids after the server's deadline.
+- If two bids arrive almost simultaneously, serialize them and accept only valid bids in the authoritative order.
+- Handle network delays, browser backgrounding, and reconnects without creating duplicate purchases.
+- The countdown displayed in the browser is a visual representation of server time, not the source of truth.
+
+Provide optional sound effects for the final five seconds, mute controls, and reduced-motion support.
+
+# 7. LIVE BIDDING ENGINE
+
+Display the current player prominently, with:
+
+- Portrait
+- Name
+- Nationality
+- Primary role
+- Wicketkeeper indicator, if applicable
+- Base price
+- Current highest bid
+- Highest bidder's team
+- Current set and lot number
+- Countdown timer
+- Bid history
+- All teams' remaining purses
+- Clear SOLD, UNSOLD, and SKIPPED states
+
+### Bidding rules
+
+- The base price is the opening bid.
+- The first valid bid must meet the minimum permitted bid.
+- Every subsequent bid must exceed the current highest bid by the configured minimum increment.
+- Reject bids from a team without sufficient funds.
+- Reject bids from teams that have reached their squad limit.
+- Reject bids that would violate the configured overseas-player limit.
+- Prevent a team from purchasing the same player twice.
+- Validate every bid against the authoritative room state.
+- Persist accepted bids immediately.
+- Update all connected clients in real time.
+
+Display suggested next bids and disable the bid button when a team cannot legally bid.
+
+Provide quick-bid buttons for the next legal increment and other valid increments. Make the next legal bid visually prominent.
+
+Do not allow a player to bid on themselves through an unintended UI action or let the host alter an accepted bid silently.
+
+# 8. HOST-ONLY SKIP PLAYER FEATURE
+
+Add a clearly visible **SKIP PLAYER** button in the host's auction control panel.
+
+When clicked:
+
+1. Show a confirmation dialog naming the current player.
+2. Confirm that the host intends to skip the lot.
+3. Stop the current timer.
+4. Mark the player as SKIPPED.
+5. Record the host action.
+6. Move to the next eligible player.
+7. Synchronize the new state with every connected participant.
+
+A skipped player must not be assigned to a team and must not deduct any purse.
+
+Keep skipped players separate from unsold players.
+
+Offer an optional host-controlled re-auction list for skipped and unsold players at the end of the main auction.
+
+# 9. BOT PARTICIPATION
+
+Provide a host setting called **PLAY MODE** with two options:
+
+### Option A — Friends Only
+
+- Only real participants can control franchises.
+- No bot teams are added.
+- Unoccupied franchises remain unavailable for bidding.
+- The host can choose to require all selected teams to have human participants.
+
+### Option B — Friends + AI Bots
+
+- The host chooses how many bots to add.
+- Bots occupy available franchises.
+- Each bot gets a configurable bidding personality.
+- Bots use the same purse, squad limits, overseas limit, and bidding rules as human players.
+- Bots must bid through the same validated bidding engine.
+- Bots must not have access to secret future events or hidden opponent data.
+
+Include distinct strategies:
+
+- Balanced Builder: maintains role balance and a sensible purse.
+- Aggressive Buyer: competes strongly for priority players.
+- Budget Strategist: conserves funds for later sets.
+- Specialist Hunter: prioritizes players in selected roles.
+
+Bots must consider the current bid, remaining purse, squad vacancies, role needs, and remaining auction pool.
+
+Use configurable strategy weights and bounded randomness. Do not let bots bid irrationally beyond their purse or continue bidding after their squad is full.
+
+Display a BOT badge beside bot-controlled teams.
+
+# 10. TEAM RULES AND SQUAD MANAGEMENT
+
+Default game settings:
+
+- Starting purse: ₹120 crore per franchise.
+- Minimum completed squad size: 18 players.
+- Maximum squad size: 25 players.
+- Maximum overseas players: 8 per franchise.
+
+The purse must never go below zero.
+
+### Important squad constraint logic
+
+Allow teams to buy players throughout the auction, but prevent them from ending the auction with an invalid squad.
+
+Before accepting a purchase, calculate:
+
+- Current squad size
+- Remaining purse
+- Remaining squad slots
+- Overseas-player count
+- Remaining overseas slots
+- Minimum spend needed to fill the remaining squad
+- Whether enough eligible players remain to reach 18 players
+
+Do not allow purchases that make a valid final squad mathematically impossible.
+
+At the end of the auction:
+
+- Flag teams below 18 players.
+- Flag teams above 25 players.
+- Flag teams with more than 8 overseas players.
+- Flag teams with a negative purse.
+- Provide a clear validation report.
+
+Offer a host-controlled extension or supplementary round if a team cannot complete its squad. Do not silently declare an invalid squad valid.
+
+Make these settings configurable for custom game modes. Clearly label the above values as the game's selected house rules rather than claiming every constraint is an exact official IPL auction rule.
+
+# 11. TEAM BALANCE AND PLAYER VALUE
+
+Provide a squad dashboard for every franchise showing:
+
+- Total players purchased
+- Remaining purse
+- Total amount spent
+- Average purchase price
+- Batters, bowlers, and all-rounders
+- Wicketkeepers
+- Overseas players
+- Empty squad slots
+- Most expensive purchase
+- Cheapest purchase
+- Squad completion percentage
+
+Add a team balance indicator based on configurable role targets. For example, show whether a squad has enough batting depth, bowling options, all-rounders, and wicketkeepers.
+
+Do not claim that the team balance indicator predicts actual IPL performance with certainty.
+
+# 12. PLAYER PORTRAITS AND CARD DESIGN
+
+Use the player portrait images supplied in the uploaded data document wherever suitable.
+
+If an image URL is missing or invalid:
+
+- Use a neutral avatar or initials placeholder.
+- Do not display broken-image icons.
+- Keep the layout intact.
+- Provide a graceful loading state.
+- Retry failed image loads only a limited number of times.
+
+Build premium player cards using restrained glassmorphism:
+
+- Dark translucent surfaces
+- Subtle backdrop blur
+- Fine borders
+- Soft highlights
+- Consistent image framing
+- Clear contrast
+- Minimal motion
+
+Glass effects must not reduce readability or performance.
+
+### Player card hierarchy
+
+At the top: set number and player role.
+
+Center: large player portrait.
+
+Below the portrait:
+
+- Player name
+- Nationality
+- Playing role
+- Base price
+- Current bid, when auction is active
+- Highest bidder, when applicable
+
+Use separate visual treatments for SOLD, UNSOLD, and SKIPPED.
+
+Do not use team colors in a way that makes player information hard to read.
+
+# 13. VISUAL DESIGN SYSTEM
+
+Design the product like a premium sports-gaming platform, not a generic admin dashboard.
+
+### Brand identity
+
+Name: BID WARS
+
+Tagline: BUILD YOUR XI. WIN THE AUCTION.
+
+### Color palette
+
+- Background: deep navy `#0B1020`
+- Secondary background: `#111A2E`
+- Card surface: translucent navy
+- Primary accent: electric cyan `#48D7FF`
+- Secondary accent: warm amber `#FFC857`
+- Success: accessible green
+- Error: accessible red
+- Primary text: near-white
+- Secondary text: muted blue-gray
+
+Use cyan for active bidding, amber for marquee and premium player highlights, green for confirmed success, and red for errors.
+
+Avoid using multiple competing gradients.
+
+### Typography
+
+Use a modern, readable pairing:
+
+- Headings: Space Grotesk
+- Body/UI: Inter
+
+Use clear type scales, compact labels, consistent spacing, and responsive line lengths.
+
+### Visual principles
+
+- Strong hierarchy
+- Spacious layout
+- Consistent grid
+- Subtle borders
+- Restrained shadows
+- Smooth transitions
+- No unnecessary clutter
+- No oversized decorative text over player portraits
+- Accessible contrast and keyboard navigation
+
+Create light and dark theme support if practical, with dark mode as the default.
+
+# 14. REQUIRED SCREENS
+
+Implement all of the following:
+
+1. **Landing page** — BID WARS branding, short game explanation, Create Room, Join Room.
+2. **Create Room** — auction season, timer, budget, squad rules, bots, and advanced settings.
+3. **Join Room** — room code, nickname, franchise selection, and lobby preview.
+4. **Waiting Lobby** — participants, franchise selections, readiness, room code, copy-invitation-link action.
+5. **Auction Room** — current player, timer, bidding controls, bid history, team purse summary, host controls.
+6. **Player Explorer** — search, category filters, base-price sorting, set filters, nationality, and player details.
+7. **My Team** — purchased squad, purse, role balance, overseas count, and remaining slots.
+8. **All Teams** — compare all franchises and their current auction status.
+9. **Auction Results** — sold, unsold, skipped, total spending, and squad completion.
+10. **Settings** — timer, bid increments, sound, theme, and allowed custom rules.
+11. **Reconnect/Error Screen** — retry connection, restore room state, and return to the lobby when appropriate.
+
+Every screen must have functional navigation. Do not create buttons that do nothing.
+
+# 15. USEFUL ADDITIONAL FEATURES
+
+Add the following where they do not compromise reliability:
+
+- Searchable player catalogue.
+- Category, set, and price filters.
+- Marquee-player badge.
+- Bid history timeline.
+- Purse-spending progress bar.
+- Auction pause and resume.
+- Sound effects with mute option.
+- Player sold animation.
+- Team purchase notifications.
+- Undo only for an uncommitted administrative action; never silently reverse an accepted purchase.
+- Unsold-player re-auction round.
+- Final team comparison.
+- Auction summary export as CSV.
+- Shareable room link.
+- Host moderation for disconnected participants.
+- Room reconnection grace period.
+- Activity log for host actions.
+- Responsive mobile bidding controls.
+- Optional practice mode against bots.
+
+# 16. DATABASE AND CONSISTENCY
+
+Create normalized database tables such as:
+
+- `players`
+- `auction_seasons`
+- `auction_lots`
+- `rooms`
+- `room_members`
+- `room_teams`
+- `bids`
+- `purchases`
+- `room_events`
+- `bot_profiles`
+
+Use foreign keys, indexes, uniqueness constraints, and row-level security.
+
+For each room, store:
+
+- Room configuration
+- Current auction lot
+- Current highest bid
+- Current leading team
+- Auction status
+- Server deadline
+- Timer duration
+- Team purse balances
+- Squad purchases
+- Auction event history
+
+Use atomic transactions for bid acceptance and purchase finalization.
+
+A sold player must be assigned to exactly one team. A player's purchase must deduct the purse exactly once, even if two clients reconnect or a request is retried.
+
+Use idempotency keys or equivalent transaction safeguards for important actions.
+
+Persist enough state to recover after refresh, temporary disconnection, or server restart.
+
+Do not depend on local storage as the authoritative game database.
+
+# 17. SECURITY AND ERROR HANDLING
+
+Implement:
+
+- Server-side room membership validation.
+- Server-side host permission checks.
+- Input sanitization.
+- Bid amount validation.
+- Room-code validation and rate limiting.
+- Protection against duplicate purchases.
+- Protection against stale and out-of-order bids.
+- Row-level security policies.
+- Safe error messages.
+- Server-side purse calculations.
+- Transactional sold-player finalization.
+- Controlled room cancellation.
+- Reconnection and recovery logic.
+
+Do not allow clients to edit their purse, team ownership, highest bid, or player purchase status directly.
+
+Do not reveal Supabase service-role keys or backend secrets to the browser.
+
+# 18. TESTING — DO NOT SKIP
+
+Before calling the application complete, test these scenarios:
+
+1. One host creates a room and shares its code.
+2. Multiple friends join from separate browser sessions.
+3. Different users select different franchises.
+4. The host starts the auction.
+5. All connected users see the same player and countdown.
+6. A valid bid updates every client.
+7. A bid below the minimum increment is rejected.
+8. A bid above the available purse is rejected.
+9. The timer resets after a valid bid.
+10. The timer expires and the correct team wins.
+11. A player with no bids becomes unsold.
+12. The host skips a player and no purse is deducted.
+13. Two simultaneous bids do not create inconsistent state.
+14. A player cannot be sold to two teams.
+15. Overseas and squad limits are enforced.
+16. A player disconnects and reconnects.
+17. A host pauses and resumes the auction.
+18. A bot bids legally and respects its budget.
+19. The auction survives a browser refresh.
+20. The final squad validation catches incomplete teams.
+21. The auction can finish with all events recorded correctly.
+22. Missing images and incomplete player records do not crash the application.
+23. The application works on desktop, tablet, and mobile.
+24. Unauthorized users cannot invoke host actions.
+
+Add automated tests for auction rules and integration tests for multiplayer synchronization. Fix discovered errors rather than merely documenting them.
+
+# 19. BUILD AND DELIVERY REQUIREMENTS
+
+Work in this order:
+
+Phase 1: Inspect the supplied player-data files and report data completeness.
+
+Phase 2: Build the database schema and import/validation process.
+
+Phase 3: Implement the auction engine, timer, bidding, purse, and squad constraints.
+
+Phase 4: Implement room creation, multiplayer synchronization, reconnection, and host controls.
+
+Phase 5: Implement bot participation.
+
+Phase 6: Build the full UI and player-card system.
+
+Phase 7: Run tests, fix bugs, and verify the complete auction flow.
+
+Phase 8: Provide deployment instructions, environment-variable setup, database migrations, and a concise user guide.
+
+Do not stop after creating a homepage. Do not replace real multiplayer with fake participants or simulated bids unless the user explicitly chooses demo mode.
+
+If an external service needs credentials, explain the exact setup required instead of pretending it has been connected.
+
+At completion, report:
+
+- Features actually implemented
+- Features tested
+- Any remaining limitations
+- Whether real multiplayer works across separate browsers
+- Whether the player dataset is complete and validated
+- How to run and deploy the application
+
+**Final acceptance criterion:** Two or more real users must be able to open the deployed site on separate devices, join the same room, select franchises, bid in a synchronized auction, reconnect after disconnection, and finish with correct team rosters and purse balances.
+
+Build BID WARS as a real, playable product—not just a visual mockup.
+### Mandatory Player Name and Franchise Selection
+
+When a participant enters a room, implement this exact flow:
+
+**Enter room code → Enter player name → Select IPL team → Confirm selection → Enter waiting lobby.**
+
+**1. Ask for the player's name**
+- Display a required name-entry screen after the player enters a valid room code or opens an invitation link.
+- Do not allow the player to proceed with an empty name.
+- Validate the name and reject unsafe input.
+- Display the player's chosen name throughout the lobby, auction, bid history, and results.
+
+**2. Show all 10 IPL teams**
+
+Display selectable team cards for:
+
+1. Chennai Super Kings (CSK)
+2. Mumbai Indians (MI)
+3. Royal Challengers Bengaluru (RCB)
+4. Kolkata Knight Riders (KKR)
+5. Sunrisers Hyderabad (SRH)
+6. Rajasthan Royals (RR)
+7. Punjab Kings (PBKS)
+8. Delhi Capitals (DC)
+9. Gujarat Titans (GT)
+10. Lucknow Super Giants (LSG)
+
+Each card must show its team name, abbreviation, logo or fallback emblem, and availability status.
+
+**3. One player per team per room**
+- Each franchise can be selected by only one human participant in a room.
+- When a player selects a team, reserve it immediately on the server.
+- Mark that team as **TAKEN** and show the selecting player's display name.
+- Disable taken teams so other participants cannot select them.
+- Update availability in real time for everyone in the room.
+- Enforce uniqueness through database constraints or atomic server-side transactions, not just frontend button disabling.
+- If two participants select the same team simultaneously, accept only one reservation. Inform the other participant and refresh the team list.
+- Do not silently assign a different team to someone whose selection fails.
+
+**4. Team changes and disconnections**
+- Before the auction starts, allow a participant to change teams if the new team is available.
+- Release the old team and reserve the new team atomically.
+- If a participant leaves before the auction starts, release their reservation.
+- If a participant temporarily disconnects, preserve their team during the configured reconnection grace period.
+- Once the auction starts, lock team assignments. Reconnecting players must return to their original team.
+- Duplicate team selection must remain disabled by default.
+
+**5. Waiting lobby**
+Show a live participant list containing:
+- Player display name
+- Selected IPL franchise
+- Ready/not-ready status
+- Host indicator
+- Connection status
+
+The host must not be able to start the auction until every joined participant has a valid name and unique team assignment, and all required readiness checks pass.
+
+**6. Required acceptance tests**
+- A name is requested before team selection.
+- All 10 IPL franchises are displayed.
+- Taken franchises cannot be selected.
+- Simultaneous attempts cannot reserve the same franchise twice.
+- Team changes work correctly before auction start.
+- Leaving and reconnecting follows the reservation rules.
+- Every participant sees lobby changes in real time.
+- All player names and franchise assignments persist after refresh.
+- The host cannot start an invalid lobby.
+
+**Implementation requirement:** Keep player identity, room membership, and franchise assignment linked in the database. Validate every team reservation on the server. Never trust the browser alone to enforce team uniqueness.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-01T16:25:04+05:30.
+
+The user has uploaded 1 image(s):
+- C:/Users/chara/.gemini/antigravity/brain/4ba8d5b7-81a7-42fb-9e8f-092e6afcb8cd/.user_uploaded/media_1793527384319_b0dd8e69.jpg
+You can embed this image in an artifact if you need the USER to review it.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.8 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
