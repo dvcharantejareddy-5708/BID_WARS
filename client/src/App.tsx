@@ -199,7 +199,8 @@ export function App() {
     setErrorMessage('');
 
     try {
-      const res = await fetch('/api/rooms', {
+      const apiBase = (import.meta.env.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hostNickname: nickname, settings })
@@ -234,7 +235,8 @@ export function App() {
     setErrorMessage('');
 
     try {
-      const res = await fetch(`/api/rooms/${roomCode}`);
+      const apiBase = (import.meta.env.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/rooms/${roomCode}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Room not found');

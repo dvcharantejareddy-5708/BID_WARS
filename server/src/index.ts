@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
@@ -23,9 +24,11 @@ app.use(express.json());
 
 const roomManager = new RoomManager();
 
-// Serve static frontend from client/dist if available
+// Serve static frontend from client/dist if available locally (standalone/dev mode)
 const clientDistPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(clientDistPath));
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
 
 // REST API Endpoints
 
@@ -127,9 +130,13 @@ app.get('/api/players/:id', (req, res) => {
   res.json({ player });
 });
 
-// SPA fallback for HTML5 routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+// Fallback for unmatched routes
+app.all('*', (req, res) => {
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  res.status(404).json({ error: `Not found: ${req.method} ${req.path}` });
 });
 
 // HTTP Server & WebSockets
@@ -140,7 +147,14 @@ wss.on('connection', (ws) => {
   roomManager.handleConnection(ws);
 });
 
-server.listen(port, host, () => {
-  console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
-  console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
-});
+// Start permanent HTTP listener only when NOT running in Vercel's serverless environment
+if (!process.env.VERCEL) {
+  server.listen(port, host, () => {
+    console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
+    console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
+  });
+}
+
+export default app;
+export { app, server, roomManager };
+

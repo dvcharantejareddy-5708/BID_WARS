@@ -13,11 +13,15 @@ class SocketService {
   public connect(roomCode: string, nickname: string, sessionToken?: string): Promise<boolean> {
     return new Promise((resolve) => {
       this.isExplicitlyClosed = false;
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      // In dev, vite proxies /ws or we can connect directly to localhost:3001
-      const isDev = window.location.port === '5173';
-      this.url = isDev ? `ws://localhost:3001` : `${protocol}//${host}/ws`;
+      if (import.meta.env.VITE_WS_URL) {
+        this.url = import.meta.env.VITE_WS_URL;
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        // In dev, vite proxies /ws or we can connect directly to localhost:3001
+        const isDev = window.location.port === '5173';
+        this.url = isDev ? `ws://localhost:3001` : `${protocol}//${host}/ws`;
+      }
 
       if (this.ws) {
         this.ws.close();
