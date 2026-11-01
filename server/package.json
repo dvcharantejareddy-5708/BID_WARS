@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Server-authoritative real-time auction engine for BID WARS",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-data.js",
