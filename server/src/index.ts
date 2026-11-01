@@ -21,6 +21,7 @@ const host = process.env.HOST || '0.0.0.0';
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const roomManager = new RoomManager();
 
@@ -171,20 +172,6 @@ app.get('/api/players/:id', (req, res) => {
   res.json({ player });
 });
 
-// Global Error Handler - Guarantees API errors always return valid JSON
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('[API Error]', err);
-  const status = typeof err.status === 'number' ? err.status : (typeof err.statusCode === 'number' ? err.statusCode : 500);
-  const message = err.message || 'Internal server error';
-  if (res.headersSent) {
-    return next(err);
-  }
-  return res.status(status).json({
-    error: message,
-    statusCode: status
-  });
-});
-
 // API 404 handler - Unmatched /api/* routes must ALWAYS return JSON 404, never HTML
 app.all('/api/*', (req, res) => {
   res.status(404).json({
@@ -202,6 +189,20 @@ app.get('*', (req, res) => {
   res.status(404).json({ error: `Not found: ${req.method} ${req.path}`, statusCode: 404 });
 });
 
+// Global Error Handler - Guarantees API errors always return valid JSON
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[API Error]', err);
+  const status = typeof err.status === 'number' ? err.status : (typeof err.statusCode === 'number' ? err.statusCode : 500);
+  const message = err.message || 'Internal server error';
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(status).json({
+    error: message,
+    statusCode: status
+  });
+});
+
 // HTTP Server & WebSockets
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -210,18 +211,32 @@ wss.on('connection', (ws) => {
   roomManager.handleConnection(ws);
 });
 
-// Start permanent HTTP listener only when directly executed (standalone/dev mode)
-const isMainModule = Boolean(process.argv[1] && (
-  process.argv[1].endsWith('index.ts') || 
-  process.argv[1].endsWith('index.js')
-));
+// Detect serverless environment (Vercel / AWS Lambda) to avoid port collisions
+const isVercel = Boolean(
+  process.env.VERCEL || 
+  process.env.AWS_LAMBDA_FUNCTION_NAME || 
+  process.env.NOW_REGION || 
+  process.env.VERCEL_ENV
+);
 
-if (!process.env.VERCEL && isMainModule && process.env.NODE_ENV !== 'test') {
+// Start permanent HTTP listener only when directly executed (standalone/dev mode)
+const isDirectExecution = Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith('index.ts') || 
+    process.argv[1].endsWith('index.js')
+  ) && !process.argv[1].includes('___vc')
+);
+
+if (!isVercel && isDirectExecution && process.env.NODE_ENV !== 'test') {
   server.listen(port, host, () => {
     console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
     console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
   });
 }
+
+// Attach HTTP server and WebSocket server references to Express app
+(app as any).server = server;
+(app as any).wss = wss;
 
 export default app;
 export { app, server, roomManager };

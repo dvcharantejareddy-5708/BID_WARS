@@ -1,12 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { Player, AuctionLot } from './types.js';
 
+const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load datasets (support ts-node/tsx src/, compiled dist/, and Vercel container paths)
+// Load datasets (support static bundler trace, ts-node/tsx src/, compiled dist/, and Vercel paths)
 const getDataPath = (filename: string): string => {
   const candidates = [
     path.join(__dirname, 'data', filename),
@@ -25,6 +27,26 @@ const getDataPath = (filename: string): string => {
 };
 
 function loadDataset(filename: string): Player[] {
+  // 1. Static require to ensure @vercel/nft traces and bundles the JSON assets
+  try {
+    if (filename === 'players2026.json') {
+      try {
+        return require('./data/players2026.json');
+      } catch {
+        return require('../src/data/players2026.json');
+      }
+    } else if (filename === 'players2025.json') {
+      try {
+        return require('./data/players2025.json');
+      } catch {
+        return require('../src/data/players2025.json');
+      }
+    }
+  } catch (err) {
+    // Proceed to filesystem search fallback
+  }
+
+  // 2. Direct filesystem read fallback
   try {
     const p = getDataPath(filename);
     if (fs.existsSync(p)) {

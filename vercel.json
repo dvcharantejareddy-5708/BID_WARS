@@ -13,12 +13,20 @@
     },
     "server": {
       "root": "server",
-      "framework": "express"
+      "framework": "express",
+      "buildCommand": "npm run build",
+      "entrypoint": "dist/index.js"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "destination": {
+        "service": "server"
+      }
+    },
+    {
+      "source": "/ws(.*)",
       "destination": {
         "service": "server"
       }
