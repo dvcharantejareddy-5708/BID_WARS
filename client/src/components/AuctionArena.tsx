@@ -17,7 +17,11 @@ import {
   ChevronDown, 
   Users,
   Wallet,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle,
+  X,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { 
   RoomState, 
@@ -63,6 +67,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showHostDraw, setShowHostDraw] = useState(false);
   const [showSquadList, setShowSquadList] = useState(false);
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
+  const [wasOutbid, setWasOutbid] = useState(false);
 
   // Category & Price selection for Host Random Draw
   const [selectedCategory, setSelectedCategory] = useState<PlayerCategory>('Batsmen');
@@ -74,6 +81,12 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const myTeamId = myMember?.teamId;
   const isHost = myMember?.isHost;
   const lot = roomState.currentLot;
+
+  // Refs for precise 3-second countdown alert and bid tracking (Section 4 & 9)
+  const lastTickedSecondRef = useRef<number | null>(null);
+  const lastBidRef = useRef<number>(lot?.currentBid || 0);
+  const lastLotNumberRef = useRef<number>(lot?.lotNumber || 0);
+  const wasLeadingRef = useRef<boolean>(false);
 
   // Reset image error on lot change
   useEffect(() => {
@@ -93,12 +106,50 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const totalDurationMs = (roomState.settings.timerDuration || 10) * 1000;
   const progressPercent = Math.min(100, Math.max(0, (remainingMs / totalDurationMs) * 100));
 
-  // Audio countdown ticks on final 5 seconds
+  const isHighestBidder = Boolean(myTeamId && lot && lot.currentBidder === myTeamId);
+
+  // Track leading and outbid state transitions
   useEffect(() => {
-    if (roomState.status === 'AUCTION' && lot?.status === 'IN_PROGRESS') {
-      if (remainingSec > 0 && remainingSec <= 5 && remainingMs % 1000 < 150) {
+    if (isHighestBidder) {
+      wasLeadingRef.current = true;
+      setWasOutbid(false);
+    } else if (wasLeadingRef.current && lot?.currentBidder && lot.currentBidder !== myTeamId) {
+      setWasOutbid(true);
+    }
+  }, [isHighestBidder, lot?.currentBidder, myTeamId]);
+
+  // Reset outbid alert and countdown state on lot change
+  useEffect(() => {
+    wasLeadingRef.current = false;
+    setWasOutbid(false);
+    lastLotNumberRef.current = lot?.lotNumber || 0;
+    lastTickedSecondRef.current = null;
+  }, [lot?.lotNumber]);
+
+  // Reset countdown alert state immediately when a new accepted bid resets the hammer clock
+  useEffect(() => {
+    if (lot && lot.currentBid !== lastBidRef.current) {
+      lastBidRef.current = lot.currentBid;
+      lastTickedSecondRef.current = null;
+    }
+  }, [lot?.currentBid]);
+
+  // Synchronized Three-Second Countdown Tick sequence (3, 2, 1) (Section 4)
+  useEffect(() => {
+    // Never play ticks for paused, completed, or inactive auction timer
+    if (roomState.status !== 'AUCTION' || lot?.status !== 'IN_PROGRESS') {
+      lastTickedSecondRef.current = null;
+      return;
+    }
+
+    // Trigger alert strictly on final three seconds: exactly one at 3s, one at 2s, one at 1s
+    if (remainingSec >= 1 && remainingSec <= 3) {
+      if (lastTickedSecondRef.current !== remainingSec) {
+        lastTickedSecondRef.current = remainingSec;
         soundManager.playCountdownTick(remainingSec);
       }
+    } else if (remainingSec > 3) {
+      lastTickedSecondRef.current = null;
     }
   }, [remainingSec, roomState.status, lot?.status]);
 
@@ -133,7 +184,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   // Validation for My Team's Bidding
   const mySquad = myTeamId ? (roomState.teamSquads[myTeamId] || []) : [];
   const myPurse = myTeamId ? (roomState.teamPurse[myTeamId] || 0) : 0;
-  const isHighestBidder = myTeamId && lot.currentBidder === myTeamId;
   const isSquadFull = mySquad.length >= roomState.settings.maxSquad;
   const myOverseasCount = mySquad.filter(p => p.is_overseas).length;
   const isOverseasFull = player.is_overseas && myOverseasCount >= roomState.settings.maxOverseas;
@@ -151,7 +201,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     !isHighestBidder &&
     !isSquadFull &&
     !isOverseasFull &&
-    !hasInsufficientPurse;
+    !hasInsufficientPurse &&
+    !isPlacingBid;
 
   let bidDisabledReason = '';
   if (!myTeamId) bidDisabledReason = 'Select a franchise to bid';
@@ -164,6 +215,14 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     bidDisabledReason = `Purse reserve required: ₹${(minReserveRequired / 10000000).toFixed(2)} Cr needed to fill squad`;
   }
 
+  const handlePlaceBidSafe = (amount: number) => {
+    if (!canBid || isPlacingBid) return;
+    setIsPlacingBid(true);
+    soundManager.playBidSound();
+    onPlaceBid(amount);
+    setTimeout(() => setIsPlacingBid(false), 350);
+  };
+
   // Quick increment amounts
   const quickIncrements = [
     { label: `+₹${(minIncrement / 100000).toFixed(0)}L`, amount: nextMinBid },
@@ -175,9 +234,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const remainingLots = Math.max(0, (lot.totalLots || 359) - lot.lotNumber);
 
   return (
-    <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-3 space-y-3">
-      {/* 1. TOP PROGRESS RIBBON: Compact Set & Lot Status */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0D0D0D] border border-[#222222] px-4 py-2 rounded-xl text-xs shadow-md">
+    <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-2.5 space-y-3">
+      {/* 1. TOP PROGRESS RIBBON: Compact Set, Lot Status & Quick Help */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0D0D0D] border border-[#222222] px-3.5 py-2 rounded-xl text-xs shadow-md">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="font-mono font-bold text-[#00E676] bg-[#00E676]/10 px-2.5 py-0.5 rounded-full border border-[#00E676]/30 text-[11px]">
             Set {roomState.currentSetOrder}/{roomState.totalSets}
@@ -194,7 +253,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3 font-mono text-[11px]">
+        <div className="flex items-center gap-2.5 sm:gap-3 font-mono text-[11px]">
           <span className="text-[#8E8E93]">
             Lot <strong className="text-white font-bold">#{lot.lotNumber}</strong> of {lot.totalLots}
           </span>
@@ -212,10 +271,19 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               LIVE AUCTION
             </span>
           )}
+
+          <button
+            onClick={() => setShowOnboardingGuide(true)}
+            aria-label="Auction Guide and Rules"
+            className="flex items-center gap-1 text-[#8E8E93] hover:text-[#FFD700] bg-[#161616] hover:bg-[#222222] border border-[#2D2D2D] px-2.5 py-0.5 rounded-full transition-colors text-[10px] font-semibold"
+          >
+            <HelpCircle className="w-3 h-3" />
+            <span className="hidden sm:inline">Guide</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. MAIN 3-AREA DASHBOARD LAYOUT */}
+      {/* 2. MAIN 3-PANEL DASHBOARD LAYOUT */}
       <div className="grid grid-cols-12 gap-3.5 items-start">
         
         {/* ======================================================== */}
@@ -223,15 +291,18 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
-          {/* A. Bidding Panel & Timer */}
-          <div className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5">
+          {/* A. Bidding Panel & Timer (With Broadcast Corners & Corner Sweep) */}
+          <div 
+            key={`bid-panel-${lot.currentBid}`}
+            className="broadcast-corners broadcast-corners-green bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5 animate-corner-sweep-green"
+          >
             {/* Hammer Timer Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#151515]">
               <div
                 className={`h-full transition-all duration-100 ${
                   remainingSec <= 2
                     ? 'bg-[#FF5252] shadow-[0_0_12px_#FF5252] animate-pulse'
-                    : remainingSec <= 5
+                    : remainingSec <= 3
                     ? 'bg-[#FFC857] shadow-[0_0_12px_#FFC857]'
                     : 'bg-[#00E676] shadow-[0_0_12px_#00E676]'
                 }`}
@@ -245,7 +316,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center font-mono font-black border transition-all ${
                   remainingSec <= 2
                     ? 'bg-[#FF5252]/20 text-[#FF5252] border-[#FF5252] animate-bounce'
-                    : remainingSec <= 5
+                    : remainingSec <= 3
                     ? 'bg-[#FFC857]/20 text-[#FFC857] border-[#FFC857]'
                     : 'bg-[#151515] text-[#00E676] border-[#00E676]/40'
                 }`}>
@@ -256,16 +327,28 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 <div>
                   <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Hammer Clock</span>
                   <span className="text-xs text-white font-medium">
-                    {lot.status === 'IN_PROGRESS' ? 'Resets on each bid' : lot.status}
+                    {lot.status === 'IN_PROGRESS' 
+                      ? (remainingSec <= 3 ? 'Final Warning Ticks' : 'Resets on each bid') 
+                      : lot.status}
                   </span>
                 </div>
               </div>
 
-              {/* Leading Indicator */}
-              {lot.currentBidder ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold bg-[#00E676]/10 border border-[#00E676]/30 px-3 py-1 rounded-full shadow-sm">
+              {/* Competitive Leader States (Section 9) */}
+              {isHighestBidder ? (
+                <div className="flex items-center gap-1.5 text-xs text-[#00E676] font-bold bg-[#00E676]/15 border border-[#00E676]/40 px-3 py-1 rounded-full shadow-sm animate-pulse">
                   <Shield className="w-3.5 h-3.5" />
-                  <span>{isHighestBidder ? 'YOU ARE LEADING' : `${lot.currentBidder} LEADING`}</span>
+                  <span>YOU ARE LEADING</span>
+                </div>
+              ) : wasOutbid ? (
+                <div className="flex items-center gap-1.5 text-xs text-[#FFC857] font-bold bg-[#FFC857]/15 border border-[#FFC857]/40 px-3 py-1 rounded-full shadow-sm animate-bounce">
+                  <AlertTriangle className="w-3.5 h-3.5 text-[#FFC857]" />
+                  <span>OUTBID! RAISE BID</span>
+                </div>
+              ) : lot.currentBidder ? (
+                <div className="flex items-center gap-1.5 text-xs text-[#8E8E93] font-bold bg-[#181818] border border-[#2D2D2D] px-3 py-1 rounded-full shadow-sm">
+                  <Shield className="w-3.5 h-3.5 text-[#FFC857]" />
+                  <span>{lot.currentBidder} LEADING</span>
                 </div>
               ) : (
                 <div className="text-xs text-[#8E8E93] font-mono bg-[#161616] px-2.5 py-1 rounded-full border border-[#262626]">
@@ -274,17 +357,20 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               )}
             </div>
 
-            {/* Current Highest Bid Banner */}
+            {/* Current Highest Bid Banner with Price Pop Animation */}
             <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Current Bid</span>
-                <span className="text-xl sm:text-2xl font-black font-mono text-[#00E676]">
+                <span 
+                  key={`bid-${currentBid}`}
+                  className="text-xl sm:text-2xl font-black font-mono text-[#00E676] block animate-price-pop"
+                >
                   {currentBid > 0 ? `₹${(currentBid / 10000000).toFixed(2)} Cr` : 'NO BIDS YET'}
                 </span>
               </div>
               {lot.currentBidder && (
                 <div className="flex items-center gap-2 text-right">
-                  <TeamLogo teamId={lot.currentBidder} className="w-7 h-7 object-contain" />
+                  <TeamLogo teamId={lot.currentBidder} className="w-7 h-7 object-contain drop-shadow" />
                   <div className="text-left">
                     <span className="text-[9px] text-[#8E8E93] block">Leader</span>
                     <span className="text-xs font-bold text-white block">{lot.currentBidder}</span>
@@ -301,15 +387,21 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               </div>
             )}
 
-            {/* Primary Action Button: PLACE BID */}
+            {/* Primary Action Button: PLACE BID (With anti-double-click guard & loading state) */}
             <button
-              onClick={() => onPlaceBid(nextMinBid)}
+              onClick={() => handlePlaceBidSafe(nextMinBid)}
               disabled={!canBid}
               className="w-full bg-white hover:bg-slate-200 active:scale-[0.99] text-black font-display font-black py-3 px-5 rounded-xl transition-all shadow-[0_4px_20px_rgba(255,255,255,0.15)] flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
             >
               <div className="flex items-center gap-2">
-                <ChevronUp className="w-5 h-5 stroke-[3] transition-transform group-hover:-translate-y-0.5" />
-                <span className="tracking-wide">PLACE BID</span>
+                {isPlacingBid ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 stroke-[3] transition-transform group-hover:-translate-y-0.5" />
+                )}
+                <span className="tracking-wide">
+                  {isPlacingBid ? 'SUBMITTING BID...' : 'PLACE BID'}
+                </span>
               </div>
               <span className="font-mono text-base sm:text-lg font-black text-black">
                 ₹{(nextMinBid / 10000000).toFixed(2)} Cr
@@ -323,7 +415,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 return (
                   <button
                     key={i}
-                    onClick={() => onPlaceBid(inc.amount)}
+                    onClick={() => handlePlaceBidSafe(inc.amount)}
                     disabled={!isIncLegal}
                     className="py-1.5 px-1.5 rounded-lg bg-[#151515] hover:bg-[#202020] text-slate-200 hover:text-white font-mono text-xs font-bold transition-all border border-[#262626] hover:border-[#00E676]/40 disabled:opacity-20 disabled:cursor-not-allowed flex flex-col items-center gap-0.5"
                   >
@@ -409,7 +501,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                             className="w-full bg-[#151515] border border-[#262626] text-white text-xs rounded-lg px-2 py-1 outline-none"
                           >
                             <option value="Batsmen">Batsmen</option>
-                            <option value="All-Rounders">All-Rounders</option>
+                            <option value="All-rounders">All-Rounders</option>
                             <option value="Bowlers">Bowlers</option>
                           </select>
                         </div>
@@ -451,10 +543,13 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 order-1 lg:order-2">
           
-          {/* Active Player Card */}
-          <div className={`relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all ${
-            player.is_marquee ? 'border-[#FFD700]/60 shadow-[0_0_24px_rgba(255,215,0,0.15)]' : 'border-[#222222]'
-          }`}>
+          {/* Active Player Card with Broadcast Corners, Edge Sweep, & Stadium Lighting */}
+          <div 
+            key={`player-card-${player.id}`}
+            className={`broadcast-corners relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all animate-player-entrance animate-corner-sweep-gold ${
+              player.is_marquee ? 'border-[#FFD700]/60 shadow-[0_0_24px_rgba(255,215,0,0.15)]' : 'border-[#222222]'
+            }`}
+          >
             
             {/* Top Details: Player Name, Badges & Base Price */}
             <div className="p-4 sm:p-5 bg-gradient-to-b from-[#141414] to-[#0D0D0D] border-b border-[#222222] space-y-2.5">
@@ -503,18 +598,19 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               </div>
             </div>
 
-            {/* Prominent Player Photo Display Frame */}
-            <div className="relative w-full h-52 sm:h-60 bg-[#080808] flex items-center justify-center overflow-hidden border-b border-[#222222]">
+            {/* Prominent Stadium Showcase Frame (Section 2: Reduced empty space, large portrait) */}
+            <div className="relative w-full h-60 sm:h-72 stadium-spotlight flex items-center justify-center overflow-hidden border-b border-[#222222] p-4">
+              {/* Subtle stadium overhead light ray */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#FFD700]/5 via-transparent to-black/60 pointer-events-none" />
+              
               {player.image_url && !imageError ? (
-                <div className="relative w-full h-full flex items-center justify-center p-3">
-                  <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-b from-[#2D2D2D] via-[#1A1A1A] to-[#0A0A0A] shadow-[0_0_25px_rgba(0,0,0,0.85)] border border-[#333333] flex items-center justify-center overflow-hidden">
-                    <img
-                      src={player.image_url}
-                      alt={player.name}
-                      className="w-full h-full object-cover object-top"
-                      onError={() => setImageError(true)}
-                    />
-                  </div>
+                <div className="relative z-10 w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56 rounded-full p-2 bg-gradient-to-b from-[#FFD700]/40 via-[#333333] to-[#111111] shadow-[0_0_35px_rgba(0,0,0,0.9),0_0_15px_rgba(255,215,0,0.15)] border-2 border-[#FFD700]/40 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={player.image_url}
+                    alt={player.name}
+                    className="w-full h-full object-cover object-top select-none pointer-events-none"
+                    onError={() => setImageError(true)}
+                  />
                 </div>
               ) : (
                 <CricketPlayerSilhouette category={player.category} className="w-full h-full" />
@@ -530,7 +626,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               <span>Lot #{lot.lotNumber}</span>
             </div>
 
-            {/* UNSOLD OVERLAY: Strictly only the text "UNSOLD" with clean animation matching black theme */}
+            {/* UNSOLD OVERLAY: Strictly only the text "UNSOLD" with clean animation matching black theme (Section 8) */}
             {lot.status === 'UNSOLD' && (
               <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn select-none">
                 <span className="text-5xl sm:text-6xl font-black font-display tracking-widest text-[#8E8E93] animate-pulse">
@@ -559,8 +655,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 order-3">
           
-          {/* A. My Franchise Card */}
-          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-4 shadow-xl space-y-3">
+          {/* A. My Franchise Card with Broadcast Corners */}
+          <div className="broadcast-corners bg-[#0D0D0D] border border-[#222222] rounded-2xl p-4 shadow-xl space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#1E1E1E]">
               <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider">
                 My Franchise
@@ -703,7 +799,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         </div>
       </div>
 
-      {/* 3. FULL-SCREEN REALISTIC AUCTIONEER GAVEL MODAL (ON CONFIRMED SALE) */}
+      {/* 3. FULL-SCREEN REALISTIC AUCTIONEER GAVEL MODAL (ON CONFIRMED SALE - SECTIONS 5, 6, 7) */}
       {lot.status === 'SOLD' && lot.winningTeam && dismissedLotNumber !== lot.lotNumber && (
         <FullScreenGavelModal
           lot={lot}
@@ -726,6 +822,66 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           }}
           onClose={() => setShowSkipModal(false)}
         />
+      )}
+
+      {/* 5. QUICK ONBOARDING GUIDE MODAL (SECTION 11) */}
+      {showOnboardingGuide && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#0F0F0F] border border-[#FFD700]/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowOnboardingGuide(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-[#1A1A1A] hover:bg-[#252525] text-[#8E8E93] hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 text-[#FFD700]">
+              <Sparkles className="w-5 h-5 text-[#FFD700]" />
+              <h3 className="font-display font-black text-lg text-white">How Bidding Works in Bid Wars</h3>
+            </div>
+
+            <div className="space-y-3 text-xs text-[#B3B3B3]">
+              <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex gap-3">
+                <span className="font-mono font-black text-[#00E676] text-sm shrink-0">01</span>
+                <div>
+                  <h4 className="font-bold text-white mb-0.5">Current Lot & Base Price</h4>
+                  <p>Each player enters the arena with an official base price. The first valid bid opens at the base price.</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex gap-3">
+                <span className="font-mono font-black text-[#FFD700] text-sm shrink-0">02</span>
+                <div>
+                  <h4 className="font-bold text-white mb-0.5">Hammer Clock & 3-Second Warning</h4>
+                  <p>Each accepted bid resets the countdown clock. At 3 seconds, warning ticks alert players before final sale.</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex gap-3">
+                <span className="font-mono font-black text-[#00E676] text-sm shrink-0">03</span>
+                <div>
+                  <h4 className="font-bold text-white mb-0.5">Placing Bids & Increments</h4>
+                  <p>Click "Place Bid" to submit the minimum increment, or use quick buttons (+20L, +50L, +1Cr, +2Cr).</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex gap-3">
+                <span className="font-mono font-black text-[#FFC857] text-sm shrink-0">04</span>
+                <div>
+                  <h4 className="font-bold text-white mb-0.5">Squad & Overseas Limits</h4>
+                  <p>Min 18 to max 25 players per team. Maximum 8 overseas players. You must reserve enough purse to fill 18 slots.</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowOnboardingGuide(false)}
+              className="w-full py-2.5 bg-[#00E676] hover:bg-[#00c966] text-black font-display font-black text-xs rounded-xl transition-all shadow-md mt-2"
+            >
+              Got It, Let's Bid!
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

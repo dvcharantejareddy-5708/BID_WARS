@@ -181,9 +181,10 @@ class SoundManager {
   }
 
   /**
-   * Countdown tick:
-   * Crisp digital beep for the final 5 seconds.
-   * Higher pitch for <2 seconds.
+   * Three-Second Countdown Tick Sound (Section 4):
+   * Audible final-countdown alert for the final three seconds (3, 2, 1).
+   * Crisp, subtle broadcast clock tick with distinct pitches per second.
+   * Short duration (40ms) prevents any self-overlap.
    */
   public playCountdownTick(secondsLeft: number) {
     if (this.isMuted) return;
@@ -191,23 +192,35 @@ class SoundManager {
     if (!this.ctx) return;
 
     try {
+      const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
-      const freq = secondsLeft <= 2 ? 880 : 587.33; // A5 or D5
-      osc.type = secondsLeft <= 2 ? 'sawtooth' : 'sine';
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      // Pitch hierarchy: 3s -> 880Hz (A5), 2s -> 1046.5Hz (C6), 1s -> 1318.5Hz (E6)
+      const freq = secondsLeft === 1 ? 1318.51 : secondsLeft === 2 ? 1046.50 : 880.0;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      // Subtle fast frequency slide for crisp mechanical clock tick feel
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.75, now + 0.04);
 
-      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+      // Tight, click-free amplitude envelope (40ms total duration)
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
 
-      osc.connect(gain);
+      // Low-pass filter to keep sound warm and remove harsh digital edge
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2800, now);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.12);
+      osc.start(now);
+      osc.stop(now + 0.045);
     } catch {
-      // AudioContext may be blocked before interaction
+      // AudioContext may be suspended before interaction
     }
   }
 
