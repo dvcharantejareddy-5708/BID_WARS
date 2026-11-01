@@ -183,21 +183,27 @@ app.use((err, req, res, next) => {
         statusCode: status
     });
 });
-// HTTP Server & WebSockets
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
-wss.on('connection', (ws) => {
-    roomManager.handleConnection(ws);
-});
-// Detect serverless environment (Vercel / AWS Lambda) to avoid port collisions
-const isVercel = Boolean(process.env.VERCEL ||
+// Detect serverless environment (Vercel Functions / AWS Lambda) to prevent port-binding conflicts
+const isServerless = Boolean(process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_REGION ||
     process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.NOW_REGION ||
-    process.env.VERCEL_ENV);
-// Start permanent HTTP listener only when directly executed (standalone/dev mode)
+    process.env.LAMBDA_TASK_ROOT);
+// HTTP Server & WebSockets
+let server = http.createServer(app);
+let wss = null;
+if (!isServerless) {
+    wss = new WebSocketServer({ server });
+    wss.on('connection', (ws) => {
+        roomManager.handleConnection(ws);
+    });
+}
+// Start permanent HTTP listener only when directly executed (standalone/persistent mode)
 const isDirectExecution = Boolean(process.argv[1] && (process.argv[1].endsWith('index.ts') ||
     process.argv[1].endsWith('index.js')) && !process.argv[1].includes('___vc'));
-if (!isVercel && isDirectExecution && process.env.NODE_ENV !== 'test') {
+if (!isServerless && isDirectExecution && process.env.NODE_ENV !== 'test') {
     server.listen(port, host, () => {
         console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
         console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
@@ -205,6 +211,8 @@ if (!isVercel && isDirectExecution && process.env.NODE_ENV !== 'test') {
 }
 // Attach HTTP server and WebSocket server references to Express app
 app.server = server;
-app.wss = wss;
+if (wss) {
+    app.wss = wss;
+}
 export default app;
 export { app, server, roomManager };

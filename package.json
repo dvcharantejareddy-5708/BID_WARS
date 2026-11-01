@@ -2,6 +2,10 @@
   "name": "bid-wars-root",
   "version": "1.0.0",
   "description": "BID WARS - Real-Time Multiplayer IPL Auction Game (2026 Edition)",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",

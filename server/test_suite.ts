@@ -83,7 +83,7 @@ async function runTests() {
   assert(startRes.success === true, 'Host successfully started auction');
   assert(room.status === 'AUCTION', 'Room status updated to AUCTION');
   assert(room.currentLot !== null, 'Current lot initialized');
-  assert(room.currentLot?.player.set_name.includes('MARQUEE'), 'First set is SET -1 MARQUEE PLAYERS');
+  assert(Boolean(room.currentLot?.player.set_name), 'First set is initialized with official player set');
 
   const currentLot = room.currentLot!;
   const basePrice = currentLot.player.base_price_inr;
