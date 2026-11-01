@@ -9,10 +9,12 @@ class SocketService {
   private reconnectTimer: any = null;
   private isExplicitlyClosed: boolean = false;
   private pingInterval: any = null;
+  private savedPassword?: string;
 
-  public connect(roomCode: string, nickname: string, sessionToken?: string): Promise<boolean> {
+  public connect(roomCode: string, nickname: string, sessionToken?: string, password?: string): Promise<boolean> {
     return new Promise((resolve) => {
       this.isExplicitlyClosed = false;
+      this.savedPassword = password || this.savedPassword;
       if (import.meta.env.VITE_WS_URL) {
         this.url = import.meta.env.VITE_WS_URL;
       } else {
@@ -42,7 +44,8 @@ class SocketService {
             type: 'JOIN_ROOM',
             roomCode,
             nickname,
-            sessionToken
+            sessionToken,
+            password: this.savedPassword
           });
 
           // Start ping heartbeat
@@ -71,7 +74,7 @@ class SocketService {
           if (!this.isExplicitlyClosed) {
             this.reconnectTimer = setTimeout(() => {
               console.log('[WebSocket] Attempting auto-reconnect...');
-              this.connect(roomCode, nickname, sessionToken);
+              this.connect(roomCode, nickname, sessionToken, this.savedPassword);
             }, 2000);
           }
         };

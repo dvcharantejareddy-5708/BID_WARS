@@ -6,20 +6,39 @@ import { Player, AuctionLot } from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load datasets (support both ts-node/tsx src/ and compiled dist/ execution)
-const getDataPath = (filename: string) => {
-  const distData = path.join(__dirname, 'data', filename);
-  if (fs.existsSync(distData)) return distData;
-  const srcData = path.join(__dirname, '..', 'src', 'data', filename);
-  if (fs.existsSync(srcData)) return srcData;
-  return path.join(process.cwd(), 'server', 'src', 'data', filename);
+// Load datasets (support ts-node/tsx src/, compiled dist/, and Vercel container paths)
+const getDataPath = (filename: string): string => {
+  const candidates = [
+    path.join(__dirname, 'data', filename),
+    path.join(__dirname, '..', 'src', 'data', filename),
+    path.join(__dirname, '..', 'data', filename),
+    path.join(process.cwd(), 'dist', 'data', filename),
+    path.join(process.cwd(), 'server', 'dist', 'data', filename),
+    path.join(process.cwd(), 'src', 'data', filename),
+    path.join(process.cwd(), 'server', 'src', 'data', filename),
+    path.join(process.cwd(), 'data', filename)
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return candidates[0];
 };
 
-const players2026Path = getDataPath('players2026.json');
-const players2025Path = getDataPath('players2025.json');
+function loadDataset(filename: string): Player[] {
+  try {
+    const p = getDataPath(filename);
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, 'utf-8'));
+    }
+    console.error(`[PlayerService] Dataset file not found at any candidate path: ${filename}`);
+  } catch (err) {
+    console.error(`[PlayerService] Failed to load dataset ${filename}:`, err);
+  }
+  return [];
+}
 
-const players2026: Player[] = JSON.parse(fs.readFileSync(players2026Path, 'utf-8'));
-const players2025: Player[] = JSON.parse(fs.readFileSync(players2025Path, 'utf-8'));
+const players2026: Player[] = loadDataset('players2026.json');
+const players2025: Player[] = loadDataset('players2025.json');
 
 export function getAllPlayers(season: '2026' | '2025' = '2026'): Player[] {
   return season === '2025' ? players2025 : players2026;

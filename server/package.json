@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/data',{recursive:true}); fs.copyFileSync('src/data/players2026.json','dist/data/players2026.json'); fs.copyFileSync('src/data/players2025.json','dist/data/players2025.json');\"",
     "start": "node dist/index.js"
   },
   "dependencies": {

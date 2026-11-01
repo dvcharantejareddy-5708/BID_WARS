@@ -57,8 +57,11 @@ export class GameRoom {
     this.broadcastCallback = broadcastCallback;
     
     this.isPrivate = Boolean(initialSettings.isPrivate);
-    if (this.isPrivate && initialSettings.password && initialSettings.password.trim()) {
-      this.passwordHash = crypto.createHash('sha256').update(initialSettings.password.trim()).digest('hex');
+    if (this.isPrivate && initialSettings.password !== undefined && initialSettings.password !== null) {
+      const cleanPassword = String(initialSettings.password).trim();
+      if (cleanPassword) {
+        this.passwordHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+      }
     }
 
     this.settings = {
@@ -104,8 +107,10 @@ export class GameRoom {
   public verifyPassword(inputPassword?: string): boolean {
     if (!this.isPrivate) return true;
     if (!this.passwordHash) return true;
-    if (!inputPassword) return false;
-    const hash = crypto.createHash('sha256').update(inputPassword.trim()).digest('hex');
+    if (inputPassword === undefined || inputPassword === null) return false;
+    const cleanInput = String(inputPassword).trim();
+    if (!cleanInput) return false;
+    const hash = crypto.createHash('sha256').update(cleanInput).digest('hex');
     return hash === this.passwordHash;
   }
 

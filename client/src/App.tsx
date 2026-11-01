@@ -47,6 +47,28 @@ export function App() {
   // Onboarding temporary state
   const [pendingRoomCode, setPendingRoomCode] = useState<string>('');
   const [pendingNickname, setPendingNickname] = useState<string>('');
+  const [pendingPassword, setPendingPassword] = useState<string>('');
+
+  // Safe response parser that guarantees clean error extraction even on non-JSON server responses
+  const parseJsonResponse = async <T = any>(res: Response, defaultError: string): Promise<T> => {
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      const cleanText = text.replace(/<[^>]+>/g, '').trim();
+      const errorMsg = cleanText
+        ? (cleanText.length > 150 ? cleanText.slice(0, 150) + '...' : cleanText)
+        : `Server returned an error (${res.status} ${res.statusText})`;
+      throw new Error(errorMsg);
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.error || data?.message || defaultError);
+    }
+
+    return data;
+  };
 
   // Handle incoming server messages
   const handleServerMessage = useCallback((msg: ServerMessage) => {
@@ -206,18 +228,18 @@ export function App() {
         body: JSON.stringify({ hostNickname: nickname, settings })
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create room');
-      }
+      const data = await parseJsonResponse(res, 'Failed to create room');
 
       setMyMemberId(data.hostId);
       setRoomState(data.state);
       setPendingRoomCode(data.roomCode);
       setPendingNickname(nickname);
+      if (settings?.password) {
+        setPendingPassword(settings.password);
+      }
 
       // Connect WebSocket
-      await socketService.connect(data.roomCode, nickname, data.hostId);
+      await socketService.connect(data.roomCode, nickname, data.hostId, settings?.password);
       setConnected(true);
 
       // Advance directly to franchise selection
@@ -230,20 +252,42 @@ export function App() {
   };
 
   // JOIN ROOM PROMPT HANDLER
-  const handleJoinRoom = async (roomCode: string) => {
+  const handleJoinRoom = async (roomCode: string, providedPassword?: string) => {
     setIsLoading(true);
     setErrorMessage('');
 
     try {
       const apiBase = (import.meta.env.VITE_API_URL as string) || '';
       const res = await fetch(`${apiBase}/api/rooms/${roomCode}`);
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Room not found');
-      }
+      const data = await parseJsonResponse(res, `Room "${roomCode}" not found`);
 
       setPendingRoomCode(roomCode);
       setRoomState(data.state);
+
+      // If room is private, verify password
+      if (data.state && data.state.isPrivate) {
+        setPasswordModalRoomCode(roomCode);
+        if (providedPassword) {
+          // If password was already entered on Landing Page, verify via REST API
+          const vRes = await fetch(`${apiBase}/api/rooms/${roomCode}/verify-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: providedPassword })
+          });
+          const vData = await parseJsonResponse(vRes, 'Incorrect room password');
+          if (vData.verified) {
+            setPendingPassword(providedPassword);
+            setView('onboarding');
+            return;
+          }
+        }
+
+        // Open password modal if not provided or verification needed
+        setShowPasswordModal(true);
+        setIsLoading(false);
+        return;
+      }
+
       setView('onboarding');
     } catch (err: any) {
       setErrorMessage(err.message || 'Room not found');
@@ -260,7 +304,7 @@ export function App() {
     try {
       if (!socketService.isConnected()) {
         const savedMemberId = sessionStorage.getItem('bid_wars_member_id') || undefined;
-        await socketService.connect(pendingRoomCode, nickname, savedMemberId);
+        await socketService.connect(pendingRoomCode, nickname, savedMemberId, pendingPassword);
         setConnected(true);
       }
 
@@ -304,13 +348,36 @@ export function App() {
     socketService.send({ type: 'DRAW_RANDOM_PLAYER', category, basePriceInr });
   };
 
-  const handlePasswordSubmit = (password: string) => {
-    socketService.send({
-      type: 'JOIN_ROOM',
-      roomCode: passwordModalRoomCode,
-      nickname: pendingNickname || 'Manager',
-      password
-    });
+  const handlePasswordSubmit = async (password: string) => {
+    setPasswordError('');
+    try {
+      const apiBase = (import.meta.env.VITE_API_URL as string) || '';
+      const vRes = await fetch(`${apiBase}/api/rooms/${passwordModalRoomCode}/verify-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const vData = await parseJsonResponse(vRes, 'Incorrect room password');
+      if (vData.verified) {
+        setShowPasswordModal(false);
+        setPasswordError('');
+        setPendingPassword(password);
+
+        // Also notify via socket if connected
+        if (socketService.isConnected()) {
+          socketService.send({
+            type: 'JOIN_ROOM',
+            roomCode: passwordModalRoomCode,
+            nickname: pendingNickname || 'Manager',
+            password
+          });
+        }
+        setView('onboarding');
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || 'Incorrect room password');
+    }
   };
 
   const handlePauseAuction = () => {
