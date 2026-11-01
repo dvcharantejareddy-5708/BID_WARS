@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws';
 import { GameRoom } from './gameEngine.js';
 import { RoomSettings, ClientMessage, ServerMessage, RoomState } from './types.js';
+import { storageService } from './storageService.js';
 
 interface ClientConnection {
   ws: WebSocket;
@@ -13,6 +14,25 @@ export class RoomManager {
   private connections: Map<WebSocket, ClientConnection> = new Map();
 
   constructor() {}
+
+  public async loadPersistedRooms(): Promise<void> {
+    try {
+      const persisted = await storageService.loadAllRooms();
+      for (const jsonState of persisted) {
+        const code = jsonState.roomCode;
+        if (code && !this.rooms.has(code)) {
+          const room = GameRoom.fromJSON(
+            jsonState,
+            (state: RoomState, eventMsg?: any) => this.broadcastToRoom(code, state, eventMsg)
+          );
+          this.rooms.set(code, room);
+        }
+      }
+      console.log(`[RoomManager] Loaded ${this.rooms.size} persisted rooms.`);
+    } catch (err) {
+      console.error('[RoomManager] Failed to load persisted rooms:', err);
+    }
+  }
 
   public generateRoomCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -35,6 +55,7 @@ export class RoomManager {
       (state: RoomState, eventMsg?: any) => this.broadcastToRoom(roomCode, state, eventMsg)
     );
     this.rooms.set(roomCode, room);
+    storageService.saveRoom(room.toJSON());
     return room;
   }
 
@@ -102,6 +123,17 @@ export class RoomManager {
             }));
             return;
           }
+        }
+      }
+
+      // Check room full capacity for new participants (non-reconnects)
+      const isExisting = msg.sessionToken && room.members.has(msg.sessionToken);
+      if (!isExisting) {
+        const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
+        const occupiedCount = Array.from(room.members.values()).filter(m => m.teamId).length;
+        if (occupiedCount >= allTeams.length) {
+          this.sendError(ws, 'The auction room is full. All 10 franchises have already been claimed.', 'ROOM_FULL');
+          return;
         }
       }
 
@@ -225,6 +257,20 @@ export class RoomManager {
       }
       case 'ADVANCE_LOT': {
         room.advanceLot(msg.lotIndex);
+        break;
+      }
+      case 'ANNOUNCEMENT_COMPLETE': {
+        room.advanceLot(msg.lotIndex);
+        break;
+      }
+      case 'LEAVE_ROOM': {
+        this.connections.delete(ws);
+        room.removeMember(conn.memberId);
+        if (room.isClosed) {
+          this.rooms.delete(conn.roomCode);
+          storageService.deleteRoom(conn.roomCode);
+        }
+        ws.send(JSON.stringify({ type: 'LEFT_ROOM' }));
         break;
       }
     }

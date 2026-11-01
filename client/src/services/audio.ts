@@ -181,6 +181,120 @@ class SoundManager {
   }
 
   /**
+   * Authoritative Voice Announcement on unsold lot:
+   * “[Player Name] goes unsold!”
+   * Awaits completion (onend) naturally without arbitrary timeouts.
+   */
+  public speakUnsoldAnnouncement(
+    playerName: string, 
+    onComplete?: () => void
+  ) {
+    if (this.isMuted) {
+      onComplete?.();
+      return;
+    }
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onComplete?.();
+      return;
+    }
+
+    const text = `${playerName} goes unsold!`;
+
+    // Prevent duplicate triggers if identical speech is already actively playing
+    if (this.activeAnnouncementText === text && window.speechSynthesis.speaking) {
+      if (onComplete) {
+        this.activeAnnouncementCallback = onComplete;
+      }
+      return;
+    }
+
+    try {
+      if (this.speechKeepAliveInterval) {
+        clearInterval(this.speechKeepAliveInterval);
+        this.speechKeepAliveInterval = null;
+      }
+
+      this.activeAnnouncementText = text;
+      this.activeAnnouncementCallback = onComplete || null;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 0.95;
+      utterance.volume = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => 
+        v.lang.startsWith('en') && (
+          v.name.includes('Natural') || 
+          v.name.includes('India') || 
+          v.name.includes('Google') || 
+          v.name.includes('Guy') ||
+          v.name.includes('David')
+        )
+      );
+      if (preferred) {
+        utterance.voice = preferred;
+      }
+
+      (window as any).__unsoldUtterance = utterance;
+
+      let completed = false;
+      let failsafeTimer: any = null;
+
+      const handleDone = (source: string) => {
+        if (!completed) {
+          completed = true;
+          if (failsafeTimer) clearTimeout(failsafeTimer);
+          if (this.speechKeepAliveInterval) {
+            clearInterval(this.speechKeepAliveInterval);
+            this.speechKeepAliveInterval = null;
+          }
+          (window as any).__unsoldUtterance = null;
+          this.activeAnnouncementText = null;
+
+          const cb = this.activeAnnouncementCallback;
+          this.activeAnnouncementCallback = null;
+          cb?.();
+        }
+      };
+
+      utterance.onend = () => {
+        handleDone('onend');
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('Speech synthesis ended with error or cancel:', e);
+        handleDone('onerror');
+      };
+
+      failsafeTimer = setTimeout(() => {
+        handleDone('failsafe');
+      }, 10000);
+
+      this.speechKeepAliveInterval = setInterval(() => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        } else {
+          if (this.speechKeepAliveInterval) {
+            clearInterval(this.speechKeepAliveInterval);
+            this.speechKeepAliveInterval = null;
+          }
+        }
+      }, 1000);
+
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis exception:', e);
+      this.activeAnnouncementText = null;
+      this.activeAnnouncementCallback = null;
+      onComplete?.();
+    }
+  }
+
+  /**
    * Three-Second Countdown Tick Sound (Section 4):
    * Audible final-countdown alert for the final three seconds (3, 2, 1).
    * Crisp, subtle broadcast clock tick with distinct pitches per second.

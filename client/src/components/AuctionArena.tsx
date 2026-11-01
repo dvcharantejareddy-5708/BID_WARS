@@ -36,6 +36,7 @@ import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
+import { LiveBidLog } from './LiveBidLog.js';
 
 interface AuctionArenaProps {
   roomState: RoomState;
@@ -154,17 +155,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     }
   }, [remainingSec, roomState.status, lot?.status]);
 
-  // Handle UNSOLD result: play sound and advance after brief clean animation (no hammer/voice)
-  useEffect(() => {
-    if (lot?.status === 'UNSOLD') {
-      soundManager.playUnsoldSound();
-      const advanceTimer = setTimeout(() => {
-        onAdvanceLot?.(lot.lotNumber - 1);
-      }, 2500);
-      return () => clearTimeout(advanceTimer);
-    }
-  }, [lot?.status, lot?.lotNumber, onAdvanceLot]);
-
   if (!lot) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center animate-fadeIn">
@@ -267,6 +257,36 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           <span className="text-[#8E8E93] hidden md:inline">
             ({remainingLots} remaining)
           </span>
+
+          {/* Prominent Synchronized Hammer Clock Badge (Always visible across all devices) */}
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#141414] border border-[#2D2D2D]">
+            <Clock className="w-3.5 h-3.5 text-[#FFD700]" />
+            <span className="text-[10px] uppercase font-bold text-[#8E8E93] hidden xs:inline">
+              Clock:
+            </span>
+            {roomState.status === 'PAUSED' ? (
+              <span className="font-mono font-bold text-[#FFC857] text-[11px]">PAUSED</span>
+            ) : lot.status === 'IN_PROGRESS' ? (
+              <div className="flex items-center gap-1 font-mono font-black">
+                <span className={`text-[11px] sm:text-xs ${
+                  remainingSec <= 3 
+                    ? 'text-[#FF1744] animate-pulse drop-shadow-[0_0_8px_rgba(255,23,68,0.8)]' 
+                    : remainingSec <= 5 
+                    ? 'text-[#FFC857]' 
+                    : 'text-[#00E676]'
+                }`}>
+                  {remainingSec}s
+                </span>
+                {remainingSec <= 3 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF1744] animate-ping" />
+                )}
+              </div>
+            ) : (
+              <span className="font-mono font-bold text-[10px] text-[#8E8E93] uppercase">
+                {lot.status}
+              </span>
+            )}
+          </div>
 
           {roomState.status === 'PAUSED' ? (
             <span className="bg-[#FFC857]/20 text-[#FFC857] font-bold px-2.5 py-0.5 rounded-full border border-[#FFC857]/40 flex items-center gap-1 text-[11px]">
@@ -837,51 +857,17 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             )}
           </div>
 
-          {/* B. All Teams Scoreboard Summary Table */}
-          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-3.5 shadow-xl space-y-2">
-            <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider block">
-              League Table · Purses & Squads
-            </span>
-
-            <div className="space-y-1 max-h-56 overflow-y-auto pr-1 text-xs">
-              {ALL_TEAMS.map(teamKey => {
-                const franchise = IPL_FRANCHISES[teamKey];
-                const purse = roomState.teamPurse[teamKey] || 0;
-                const squad = roomState.teamSquads[teamKey] || [];
-                const isMyTeam = teamKey === myTeamId;
-
-                return (
-                  <div
-                    key={teamKey}
-                    className={`flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors ${
-                      isMyTeam ? 'bg-[#181818] border border-[#00E676]/40' : 'bg-[#121212] border border-[#1E1E1E]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <TeamLogo teamId={teamKey} className="w-5 h-5 object-contain" />
-                      <span className={`font-bold text-xs ${isMyTeam ? 'text-[#00E676]' : 'text-white'}`}>
-                        {teamKey}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 font-mono text-[11px]">
-                      <span className="text-[#8E8E93]">
-                        {squad.length}/25
-                      </span>
-                      <span className="font-bold text-[#FFD700]">
-                        ₹{(purse / 10000000).toFixed(1)}Cr
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* B. Real-Time Live Bid Log Feed (Replacing League Table) */}
+          <LiveBidLog
+            entries={roomState.bidLog || []}
+            currentLotNumber={lot.lotNumber}
+            currentPlayerName={player.name}
+          />
         </div>
       </div>
 
-      {/* 3. FULL-SCREEN REALISTIC AUCTIONEER GAVEL MODAL (ON CONFIRMED SALE - SECTIONS 5, 6, 7) */}
-      {lot.status === 'SOLD' && lot.winningTeam && dismissedLotNumber !== lot.lotNumber && (
+      {/* 3. FULL-SCREEN REALISTIC AUCTIONEER GAVEL MODAL (ON CONFIRMED RESULT: SOLD & UNSOLD) */}
+      {(lot.status === 'SOLD' || lot.status === 'UNSOLD') && dismissedLotNumber !== lot.lotNumber && (
         <FullScreenGavelModal
           lot={lot}
           myTeamId={myTeamId}

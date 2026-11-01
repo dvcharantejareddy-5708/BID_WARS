@@ -309,6 +309,23 @@ export interface ChatMessage {
   isSystem?: boolean;
 }
 
+export interface BidLogEntry {
+  id: string;
+  type: 'BID' | 'EVENT';
+  timestamp: number;
+  lotNumber?: number;
+  playerName?: string;
+  teamId?: IPLTeamId;
+  teamName?: string;
+  bidderName?: string;
+  amount?: number;
+  accepted?: boolean;
+  rejectionReason?: string;
+  isHighest?: boolean;
+  eventAction?: string;
+  eventMessage?: string;
+}
+
 export interface RoomState {
   roomCode: string;
   status: 'LOBBY' | 'AUCTION' | 'PAUSED' | 'COMPLETED';
@@ -326,6 +343,9 @@ export interface RoomState {
   history: AuctionLot[];
   auditLog: AuditLogEntry[];
   chatMessages: ChatMessage[];
+  bidLog: BidLogEntry[];
+  announcementPhase?: 'NONE' | 'ANNOUNCING';
+  announcementLotNumber?: number;
   poolSize: number;
   totalSets: number;
   currentSetOrder: number;
@@ -335,6 +355,7 @@ export interface RoomState {
 // Client to Server Message Events
 export type ClientMessage =
   | { type: 'JOIN_ROOM'; roomCode: string; nickname: string; sessionToken?: string; password?: string }
+  | { type: 'LEAVE_ROOM' }
   | { type: 'VERIFY_PASSWORD'; roomCode: string; password: string }
   | { type: 'SELECT_TEAM'; teamId: IPLTeamId }
   | { type: 'TOGGLE_READY'; isReady: boolean }
@@ -350,6 +371,7 @@ export type ClientMessage =
   | { type: 'END_AUCTION' }
   | { type: 'REAUCTION_UNSOLD' }
   | { type: 'ADVANCE_LOT'; lotIndex?: number }
+  | { type: 'ANNOUNCEMENT_COMPLETE'; lotIndex: number }
   | { type: 'PING' };
 
 // Server to Client Message Events

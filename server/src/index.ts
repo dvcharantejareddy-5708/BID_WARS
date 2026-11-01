@@ -24,6 +24,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const roomManager = new RoomManager();
+// Restore persisted rooms from durable disk / Supabase
+roomManager.loadPersistedRooms().catch((err) => {
+  console.error('[Startup] Failed to restore persisted rooms:', err);
+});
 
 // Serve static frontend from client/dist if available (unified fullstack deployment / Render)
 const resolveClientDistPath = (): string => {

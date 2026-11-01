@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AuctionLot, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
@@ -24,11 +24,13 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
   const completedRef = useRef(false);
   const spokenLotKeyRef = useRef<string | null>(null);
 
+  const isSold = lot.status === 'SOLD';
+  const isUnsold = lot.status === 'UNSOLD';
   const player = lot.player;
-  const winningTeamId = lot.winningTeam!;
-  const franchise = IPL_FRANCHISES[winningTeamId];
-  const fullTeamName = franchise?.name || lot.winningTeamName || winningTeamId;
-  const shortTeamName = franchise?.shortName || winningTeamId;
+  const winningTeamId = lot.winningTeam || null;
+  const franchise = winningTeamId ? IPL_FRANCHISES[winningTeamId] : null;
+  const fullTeamName = franchise?.name || lot.winningTeamName || winningTeamId || '';
+  const shortTeamName = franchise?.shortName || winningTeamId || '';
   const finalPrice = lot.soldPrice || 0;
   const spokenPrice = formatPriceForSpeech(finalPrice);
 
@@ -48,12 +50,14 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       setHasStruck(true);
       soundManager.playSoldGavel();
 
-      if (winningTeamId === myTeamId) {
+      if (isSold && winningTeamId && winningTeamId === myTeamId) {
         confetti({
           particleCount: 140,
           spread: 85,
           origin: { y: 0.55 }
         });
+      } else if (isUnsold) {
+        soundManager.playUnsoldSound();
       }
     }, 700);
 
@@ -66,13 +70,13 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       clearTimeout(strikeTimer);
       clearTimeout(visualTimer);
     };
-  }, [winningTeamId, myTeamId]);
+  }, [isSold, isUnsold, winningTeamId, myTeamId]);
 
   // 2. Authoritative Voice Announcement Lifecycle (Triggers ONCE upon hammer impact)
   useEffect(() => {
     if (!hasStruck) return;
 
-    const lotKey = `${lot.lotNumber}_${player.id}_${finalPrice}`;
+    const lotKey = `${lot.lotNumber}_${player.id}_${lot.status}_${finalPrice}`;
     if (spokenLotKeyRef.current === lotKey) {
       return; // Already triggered for this lot; avoid duplicate speech on rerenders
     }
@@ -83,17 +87,28 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       return;
     }
 
-    // Call speech synthesis directly at the moment of hammer impact!
-    soundManager.speakSoldAnnouncement(
-      player.name,
-      shortTeamName,
-      spokenPrice,
-      () => {
-        // Detect actual speech completion via SpeechSynthesisUtterance.onend event
-        setVoiceDone(true);
-      }
-    );
-  }, [hasStruck, isMuted, lot.lotNumber, player.id, player.name, shortTeamName, spokenPrice, finalPrice]);
+    if (isSold) {
+      // Call speech synthesis directly at the moment of hammer impact!
+      soundManager.speakSoldAnnouncement(
+        player.name,
+        shortTeamName,
+        spokenPrice,
+        () => {
+          // Detect actual speech completion via SpeechSynthesisUtterance.onend event
+          setVoiceDone(true);
+        }
+      );
+    } else if (isUnsold) {
+      soundManager.speakUnsoldAnnouncement(
+        player.name,
+        () => {
+          setVoiceDone(true);
+        }
+      );
+    } else {
+      setVoiceDone(true);
+    }
+  }, [hasStruck, isMuted, isSold, isUnsold, lot.lotNumber, lot.status, player.id, player.name, shortTeamName, spokenPrice, finalPrice]);
 
   // 3. Strict Synchronization: Only when BOTH the voice announcement and visual animation finish:
   useEffect(() => {
@@ -117,10 +132,21 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       {/* Top Bar: Official Confirmation & Mute Toggle */}
       <div className="flex items-center justify-between w-full max-w-5xl mx-auto z-10">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#141414] border border-[#2D2D2D]">
-          <Sparkles className="w-4 h-4 text-[#FFD700] animate-spin" />
-          <span className="text-xs font-mono font-bold text-[#FFD700] tracking-wider uppercase">
-            Official Sale Confirmation
-          </span>
+          {isSold ? (
+            <>
+              <Sparkles className="w-4 h-4 text-[#FFD700] animate-spin" />
+              <span className="text-xs font-mono font-bold text-[#FFD700] tracking-wider uppercase">
+                Official Sale Confirmation
+              </span>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="w-4 h-4 text-[#FF5252]" />
+              <span className="text-xs font-mono font-bold text-[#FF5252] tracking-wider uppercase">
+                Lot Concluded — Unsold
+              </span>
+            </>
+          )}
         </div>
 
         <button
@@ -142,17 +168,24 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         </button>
       </div>
 
-      {/* Main Center Stage: User-Provided Auctioneer Hammer & SOLD Reveal */}
+      {/* Main Center Stage: User-Provided Auctioneer Hammer & Result Reveal */}
       <div className="my-auto flex flex-col items-center justify-center text-center max-w-4xl mx-auto w-full z-10">
         {/* Full-Screen User-Provided Hammer & Striking Animation */}
         <div className="relative w-full max-w-lg min-h-[200px] sm:min-h-[250px] md:min-h-[280px] flex items-center justify-center">
-          {/* Gold Impact Shockwave Ring & Subtle Gold Flash behind the strike */}
+          {/* Impact Shockwave Ring & Flash behind the strike */}
           {hasStruck && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Expanding Gold Shockwave */}
-              <div className="w-36 h-36 rounded-full border-4 border-[#FFD700] animate-cinematic-shockwave opacity-0" />
-              {/* Radial Gold Impact Flash */}
-              <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FFD700]/50 via-[#FFA000]/25 to-transparent blur-xl animate-gold-impact-flash" />
+              {isSold ? (
+                <>
+                  <div className="w-36 h-36 rounded-full border-4 border-[#FFD700] animate-cinematic-shockwave opacity-0" />
+                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FFD700]/50 via-[#FFA000]/25 to-transparent blur-xl animate-gold-impact-flash" />
+                </>
+              ) : (
+                <>
+                  <div className="w-36 h-36 rounded-full border-4 border-[#FF5252] animate-cinematic-shockwave opacity-0" />
+                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FF5252]/50 via-[#D32F2F]/25 to-transparent blur-xl animate-gold-impact-flash" />
+                </>
+              )}
             </div>
           )}
 
@@ -166,13 +199,19 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
           </div>
         </div>
 
-        {/* SOLD! Callout with Gold Radiance - Synchronized with Hammer Strike */}
+        {/* SOLD / UNSOLD Callout with Radiance - Synchronized with Hammer Strike */}
         <div className={`mt-2 space-y-1 transition-all duration-500 transform ${
           hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-3 pointer-events-none'
         }`}>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFF59D] via-[#FFD700] to-[#FF8F00] drop-shadow-[0_0_35px_rgba(255,215,0,0.7)] animate-pulse">
-            SOLD!
-          </h1>
+          {isSold ? (
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFF59D] via-[#FFD700] to-[#FF8F00] drop-shadow-[0_0_35px_rgba(255,215,0,0.7)] animate-pulse">
+              SOLD!
+            </h1>
+          ) : (
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A80] via-[#FF5252] to-[#D32F2F] drop-shadow-[0_0_35px_rgba(255,82,82,0.6)] animate-pulse">
+              UNSOLD
+            </h1>
+          )}
 
           {/* Player Name and Classification */}
           <div className="text-2xl sm:text-3xl font-black text-white leading-tight">
@@ -183,43 +222,76 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
           </div>
         </div>
 
-        {/* Winning Franchise & Sold Price Card - Synchronized with Strike */}
-        <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141414] via-[#1A1A1A] to-[#141414] border-2 border-[#FFC857]/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(255,200,87,0.25)] animate-sold-glow transition-all duration-500 transform ${
-          hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
-        }`}>
-          {/* Winning Team with Official Logo & Full Name */}
-          <div className="flex items-center gap-3.5 text-left">
-            <TeamLogo teamId={winningTeamId} className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0 drop-shadow-lg" />
-            <div>
-              <span className="text-[11px] text-[#8E8E93] uppercase font-semibold tracking-wider block">
-                Acquired By
+        {/* Detail Card - Synchronized with Strike */}
+        {isSold && winningTeamId && (
+          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141414] via-[#1A1A1A] to-[#141414] border-2 border-[#FFC857]/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(255,200,87,0.25)] animate-sold-glow transition-all duration-500 transform ${
+            hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
+          }`}>
+            {/* Winning Team with Official Logo & Full Name */}
+            <div className="flex items-center gap-3.5 text-left">
+              <TeamLogo teamId={winningTeamId} className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0 drop-shadow-lg" />
+              <div>
+                <span className="text-[11px] text-[#8E8E93] uppercase font-semibold tracking-wider block">
+                  Acquired By
+                </span>
+                <span className="text-base sm:text-lg font-black text-white block leading-tight">
+                  {fullTeamName}
+                </span>
+                <span className="text-xs font-mono font-bold text-[#FFD700]">
+                  ({shortTeamName})
+                </span>
+              </div>
+            </div>
+
+            {/* Final Sold Price */}
+            <div className="text-right shrink-0">
+              <span className="text-[11px] text-[#FFC857] uppercase font-bold tracking-wider block">
+                Final Bid
               </span>
-              <span className="text-base sm:text-lg font-black text-white block leading-tight">
-                {fullTeamName}
-              </span>
-              <span className="text-xs font-mono font-bold text-[#FFD700]">
-                ({shortTeamName})
+              <span className="text-2xl sm:text-3xl font-mono font-black text-[#00E676] block leading-none">
+                ₹{(finalPrice / 10000000).toFixed(2)} Cr
               </span>
             </div>
           </div>
+        )}
 
-          {/* Final Sold Price */}
-          <div className="text-right shrink-0">
-            <span className="text-[11px] text-[#FFC857] uppercase font-bold tracking-wider block">
-              Final Bid
-            </span>
-            <span className="text-2xl sm:text-3xl font-mono font-black text-[#00E676] block leading-none">
-              ₹{(finalPrice / 10000000).toFixed(2)} Cr
-            </span>
+        {isUnsold && (
+          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141414] via-[#1C1616] to-[#141414] border border-[#FF5252]/40 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,82,82,0.15)] transition-all duration-500 transform ${
+            hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
+          }`}>
+            <div className="text-left">
+              <span className="text-[11px] text-[#8E8E93] uppercase font-semibold tracking-wider block">
+                Auction Outcome
+              </span>
+              <span className="text-base sm:text-lg font-bold text-white block">
+                No Bids Placed
+              </span>
+              <span className="text-xs text-[#8E8E93]">
+                Player moved to unsold pool for later accelerated round
+              </span>
+            </div>
+
+            <div className="text-right shrink-0">
+              <span className="text-[11px] text-[#8E8E93] uppercase font-bold tracking-wider block">
+                Base Price
+              </span>
+              <span className="text-xl sm:text-2xl font-mono font-bold text-[#CCCCCC] block leading-none">
+                ₹{(player.base_price_inr / 10000000).toFixed(2)} Cr
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Bottom Status & Voice Pacing Indicator */}
       <div className="w-full max-w-md mx-auto text-center z-10 pt-2">
         <p className="text-xs font-mono text-[#8E8E93] mb-2 flex items-center justify-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-[#00E676] animate-ping" />
-          <span>“{player.name} sold to {shortTeamName} for {spokenPrice}!”</span>
+          <span className={`inline-block w-2 h-2 rounded-full ${isSold ? 'bg-[#00E676]' : 'bg-[#FF5252]'} animate-ping`} />
+          <span>
+            {isSold 
+              ? `“${player.name} sold to ${shortTeamName} for ${spokenPrice}!”` 
+              : `“${player.name} goes unsold!”`}
+          </span>
         </p>
       </div>
     </div>

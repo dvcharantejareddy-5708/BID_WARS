@@ -76,19 +76,29 @@ export function App() {
       case 'SYNC_STATE': {
         setRoomState({
           ...msg.state,
-          chatMessages: msg.state.chatMessages || []
+          chatMessages: msg.state.chatMessages || [],
+          bidLog: msg.state.bidLog || []
         });
+        const currentMemberId = msg.myMemberId || myMemberId;
         if (msg.myMemberId) {
           setMyMemberId(msg.myMemberId);
-          // Save session
+          // Persist session across refreshes and restarts
           sessionStorage.setItem('bid_wars_member_id', msg.myMemberId);
           sessionStorage.setItem('bid_wars_room_code', msg.state.roomCode);
+          localStorage.setItem('bid_wars_member_id', msg.myMemberId);
+          localStorage.setItem('bid_wars_room_code', msg.state.roomCode);
         }
 
-        // If user already has a team assigned or auction has started, go to in_room
-        const myMem = msg.state.members[msg.myMemberId || myMemberId];
-        if (myMem?.teamId || msg.state.status !== 'LOBBY') {
+        const myMem = msg.state.members[currentMemberId];
+        if (myMem?.nickname) {
+          localStorage.setItem('bid_wars_nickname', myMem.nickname);
+        }
+
+        // If user already has a team assigned, route to in_room; otherwise route to onboarding to select a franchise
+        if (myMem?.teamId) {
           setView('in_room');
+        } else {
+          setView('onboarding');
         }
         break;
       }
@@ -134,12 +144,15 @@ export function App() {
       case 'BID_PLACED': {
         setRoomState(prev => {
           if (!prev || !prev.currentLot) return prev;
+          // Prevent duplicate bid records during reconnects or rapid events
+          const exists = prev.currentLot.bids.some(b => b.bidId === msg.bid.bidId);
+          const updatedBids = exists ? prev.currentLot.bids : [msg.bid, ...prev.currentLot.bids];
           const updatedLot = {
             ...prev.currentLot,
             currentBid: msg.bid.amount,
             currentBidder: msg.bid.teamId,
             currentBidderName: msg.bid.bidderName,
-            bids: [msg.bid, ...prev.currentLot.bids]
+            bids: updatedBids
           };
           return {
             ...prev,
@@ -156,7 +169,9 @@ export function App() {
             ...prev,
             currentLot: msg.lot,
             currentLotIndex: msg.lot.lotNumber - 1,
-            deadlineTimestamp: msg.deadlineTimestamp
+            deadlineTimestamp: msg.deadlineTimestamp,
+            announcementPhase: 'NONE',
+            announcementLotNumber: undefined
           };
         });
         break;
@@ -164,13 +179,18 @@ export function App() {
       case 'LOT_FINALIZED': {
         setRoomState(prev => {
           if (!prev) return prev;
+          // Prevent duplicate history entries on repeated messages or reconnects
+          const exists = prev.history.some(h => h.lotNumber === msg.lot.lotNumber);
+          const updatedHistory = exists ? prev.history : [msg.lot, ...prev.history];
           return {
             ...prev,
             currentLot: msg.lot,
             teamPurse: msg.teamPurse,
             teamSquads: msg.teamSquads || prev.teamSquads,
             teamStats: msg.teamStats || prev.teamStats,
-            history: [msg.lot, ...prev.history]
+            history: updatedHistory,
+            announcementPhase: 'ANNOUNCING',
+            announcementLotNumber: msg.lot.lotNumber
           };
         });
         break;
@@ -205,11 +225,45 @@ export function App() {
     return () => unsubscribe();
   }, [handleServerMessage]);
 
-  // URL query parameter check (for shared invite links)
+  // URL query parameter check & Auto-Reconnect from saved session on page refresh
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
-    if (roomParam) {
+
+    const savedRoom = localStorage.getItem('bid_wars_room_code') || sessionStorage.getItem('bid_wars_room_code');
+    const savedMember = localStorage.getItem('bid_wars_member_id') || sessionStorage.getItem('bid_wars_member_id');
+    const savedNick = localStorage.getItem('bid_wars_nickname') || 'Manager';
+    const savedPass = localStorage.getItem('bid_wars_password') || undefined;
+
+    const targetRoom = (roomParam ? roomParam.toUpperCase() : savedRoom) || '';
+
+    if (targetRoom && savedMember && (!roomParam || roomParam.toUpperCase() === savedRoom)) {
+      setIsLoading(true);
+      setPendingRoomCode(targetRoom);
+      setPendingNickname(savedNick);
+      if (savedPass) setPendingPassword(savedPass);
+
+      socketService.connect(targetRoom, savedNick, savedMember, savedPass)
+        .then(() => {
+          setConnected(true);
+        })
+        .catch(err => {
+          console.warn('[AutoReconnect] Failed to reconnect to room:', err);
+          if (err?.message?.includes('not found') || err?.message?.includes('expired')) {
+            localStorage.removeItem('bid_wars_room_code');
+            localStorage.removeItem('bid_wars_member_id');
+            sessionStorage.removeItem('bid_wars_room_code');
+            sessionStorage.removeItem('bid_wars_member_id');
+          }
+          if (roomParam) {
+            setPendingRoomCode(roomParam.toUpperCase());
+            setView('onboarding');
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else if (roomParam) {
       setPendingRoomCode(roomParam.toUpperCase());
       setView('onboarding');
     }
@@ -236,6 +290,16 @@ export function App() {
       setPendingNickname(nickname);
       if (settings?.password) {
         setPendingPassword(settings.password);
+      }
+
+      // Persist session tokens
+      localStorage.setItem('bid_wars_member_id', data.hostId);
+      localStorage.setItem('bid_wars_room_code', data.roomCode);
+      localStorage.setItem('bid_wars_nickname', nickname);
+      sessionStorage.setItem('bid_wars_member_id', data.hostId);
+      sessionStorage.setItem('bid_wars_room_code', data.roomCode);
+      if (settings?.password) {
+        localStorage.setItem('bid_wars_password', settings.password);
       }
 
       // Connect WebSocket
@@ -303,9 +367,16 @@ export function App() {
 
     try {
       if (!socketService.isConnected()) {
-        const savedMemberId = sessionStorage.getItem('bid_wars_member_id') || undefined;
+        const savedMemberId = localStorage.getItem('bid_wars_member_id') || sessionStorage.getItem('bid_wars_member_id') || undefined;
         await socketService.connect(pendingRoomCode, nickname, savedMemberId, pendingPassword);
         setConnected(true);
+      }
+
+      localStorage.setItem('bid_wars_room_code', pendingRoomCode);
+      localStorage.setItem('bid_wars_nickname', nickname);
+      sessionStorage.setItem('bid_wars_room_code', pendingRoomCode);
+      if (pendingPassword) {
+        localStorage.setItem('bid_wars_password', pendingPassword);
       }
 
       // Send team selection
@@ -401,7 +472,10 @@ export function App() {
   };
 
   const handleAdvanceLot = (lotIndex?: number) => {
-    socketService.send({ type: 'ADVANCE_LOT', lotIndex });
+    socketService.send({ 
+      type: 'ANNOUNCEMENT_COMPLETE', 
+      lotIndex: lotIndex ?? (roomState?.currentLotIndex || 0) 
+    });
   };
 
   const handleSendChatMessage = (text: string) => {
@@ -416,7 +490,14 @@ export function App() {
   };
 
   const handleLeaveRoom = () => {
+    try {
+      socketService.send({ type: 'LEAVE_ROOM' });
+    } catch {}
     socketService.disconnect();
+    localStorage.removeItem('bid_wars_member_id');
+    localStorage.removeItem('bid_wars_room_code');
+    localStorage.removeItem('bid_wars_nickname');
+    localStorage.removeItem('bid_wars_password');
     sessionStorage.removeItem('bid_wars_member_id');
     sessionStorage.removeItem('bid_wars_room_code');
     setRoomState(null);
@@ -474,6 +555,7 @@ export function App() {
             initialNickname={pendingNickname}
             members={roomState?.members || {}}
             myMemberId={myMemberId}
+            isAuctionActive={roomState?.status === 'AUCTION' || roomState?.status === 'PAUSED'}
             onConfirmSelection={handleConfirmOnboarding}
             onBackToLanding={() => setView('landing')}
             isSubmitting={isLoading}

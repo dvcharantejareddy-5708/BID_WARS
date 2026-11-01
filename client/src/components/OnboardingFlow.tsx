@@ -8,6 +8,7 @@ interface OnboardingFlowProps {
   initialNickname?: string;
   members: Record<string, RoomMember>;
   myMemberId?: string;
+  isAuctionActive?: boolean;
   onConfirmSelection: (nickname: string, teamId: IPLTeamId) => void;
   onBackToLanding: () => void;
   isSubmitting: boolean;
@@ -19,6 +20,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   initialNickname = '',
   members,
   myMemberId,
+  isAuctionActive = false,
   onConfirmSelection,
   onBackToLanding,
   isSubmitting,
@@ -39,6 +41,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       };
     }
   });
+
+  const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
+  const availableTeams = allTeams.filter(teamId => {
+    const occupant = teamOccupants[teamId];
+    return !occupant || occupant.memberId === myMemberId;
+  });
+  const isRoomFull = availableTeams.length === 0;
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,8 +80,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     onConfirmSelection(nickname.trim(), selectedTeamId);
   };
 
-  const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
-
   return (
     <div className="min-h-screen bg-[#000000] text-white flex flex-col justify-center items-center px-4 py-8 relative selection:bg-cricket-400 selection:text-black">
       <div className="relative z-10 w-full max-w-4xl mx-auto">
@@ -97,6 +104,30 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <div className="mb-4 bg-alert-500/15 border border-alert-500/30 text-alert-500 px-4 py-3 rounded-xl flex items-center gap-2.5 text-xs">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Live Auction In Progress Badge */}
+        {isAuctionActive && (
+          <div className="mb-4 bg-[#00E676]/10 border border-[#00E676]/30 text-[#00E676] px-4 py-3 rounded-xl flex items-center justify-between gap-2.5 text-xs shadow-md">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00E676] animate-ping" />
+              <span className="font-bold uppercase tracking-wider">Live Auction In Progress</span>
+            </div>
+            <span className="text-[11px] text-[#A0A0A0]">Pick any available franchise to join active bidding</span>
+          </div>
+        )}
+
+        {/* Room Full Notice */}
+        {isRoomFull && (
+          <div className="mb-4 bg-alert-500/15 border border-alert-500/40 text-alert-500 px-4 py-3 rounded-xl flex items-center gap-3 text-xs">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Room is Full</p>
+              <p className="text-[#B3B3B3] mt-0.5">
+                All 10 IPL franchises have already been claimed by other participants.
+              </p>
+            </div>
           </div>
         )}
 
@@ -167,7 +198,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     disabled={isSubmitting}
                     className="bg-cricket-400 hover:bg-cricket-500 text-black font-display font-bold py-2.5 px-6 rounded-xl transition-all shadow-glow-green flex items-center gap-2 text-sm disabled:opacity-40"
                   >
-                    <span>{isSubmitting ? 'Reserving...' : `Confirm ${selectedTeamId}`}</span>
+                    <span>
+                      {isSubmitting 
+                        ? 'Joining...' 
+                        : isAuctionActive 
+                        ? `Enter Live Auction with ${selectedTeamId}` 
+                        : `Confirm ${selectedTeamId}`}
+                    </span>
                     <Check className="w-4 h-4 stroke-[3]" />
                   </button>
                 </div>

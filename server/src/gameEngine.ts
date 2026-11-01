@@ -12,10 +12,12 @@ import {
   BotStrategy,
   TeamStats,
   PlayerCategory,
-  ChatMessage
+  ChatMessage,
+  BidLogEntry
 } from './types.js';
 import { buildAuctionLots, shuffleArray } from './playerService.js';
 import { evaluateBotBid } from './botEngine.js';
+import { storageService, SerializedRoomData } from './storageService.js';
 
 export class GameRoom {
   public roomCode: string;
@@ -34,7 +36,11 @@ export class GameRoom {
   public history: AuctionLot[] = [];
   public auditLog: AuditLogEntry[] = [];
   public chatMessages: ChatMessage[] = [];
+  public bidLog: BidLogEntry[] = [];
+  public announcementPhase: 'NONE' | 'ANNOUNCING' = 'NONE';
+  public announcementLotNumber: number | null = null;
   public reAuctionRound: boolean = false;
+  public isClosed: boolean = false;
 
   private timerInterval: NodeJS.Timeout | null = null;
   private botTimeouts: NodeJS.Timeout[] = [];
@@ -125,8 +131,59 @@ export class GameRoom {
     if (this.auditLog.length > 100) this.auditLog.pop();
   }
 
+  public addBidLog(entry: Omit<BidLogEntry, 'id' | 'timestamp'>) {
+    // If it's a new highest bid, update existing bids
+    if (entry.isHighest) {
+      for (const b of this.bidLog) {
+        if (b.type === 'BID' && b.isHighest) {
+          b.isHighest = false;
+        }
+      }
+    }
+
+    this.bidLog.unshift({
+      id: `bidlog_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: Date.now(),
+      ...entry
+    });
+    if (this.bidLog.length > 200) this.bidLog.pop();
+  }
+
   public getMember(memberId: string): RoomMember | undefined {
     return this.members.get(memberId);
+  }
+
+  public removeMember(memberId: string): { success: boolean; closed?: boolean } {
+    const member = this.members.get(memberId);
+    if (!member) return { success: false };
+
+    this.members.delete(memberId);
+    this.addAuditLog('USER_LEFT', `${member.nickname} left the room permanently`, member.nickname);
+
+    // If host left, transfer host to next available human member
+    if (member.isHost) {
+      const remainingHuman = Array.from(this.members.values()).find(m => !m.isBot);
+      if (remainingHuman) {
+        remainingHuman.isHost = true;
+        this.hostId = remainingHuman.id;
+        this.addAuditLog('HOST_TRANSFERRED', `${remainingHuman.nickname} is now the room host`, 'System');
+      } else {
+        // Room has no human participants remaining
+        this.isClosed = true;
+        this.clearAllTimers();
+        return { success: true, closed: true };
+      }
+    }
+
+    const hasHumans = Array.from(this.members.values()).some(m => !m.isBot);
+    if (!hasHumans) {
+      this.isClosed = true;
+      this.clearAllTimers();
+      return { success: true, closed: true };
+    }
+
+    this.broadcastState();
+    return { success: true };
   }
 
   public join(nickname: string, sessionToken?: string): RoomMember {
@@ -159,18 +216,42 @@ export class GameRoom {
   }
 
   public selectTeam(memberId: string, teamId: IPLTeamId): { success: boolean; message?: string } {
-    if (this.status !== 'LOBBY') {
-      return { success: false, message: 'Team selection is locked once auction starts.' };
-    }
-
     const member = this.members.get(memberId);
     if (!member) return { success: false, message: 'Member not found' };
 
-    // Check if team is already taken by another human or bot
+    // If auction is completed, lock selection
+    if (this.status === 'COMPLETED') {
+      return { success: false, message: 'Auction is completed.' };
+    }
+
+    // If auction is active or paused, existing members cannot switch teams,
+    // but new/unassigned late joiners CAN select any remaining available franchise!
+    if (this.status !== 'LOBBY') {
+      if (member.teamId && member.teamId !== teamId) {
+        return { success: false, message: 'Cannot switch teams while auction is in progress.' };
+      }
+    }
+
+    // Check if team is already claimed by another participant (human or bot)
     for (const [otherId, other] of this.members.entries()) {
       if (otherId !== memberId && other.teamId === teamId) {
-        return { success: false, message: `${IPL_FRANCHISES[teamId].name} is already taken by ${other.nickname}` };
+        return { 
+          success: false, 
+          message: `${IPL_FRANCHISES[teamId].name} (${teamId}) has already been claimed by ${other.nickname}. Please choose another available franchise.` 
+        };
       }
+    }
+
+    // Check overall room capacity
+    const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
+    const claimedTeams = new Set<IPLTeamId>();
+    for (const [otherId, other] of this.members.entries()) {
+      if (otherId !== memberId && other.teamId) {
+        claimedTeams.add(other.teamId);
+      }
+    }
+    if (claimedTeams.size >= allTeams.length && !claimedTeams.has(teamId)) {
+      return { success: false, message: 'The auction room is full. All 10 franchises have already been claimed.' };
     }
 
     const oldTeam = member.teamId;
@@ -180,6 +261,15 @@ export class GameRoom {
       `${member.nickname} selected ${IPL_FRANCHISES[teamId].name} (${teamId})` + (oldTeam ? ` (released ${oldTeam})` : ''),
       member.nickname
     );
+
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'TEAM_SELECTED',
+      teamId,
+      teamName: IPL_FRANCHISES[teamId].name,
+      bidderName: member.nickname,
+      eventMessage: `${member.nickname} joined as manager of ${IPL_FRANCHISES[teamId].name} (${teamId})`
+    });
 
     this.broadcastState();
     return { success: true };
@@ -304,6 +394,11 @@ export class GameRoom {
     this.status = 'AUCTION';
     this.currentLotIndex = 0;
     this.addAuditLog('AUCTION_STARTED', `Auction started with ${this.lots.length} lots.`, 'Host');
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'AUCTION_STARTED',
+      eventMessage: `Auction officially started with ${this.lots.length} lots.`
+    });
 
     this.startCurrentLot();
     return { success: true };
@@ -399,12 +494,22 @@ export class GameRoom {
 
     // Authoritative deadline
     this.deadlineTimestamp = Date.now() + (this.settings.timerDuration * 1000);
+    this.announcementPhase = 'NONE';
+    this.announcementLotNumber = null;
 
     this.addAuditLog(
       'LOT_STARTED',
       `Lot #${lot.lotNumber}: ${lot.player.name} (${lot.player.category}, Base: ${lot.player.base_price_display})`,
       'System'
     );
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'PLAYER_NOMINATED',
+      playerName: lot.player.name,
+      lotNumber: lot.lotNumber,
+      amount: lot.player.base_price_inr,
+      eventMessage: `Lot #${lot.lotNumber}: ${lot.player.name} (${lot.player.category}) nominated at base price ${lot.player.base_price_display}`
+    });
 
     this.startCountdownLoop();
     this.triggerBotBidding();
@@ -460,7 +565,20 @@ export class GameRoom {
     try {
       // 1. Cannot bid against self
       if (lot.currentBidder === teamId) {
-        return { success: false, message: 'Your franchise already holds the highest bid' };
+        const msg = 'Your franchise already holds the highest bid';
+        this.addBidLog({
+          type: 'BID',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId,
+          teamName: IPL_FRANCHISES[teamId].name,
+          bidderName: member.nickname,
+          amount: customAmount || lot.currentBid,
+          accepted: false,
+          rejectionReason: msg,
+          eventMessage: `Bid rejected: ${msg}`
+        });
+        return { success: false, message: msg };
       }
 
       // 2. Minimum bid calculation
@@ -471,39 +589,98 @@ export class GameRoom {
       const bidAmount = customAmount !== undefined ? customAmount : minRequired;
 
       if (bidAmount < minRequired) {
-        return { success: false, message: `Minimum legal bid is ₹${(minRequired / 10000000).toFixed(2)} Cr` };
+        const msg = `Minimum legal bid is ₹${(minRequired / 10000000).toFixed(2)} Cr`;
+        this.addBidLog({
+          type: 'BID',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId,
+          teamName: IPL_FRANCHISES[teamId].name,
+          bidderName: member.nickname,
+          amount: bidAmount,
+          accepted: false,
+          rejectionReason: msg,
+          eventMessage: `Bid rejected: ${msg}`
+        });
+        return { success: false, message: msg };
       }
 
       // 3. Team squad limit check (Max 25)
       const currentSquad = this.teamSquads[teamId] || [];
       if (currentSquad.length >= this.settings.maxSquad) {
-        return { success: false, message: `Maximum squad limit of ${this.settings.maxSquad} reached` };
+        const msg = `Maximum squad limit of ${this.settings.maxSquad} reached`;
+        this.addBidLog({
+          type: 'BID',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId,
+          teamName: IPL_FRANCHISES[teamId].name,
+          bidderName: member.nickname,
+          amount: bidAmount,
+          accepted: false,
+          rejectionReason: msg,
+          eventMessage: `Bid rejected: ${msg}`
+        });
+        return { success: false, message: msg };
       }
 
       // 4. CRITICAL: Strict Overseas Player Limit Check (Max 8)
       if (lot.player.is_overseas) {
         const overseasCount = currentSquad.filter(p => p.is_overseas).length;
         if (overseasCount >= 8) {
-          return { 
-            success: false, 
-            message: 'Overseas limit reached. Your team already has 8 overseas players.' 
-          };
+          const msg = 'Overseas limit reached. Your team already has 8 overseas players.';
+          this.addBidLog({
+            type: 'BID',
+            playerName: lot.player.name,
+            lotNumber: lot.lotNumber,
+            teamId,
+            teamName: IPL_FRANCHISES[teamId].name,
+            bidderName: member.nickname,
+            amount: bidAmount,
+            accepted: false,
+            rejectionReason: msg,
+            eventMessage: `Bid rejected: ${msg}`
+          });
+          return { success: false, message: msg };
         }
       }
 
       // 5. Mathematical squad reserve feasibility check:
       const purse = this.teamPurse[teamId] || 0;
       if (bidAmount > purse) {
-        return { success: false, message: 'Insufficient purse balance for this bid' };
+        const msg = 'Insufficient purse balance for this bid';
+        this.addBidLog({
+          type: 'BID',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId,
+          teamName: IPL_FRANCHISES[teamId].name,
+          bidderName: member.nickname,
+          amount: bidAmount,
+          accepted: false,
+          rejectionReason: msg,
+          eventMessage: `Bid rejected: ${msg}`
+        });
+        return { success: false, message: msg };
       }
 
       const slotsRemainingNeeded = Math.max(0, this.settings.minSquad - (currentSquad.length + 1));
       const minReserveRequired = slotsRemainingNeeded * 3000000; // ₹30 Lakh minimum player price
       if ((purse - bidAmount) < minReserveRequired) {
-        return { 
-          success: false, 
-          message: `Bid rejected: You must keep at least ₹${(minReserveRequired / 10000000).toFixed(2)} Cr in reserve to complete the minimum 18-player squad.` 
-        };
+        const msg = `Bid rejected: You must keep at least ₹${(minReserveRequired / 10000000).toFixed(2)} Cr in reserve to complete the minimum 18-player squad.`;
+        this.addBidLog({
+          type: 'BID',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId,
+          teamName: IPL_FRANCHISES[teamId].name,
+          bidderName: member.nickname,
+          amount: bidAmount,
+          accepted: false,
+          rejectionReason: msg,
+          eventMessage: msg
+        });
+        return { success: false, message: msg };
       }
 
       // ACCEPT BID
@@ -523,6 +700,19 @@ export class GameRoom {
       lot.currentBidder = teamId;
       lot.currentBidderName = member.nickname;
       lot.bids.unshift(bidRecord);
+
+      this.addBidLog({
+        type: 'BID',
+        playerName: lot.player.name,
+        lotNumber: lot.lotNumber,
+        teamId,
+        teamName: IPL_FRANCHISES[teamId].name,
+        bidderName: member.nickname,
+        amount: bidAmount,
+        accepted: true,
+        isHighest: true,
+        eventMessage: `Bid of ₹${(bidAmount / 10000000).toFixed(2)} Cr placed by ${member.nickname} (${teamId})`
+      });
 
       // Reset timer to configured duration
       this.deadlineTimestamp = Date.now() + (this.settings.timerDuration * 1000);
@@ -617,6 +807,9 @@ export class GameRoom {
         lot.winningTeamName = IPL_FRANCHISES[winningTeam].name;
         lot.winningBidderName = lot.currentBidderName || undefined;
 
+        this.announcementPhase = 'ANNOUNCING';
+        this.announcementLotNumber = lot.lotNumber;
+
         // 1. Mark player metadata
         lot.player.auction_status = 'SOLD';
         lot.player.sold_price_inr = winningPrice;
@@ -639,19 +832,39 @@ export class GameRoom {
           `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`,
           'System'
         );
+
+        this.addBidLog({
+          type: 'EVENT',
+          eventAction: 'PLAYER_SOLD',
+          playerName: lot.player.name,
+          lotNumber: lot.lotNumber,
+          teamId: winningTeam,
+          teamName: IPL_FRANCHISES[winningTeam].name,
+          amount: winningPrice,
+          eventMessage: `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`
+        });
       }
     } else {
       // UNSOLD
       lot.status = 'UNSOLD';
       lot.player.auction_status = 'UNSOLD';
+      this.announcementPhase = 'ANNOUNCING';
+      this.announcementLotNumber = lot.lotNumber;
       this.addAuditLog('PLAYER_UNSOLD', `UNSOLD: ${lot.player.name}`, 'System');
+      this.addBidLog({
+        type: 'EVENT',
+        eventAction: 'PLAYER_UNSOLD',
+        playerName: lot.player.name,
+        lotNumber: lot.lotNumber,
+        eventMessage: `UNSOLD: ${lot.player.name}`
+      });
     }
 
     this.history.unshift({ ...lot });
 
     // CRITICAL FIX: Broadcast full teamSquads and teamStats with LOT_FINALIZED!
     const summary = this.getTeamSummary();
-    this.broadcastCallback(this.getState(), {
+    this.broadcastState({
       type: 'LOT_FINALIZED',
       lot,
       teamPurse: { ...this.teamPurse },
@@ -660,13 +873,15 @@ export class GameRoom {
     });
 
     // Sequence coordination: No arbitrary fixed timeout interrupts voice announcement.
-    // The client awaits speech synthesis onend and animation completion, then emits ADVANCE_LOT.
+    // The client awaits speech synthesis onend and animation completion, then emits ADVANCE_LOT / ANNOUNCEMENT_COMPLETE.
     // Generous fallback ceiling (45s) ensures the auction never gets stuck if every client disconnects.
     this.clearAllTimers();
     this.lotTransitionTimeout = setTimeout(() => {
       if (this.status === 'AUCTION') {
         const current = this.lots[this.currentLotIndex];
         if (current && (current.status === 'SOLD' || current.status === 'UNSOLD')) {
+          this.announcementPhase = 'NONE';
+          this.announcementLotNumber = null;
           this.currentLotIndex++;
           this.startCurrentLot();
         }
@@ -684,6 +899,13 @@ export class GameRoom {
       return;
     }
 
+    // Idempotent safeguard: prevent advancing twice if multiple clients report completion
+    if (lotIndex !== undefined && lotIndex !== this.currentLotIndex) {
+      return;
+    }
+
+    this.announcementPhase = 'NONE';
+    this.announcementLotNumber = null;
     this.clearAllTimers();
     this.currentLotIndex++;
     this.startCurrentLot();
@@ -706,10 +928,17 @@ export class GameRoom {
     lot.status = 'SKIPPED';
     lot.player.auction_status = 'SKIPPED';
     this.addAuditLog('PLAYER_SKIPPED', `Host skipped lot #${lot.lotNumber}: ${lot.player.name}`, 'Host');
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'PLAYER_SKIPPED',
+      playerName: lot.player.name,
+      lotNumber: lot.lotNumber,
+      eventMessage: `SKIPPED: ${lot.player.name}`
+    });
     this.history.unshift({ ...lot });
 
     const summary = this.getTeamSummary();
-    this.broadcastCallback(this.getState(), {
+    this.broadcastState({
       type: 'LOT_FINALIZED',
       lot,
       teamPurse: { ...this.teamPurse },
@@ -988,12 +1217,15 @@ export class GameRoom {
       teamSquads: safeSquads,
       teamStats: this.getTeamSummary(),
       currentLotIndex: this.currentLotIndex,
-      currentLot: currentLot ? { ...currentLot } : null,
+      currentLot: currentLot ? { ...currentLot, bids: [...currentLot.bids] } : null,
       deadlineTimestamp: this.deadlineTimestamp,
       remainingSeconds,
       history: [...this.history],
       auditLog: [...this.auditLog],
       chatMessages: [...this.chatMessages],
+      bidLog: [...this.bidLog],
+      announcementPhase: this.announcementPhase,
+      announcementLotNumber: this.announcementLotNumber || undefined,
       poolSize: this.lots.length,
       totalSets: this.lots.length > 0 ? Math.max(...this.lots.map(l => l.player.set_order)) : 1,
       currentSetOrder: currentLot ? currentLot.player.set_order : 1,
@@ -1002,6 +1234,64 @@ export class GameRoom {
   }
 
   public broadcastState(eventMsg?: any) {
+    storageService.saveRoom(this.toJSON());
     this.broadcastCallback(this.getState(), eventMsg);
+  }
+
+  public toJSON(): SerializedRoomData {
+    return {
+      roomCode: this.roomCode,
+      hostNickname: this.members.get(this.hostId)?.nickname || 'Host',
+      hostId: this.hostId,
+      settings: this.settings,
+      status: this.status,
+      isPrivate: this.isPrivate,
+      passwordHash: this.passwordHash,
+      members: Array.from(this.members.values()),
+      teamPurse: { ...this.teamPurse },
+      teamSquads: { ...this.teamSquads },
+      currentLotIndex: this.currentLotIndex,
+      lots: this.lots,
+      history: this.history,
+      auditLog: this.auditLog,
+      chatMessages: this.chatMessages,
+      bidLog: this.bidLog,
+      updatedAt: Date.now()
+    };
+  }
+
+  public static fromJSON(data: SerializedRoomData, broadcastCallback: (state: RoomState, eventMsg?: any) => void): GameRoom {
+    const room = new GameRoom(data.roomCode, data.hostNickname, data.settings, broadcastCallback);
+    room.hostId = data.hostId;
+    room.status = (data.status as any) || 'LOBBY';
+    room.isPrivate = Boolean(data.isPrivate);
+    room.passwordHash = data.passwordHash || null;
+    room.teamPurse = data.teamPurse || room.teamPurse;
+    room.teamSquads = data.teamSquads || room.teamSquads;
+    room.currentLotIndex = data.currentLotIndex || 0;
+    if (data.lots && data.lots.length > 0) {
+      room.lots = data.lots;
+    }
+    room.history = data.history || [];
+    room.auditLog = data.auditLog || [];
+    room.chatMessages = data.chatMessages || [];
+    room.bidLog = data.bidLog || [];
+
+    room.members.clear();
+    if (data.members) {
+      for (const m of data.members) {
+        room.members.set(m.id, { ...m, connected: false });
+      }
+    }
+
+    if (room.status === 'AUCTION') {
+      const current = room.lots[room.currentLotIndex];
+      if (current && current.status === 'IN_PROGRESS') {
+        room.deadlineTimestamp = Date.now() + (room.settings.timerDuration * 1000);
+        room.startCountdownLoop();
+      }
+    }
+
+    return room;
   }
 }
