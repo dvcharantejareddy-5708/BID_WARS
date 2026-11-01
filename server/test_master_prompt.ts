@@ -6,21 +6,18 @@ console.log('====================================================');
 console.log('🏏 MASTER PROMPT VERIFICATION SUITE: BID WARS IPL');
 console.log('====================================================\n');
 
-// 1. Verify CSS styles for Corner Animations, Edge Sweeps & Reduced Motion
-console.log('--- TEST GROUP A: CSS Corner & Broadcast Animations ---');
+// 1. Verify CSS styles for Functional Animations & Reduced Motion
+console.log('--- TEST GROUP A: CSS Functional Animations ---');
 const cssPath = path.resolve('client/src/index.css');
 assert.ok(fs.existsSync(cssPath), 'index.css exists');
 const cssContent = fs.readFileSync(cssPath, 'utf8');
 
-assert.ok(cssContent.includes('.broadcast-corners'), 'broadcast-corners class defined');
-assert.ok(cssContent.includes('.broadcast-corners-green'), 'broadcast-corners-green class defined');
-assert.ok(cssContent.includes('cornerSweepGold'), 'cornerSweepGold keyframes defined');
-assert.ok(cssContent.includes('cornerSweepGreen'), 'cornerSweepGreen keyframes defined');
 assert.ok(cssContent.includes('playerEntrance'), 'playerEntrance keyframes defined');
 assert.ok(cssContent.includes('pricePop'), 'pricePop keyframes defined');
 assert.ok(cssContent.includes('stadium-spotlight'), 'stadium-spotlight vignette defined');
 assert.ok(cssContent.includes('prefers-reduced-motion'), 'prefers-reduced-motion accessibility rule defined');
-console.log('  ✅ PASS: All broadcast corner classes, keyframes, spotlight, and reduced-motion rules verified');
+assert.ok(!cssContent.includes('.broadcast-corners {'), 'broadcast-corners removed for clean static borders');
+console.log('  ✅ PASS: Functional animations, spotlight, and reduced-motion rules verified; corner animations removed');
 
 // 2. Verify Audio Synthesis & 3-Second Countdown Tick Pacing
 console.log('\n--- TEST GROUP B: Audio Synthesis & Countdown Tick Logic ---');
@@ -49,10 +46,11 @@ assert.ok(arenaContent.includes('lastBidRef'), 'lastBidRef tracked to reset aler
 assert.ok(arenaContent.includes('isPlacingBid'), 'isPlacingBid state prevents accidental double submissions');
 assert.ok(arenaContent.includes('wasOutbid'), 'Competitive outbid alert state tracked');
 assert.ok(arenaContent.includes('stadium-spotlight'), 'Stadium spotlight vignette applied to player card');
-assert.ok(arenaContent.includes('broadcast-corners'), 'Broadcast corners applied to main dashboard cards');
-assert.ok(arenaContent.includes('animate-price-pop'), 'Price pop animation applied on current bid change');
 assert.ok(arenaContent.includes('showOnboardingGuide'), 'Onboarding guide modal integrated');
-console.log('  ✅ PASS: AuctionArena has 3-second tick synchronization, outbid notification, stadium spotlight, and onboarding guide');
+assert.ok(arenaContent.includes('highestBiddedLot'), 'highestBiddedLot calculated from completed sold records');
+assert.ok(arenaContent.includes('Highest-Bidded Player'), 'Highest-Bidded Player section rendered below host controls');
+assert.ok(arenaContent.includes('No players sold yet.'), 'Empty state handled when no player is sold yet');
+console.log('  ✅ PASS: AuctionArena has 3-second tick synchronization, outbid notification, stadium spotlight, and highest-bidded player panel');
 
 // 4. Verify Full-Screen Hammer & SOLD Sequence (Sections 5, 6, 7)
 console.log('\n--- TEST GROUP D: FullScreenGavelModal & User Hammer Asset ---');

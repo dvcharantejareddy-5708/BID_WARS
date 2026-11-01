@@ -21,7 +21,8 @@ import {
   HelpCircle,
   X,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Crown
 } from 'lucide-react';
 import { 
   RoomState, 
@@ -233,6 +234,12 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
   const remainingLots = Math.max(0, (lot.totalLots || 359) - lot.lotNumber);
 
+  // Highest-Bidded Player across the entire auction from completed SOLD records (Requirement 1)
+  const soldHistoryLots = (roomState.history || []).filter(h => h.status === 'SOLD' && (h.soldPrice || 0) > 0);
+  const highestBiddedLot = soldHistoryLots.length > 0
+    ? [...soldHistoryLots].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0) || a.lotNumber - b.lotNumber)[0]
+    : null;
+
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-2.5 space-y-3">
       {/* 1. TOP PROGRESS RIBBON: Compact Set, Lot Status & Quick Help */}
@@ -291,10 +298,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
-          {/* A. Bidding Panel & Timer (With Broadcast Corners & Corner Sweep on bid/leader change) */}
+          {/* A. Bidding Panel & Timer (Clean Static Border) */}
           <div 
             key={`bid-panel-${lot.currentBid}-${lot.currentBidder || 'none'}`}
-            className="broadcast-corners broadcast-corners-green bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5 animate-corner-sweep-green"
+            className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5"
           >
             {/* Hammer Timer Bar */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#151515]">
@@ -543,6 +550,74 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               )}
             </div>
           )}
+
+          {/* C. Highest-Bidded Player Card (Directly Below Host Controls) */}
+          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-3.5 shadow-xl space-y-2.5">
+            <div className="flex items-center justify-between pb-1.5 border-b border-[#1E1E1E]">
+              <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5 text-[#FFD700]" />
+                Highest-Bidded Player
+              </span>
+              {highestBiddedLot && (
+                <span className="text-[10px] font-mono font-bold text-[#FFD700] bg-[#FFD700]/10 px-2 py-0.5 rounded-full border border-[#FFD700]/25">
+                  Record Buy
+                </span>
+              )}
+            </div>
+
+            {highestBiddedLot ? (
+              <div className="flex items-center justify-between gap-3 pt-0.5">
+                {/* Player Photo & Details */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#2A2A2A] to-[#121212] border border-[#333333] flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                    {highestBiddedLot.player.image_url ? (
+                      <img
+                        src={highestBiddedLot.player.image_url}
+                        alt={highestBiddedLot.player.name}
+                        className="w-full h-full object-cover object-top"
+                      />
+                    ) : (
+                      <CricketPlayerSilhouette category={highestBiddedLot.player.category} className="w-full h-full p-1" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <span className="text-xs font-black font-display text-white truncate block">
+                      {highestBiddedLot.player.name}
+                    </span>
+                    <span className="text-[10px] text-[#8E8E93] block truncate">
+                      {highestBiddedLot.player.primary_role} · {highestBiddedLot.player.category}
+                    </span>
+
+                    {/* Winning Team info */}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {highestBiddedLot.winningTeam && (
+                        <TeamLogo teamId={highestBiddedLot.winningTeam} className="w-4 h-4 object-contain shrink-0" />
+                      )}
+                      <span className="text-[10px] font-semibold text-slate-300 truncate">
+                        {IPL_FRANCHISES[highestBiddedLot.winningTeam!]?.name || highestBiddedLot.winningTeamName || highestBiddedLot.winningTeam}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Final Sold Price in Crores */}
+                <div className="text-right shrink-0">
+                  <span className="text-[9px] text-[#8E8E93] uppercase font-semibold block">Sold Price</span>
+                  <span className="text-sm sm:text-base font-mono font-black text-[#00E676] block">
+                    ₹{((highestBiddedLot.soldPrice || 0) / 10000000).toFixed(2)} Cr
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-2.5 px-3 text-center rounded-xl bg-[#121212] border border-[#1C1C1C]">
+                <p className="text-xs text-[#8E8E93] font-medium">No players sold yet.</p>
+                <span className="text-[10px] text-[#555555] block mt-0.5">
+                  Top auction sale will appear here
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ======================================================== */}
@@ -550,19 +625,13 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 order-1 lg:order-2">
           
-          {/* Active Player Card with Broadcast Corners, Edge Sweep, & Stadium Lighting */}
+          {/* Active Player Card with Clean Static Borders & Stadium Lighting */}
           <div 
             key={`player-card-${player.id}`}
-            className={`broadcast-corners relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all animate-player-entrance animate-corner-sweep-gold ${
+            className={`relative bg-[#0D0D0D] border rounded-2xl overflow-hidden shadow-2xl transition-all animate-player-entrance ${
               player.is_marquee ? 'border-[#FFD700]/60 shadow-[0_0_24px_rgba(255,215,0,0.15)]' : 'border-[#222222]'
             }`}
           >
-            {/* 4 Dedicated Animated Player Card Corners (Triggers whenever player card changes) */}
-            <div className="absolute top-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-l-2 border-[#FFD700] rounded-tl-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-            <div className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-r-2 border-[#FFD700] rounded-tr-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-            <div className="absolute bottom-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-l-2 border-[#FFD700] rounded-bl-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-            <div className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-r-2 border-[#FFD700] rounded-br-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
-            
             {/* Top Details: Player Name, Badges & Base Price */}
             <div className="p-4 sm:p-5 bg-gradient-to-b from-[#141414] to-[#0D0D0D] border-b border-[#222222] space-y-2.5">
               <div className="flex items-start justify-between gap-3">
@@ -667,8 +736,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 order-3">
           
-          {/* A. My Franchise Card with Broadcast Corners */}
-          <div className="broadcast-corners bg-[#0D0D0D] border border-[#222222] rounded-2xl p-4 shadow-xl space-y-3">
+          {/* A. My Franchise Card */}
+          <div className="bg-[#0D0D0D] border border-[#222222] rounded-2xl p-4 shadow-xl space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#1E1E1E]">
               <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider">
                 My Franchise
