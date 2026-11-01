@@ -557,6 +557,11 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               player.is_marquee ? 'border-[#FFD700]/60 shadow-[0_0_24px_rgba(255,215,0,0.15)]' : 'border-[#222222]'
             }`}
           >
+            {/* 4 Dedicated Animated Player Card Corners (Triggers whenever player card changes) */}
+            <div className="absolute top-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-l-2 border-[#FFD700] rounded-tl-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
+            <div className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 border-r-2 border-[#FFD700] rounded-tr-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-l-2 border-[#FFD700] rounded-bl-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
+            <div className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 border-r-2 border-[#FFD700] rounded-br-2xl pointer-events-none z-30 animate-player-corner shadow-[0_0_15px_rgba(255,215,0,0.8)]" />
             
             {/* Top Details: Player Name, Badges & Base Price */}
             <div className="p-4 sm:p-5 bg-gradient-to-b from-[#141414] to-[#0D0D0D] border-b border-[#222222] space-y-2.5">
