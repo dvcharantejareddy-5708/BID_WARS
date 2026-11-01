@@ -218,7 +218,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const handlePlaceBidSafe = (amount: number) => {
     if (!canBid || isPlacingBid) return;
     setIsPlacingBid(true);
-    soundManager.playBidSound();
+    // Silent bid button click per user request (no sound played on bid button click)
     onPlaceBid(amount);
     setTimeout(() => setIsPlacingBid(false), 350);
   };
@@ -291,9 +291,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
-          {/* A. Bidding Panel & Timer (With Broadcast Corners & Corner Sweep) */}
+          {/* A. Bidding Panel & Timer (With Broadcast Corners & Corner Sweep on bid/leader change) */}
           <div 
-            key={`bid-panel-${lot.currentBid}`}
+            key={`bid-panel-${lot.currentBid}-${lot.currentBidder || 'none'}`}
             className="broadcast-corners broadcast-corners-green bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5 animate-corner-sweep-green"
           >
             {/* Hammer Timer Bar */}
@@ -314,10 +314,12 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             <div className="flex items-center justify-between gap-3 pt-1">
               <div className="flex items-center gap-2.5">
                 <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center font-mono font-black border transition-all ${
-                  remainingSec <= 2
-                    ? 'bg-[#FF5252]/20 text-[#FF5252] border-[#FF5252] animate-bounce'
-                    : remainingSec <= 3
-                    ? 'bg-[#FFC857]/20 text-[#FFC857] border-[#FFC857]'
+                  remainingSec <= 1 && lot.status === 'IN_PROGRESS'
+                    ? 'bg-[#FF1744]/30 text-[#FF1744] border-[#FF1744] shadow-[0_0_18px_rgba(255,23,68,0.6)] animate-pulse scale-105'
+                    : remainingSec <= 2 && lot.status === 'IN_PROGRESS'
+                    ? 'bg-[#FF5252]/25 text-[#FF5252] border-[#FF5252] shadow-[0_0_14px_rgba(255,82,82,0.5)] animate-pulse'
+                    : remainingSec <= 3 && lot.status === 'IN_PROGRESS'
+                    ? 'bg-[#FFD700]/25 text-[#FFD700] border-[#FFD700] shadow-[0_0_12px_rgba(255,215,0,0.4)] animate-pulse'
                     : 'bg-[#151515] text-[#00E676] border-[#00E676]/40'
                 }`}>
                   <span className="text-xl leading-none">{remainingSec}</span>
@@ -326,11 +328,16 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                 <div>
                   <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Hammer Clock</span>
-                  <span className="text-xs text-white font-medium">
-                    {lot.status === 'IN_PROGRESS' 
-                      ? (remainingSec <= 3 ? 'Final Warning Ticks' : 'Resets on each bid') 
-                      : lot.status}
-                  </span>
+                  {lot.status === 'IN_PROGRESS' && remainingSec <= 3 ? (
+                    <span className="text-xs font-bold text-[#FF5252] flex items-center gap-1.5 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF5252] animate-ping" />
+                      FINAL 3 SECONDS!
+                    </span>
+                  ) : (
+                    <span className="text-xs text-white font-medium">
+                      {lot.status === 'IN_PROGRESS' ? 'Resets on each bid' : lot.status}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -598,13 +605,13 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               </div>
             </div>
 
-            {/* Prominent Stadium Showcase Frame (Section 2: Reduced empty space, large portrait) */}
-            <div className="relative w-full h-60 sm:h-72 stadium-spotlight flex items-center justify-center overflow-hidden border-b border-[#222222] p-4">
+            {/* Prominent Stadium Showcase Frame (Section 2: Reduced empty space, slightly larger portrait) */}
+            <div className="relative w-full h-64 sm:h-76 md:h-80 stadium-spotlight flex items-center justify-center overflow-hidden border-b border-[#222222] p-2.5 sm:p-4">
               {/* Subtle stadium overhead light ray */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#FFD700]/5 via-transparent to-black/60 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#FFD700]/10 via-transparent to-black/70 pointer-events-none" />
               
               {player.image_url && !imageError ? (
-                <div className="relative z-10 w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56 rounded-full p-2 bg-gradient-to-b from-[#FFD700]/40 via-[#333333] to-[#111111] shadow-[0_0_35px_rgba(0,0,0,0.9),0_0_15px_rgba(255,215,0,0.15)] border-2 border-[#FFD700]/40 flex items-center justify-center overflow-hidden">
+                <div className="relative z-10 w-52 h-52 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-full p-2 bg-gradient-to-b from-[#FFD700]/50 via-[#333333] to-[#111111] shadow-[0_0_40px_rgba(0,0,0,0.95),0_0_20px_rgba(255,215,0,0.2)] border-2 border-[#FFD700]/50 flex items-center justify-center overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
                   <img
                     src={player.image_url}
                     alt={player.name}
@@ -613,7 +620,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   />
                 </div>
               ) : (
-                <CricketPlayerSilhouette category={player.category} className="w-full h-full" />
+                <CricketPlayerSilhouette category={player.category} className="w-full h-full max-w-[260px] max-h-[260px]" />
               )}
             </div>
 
