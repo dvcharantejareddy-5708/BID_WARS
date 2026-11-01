@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Trophy, 
   Clock, 
@@ -18,7 +18,9 @@ import {
   Tag,
   Plane,
   ChevronDown,
-  Users
+  Users,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -30,10 +32,11 @@ import {
   Player,
   PlayerCategory 
 } from '../types.js';
-import { soundManager } from '../services/audio.js';
+import { soundManager, formatPriceForSpeech } from '../services/audio.js';
 import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
+import { AuctionHammer } from './AuctionHammer.js';
 
 interface AuctionArenaProps {
   roomState: RoomState;
@@ -100,21 +103,55 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     }
   }, [remainingSec, roomState.status, lot?.status]);
 
-  // Audio & confetti on lot finalization
+  const [isMuted, setIsMuted] = useState(soundManager.isMuted);
+  const announcedSaleKeys = useRef<Set<string>>(new Set());
+
+  const handleToggleMute = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const muted = soundManager.toggleMute();
+    setIsMuted(muted);
+  };
+
+  // Coordinated voice announcement & hammer audio on confirmed sale exactly once
   useEffect(() => {
-    if (lot?.status === 'SOLD') {
-      soundManager.playSoldGavel();
-      if (lot.winningTeam === myTeamId) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+    if (lot?.status === 'SOLD' && lot.soldPrice && lot.winningTeam) {
+      const saleKey = `${lot.player.id}_${lot.soldPrice}_${lot.winningTeam}`;
+
+      if (!announcedSaleKeys.current.has(saleKey)) {
+        announcedSaleKeys.current.add(saleKey);
+
+        // Hammer gavel thud at impact
+        soundManager.playSoldGavel();
+
+        // Confetti celebration for winning team
+        if (lot.winningTeam === myTeamId) {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 }
+          });
+        }
+
+        // Voice Announcement strictly per prompt format:
+        // “SOLD! [Player Name] is sold to [Winning Team Name] for [Final Price]!”
+        const fullTeamName = IPL_FRANCHISES[lot.winningTeam]?.name || lot.winningTeamName || lot.winningTeam;
+        const spokenPrice = formatPriceForSpeech(lot.soldPrice);
+
+        // Coordinated ~400ms after hammer strike begins
+        const speechTimer = setTimeout(() => {
+          soundManager.speakSoldAnnouncement(lot.player.name, fullTeamName, spokenPrice);
+        }, 400);
+
+        return () => clearTimeout(speechTimer);
       }
     } else if (lot?.status === 'UNSOLD') {
       soundManager.playUnsoldSound();
+      // Strictly NO voice announcement on UNSOLD
+      soundManager.stopSpeech();
+    } else if (lot?.status === 'IN_PROGRESS') {
+      soundManager.stopSpeech();
     }
-  }, [lot?.status]);
+  }, [lot?.status, lot?.soldPrice, lot?.winningTeam, lot?.player?.id, myTeamId]);
 
   if (!lot) {
     return (
@@ -409,7 +446,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                   <button
                     onClick={() => onDrawRandomPlayer(selectedCategory, selectedPriceBracket)}
-                    className="w-full bg-[#FFC857] hover:bg-[#ffcf6e] active:scale-[0.99] text-black font-display font-bold py-2 px-4 rounded-full transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                    disabled={lot.status !== 'IN_PROGRESS'}
+                    className="w-full bg-[#FFC857] hover:bg-[#ffcf6e] active:scale-[0.99] text-black font-display font-bold py-2 px-4 rounded-full transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Dice5 className="w-3.5 h-3.5" />
                     <span>Draw Random {selectedCategory} ({selectedPriceBracket >= 10000000 ? `₹${(selectedPriceBracket / 10000000).toFixed(2)} Cr` : `₹${(selectedPriceBracket / 100000).toFixed(0)}L`})</span>
@@ -430,7 +468,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setShowSkipModal(true)}
-                  className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-[#FFC857] border border-[#FFC857]/30 rounded-full font-bold transition-all flex items-center gap-1 text-[11px]"
+                  disabled={lot.status !== 'IN_PROGRESS'}
+                  className="px-2.5 py-1 bg-[#151515] hover:bg-[#222222] text-[#FFC857] border border-[#FFC857]/30 rounded-full font-bold transition-all flex items-center gap-1 text-[11px] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <FastForward className="w-3 h-3" />
                   <span>Skip</span>
@@ -593,45 +632,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               ) : (
                 <CricketPlayerSilhouette category={player.category} className="w-full h-full" />
               )}
-
-              {/* Status Overlays on SOLD / UNSOLD / SKIPPED */}
-              {lot.status === 'SOLD' && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn text-center p-4 z-30">
-                  <Award className="w-10 h-10 text-[#00E676] mb-1 animate-bounce" />
-                  <span className="text-3xl font-extrabold font-display text-[#00E676] tracking-wider">
-                    SOLD!
-                  </span>
-                  <div className="flex items-center gap-2 mt-1">
-                    {lot.winningTeam && <TeamLogo teamId={lot.winningTeam} className="w-6 h-6" />}
-                    <span className="text-base font-bold text-white">
-                      {lot.winningTeamName}
-                    </span>
-                  </div>
-                  <span className="text-sm font-mono text-[#00E676] font-bold mt-1 bg-[#00E676]/10 px-3 py-0.5 rounded-full border border-[#00E676]/30">
-                    ₹{((lot.soldPrice || 0) / 10000000).toFixed(2)} Crore
-                  </span>
-                </div>
-              )}
-
-              {lot.status === 'UNSOLD' && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn text-center p-4 z-30">
-                  <span className="text-3xl font-extrabold font-display text-[#8E8E93] tracking-wider">
-                    UNSOLD
-                  </span>
-                  <span className="text-xs text-[#8E8E93] mt-1">
-                    Player moves to the un-auctioned pool
-                  </span>
-                </div>
-              )}
-
-              {lot.status === 'SKIPPED' && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center animate-fadeIn text-center p-4 z-30">
-                  <FastForward className="w-8 h-8 text-[#FFC857] mb-1" />
-                  <span className="text-2xl font-extrabold font-display text-[#FFC857] tracking-wider">
-                    SKIPPED BY HOST
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* 3. CURRENT HIGHEST BID & LEADING TEAM BANNER */}
@@ -671,6 +671,116 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* ======================================================== */}
+            {/* FULL-CARD SOLD! CELEBRATION OVERLAY                      */}
+            {/* ======================================================== */}
+            {lot.status === 'SOLD' && lot.winningTeam && (
+              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-md rounded-2xl flex flex-col justify-between p-4 sm:p-5 text-center border-2 border-[#FFC857]/70 shadow-[0_0_50px_rgba(255,200,87,0.3)] animate-sold-glow">
+                {/* Top Bar: Official Confirmation + Mute Control */}
+                <div className="flex items-center justify-between text-xs w-full pb-1 border-b border-[#222222]">
+                  <span className="text-[#FFC857] font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-[#FFC857] animate-spin" />
+                    Confirmed Sale
+                  </span>
+                  
+                  {/* Quick Mute / Unmute Button */}
+                  <button
+                    onClick={handleToggleMute}
+                    aria-label={isMuted ? 'Unmute voice' : 'Mute voice'}
+                    className="p-1 px-2.5 rounded-full bg-[#181818] hover:bg-[#252525] text-white border border-[#333333] transition-colors flex items-center gap-1 text-[11px] font-semibold"
+                  >
+                    {isMuted ? (
+                      <>
+                        <VolumeX className="w-3.5 h-3.5 text-[#FF5252]" />
+                        <span className="text-[#8E8E93]">Muted</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-3.5 h-3.5 text-[#00E676]" />
+                        <span className="text-[#00E676]">Audio On</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Center Stage: Auction Hammer, Title, Player & Franchise */}
+                <div className="my-auto py-2 flex flex-col items-center">
+                  {/* Compact Animated Auction Hammer */}
+                  <AuctionHammer className="w-24 h-16 sm:w-28 sm:h-20 mb-1" />
+
+                  {/* Golden Glowing SOLD! Heading */}
+                  <h2 className="text-4xl sm:text-5xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFE082] via-[#FFD700] to-[#FFA000] drop-shadow-[0_0_25px_rgba(255,215,0,0.6)] animate-pulse">
+                    SOLD!
+                  </h2>
+
+                  {/* Player Name & Category */}
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight mt-1">
+                    {player.name}
+                  </div>
+                  <div className="text-xs text-[#8E8E93] mt-0.5">
+                    {player.category} • {player.is_overseas ? `✈️ Overseas (${player.nationality})` : '🇮🇳 Indian Player'}
+                  </div>
+
+                  {/* Winning Team & Price Card */}
+                  <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-3 mt-3 w-full max-w-md flex items-center justify-between gap-3 shadow-inner">
+                    <div className="flex items-center gap-2.5 text-left">
+                      <TeamLogo teamId={lot.winningTeam} className="w-10 h-10 object-contain drop-shadow" />
+                      <div>
+                        <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Sold To Franchise</span>
+                        <span className="text-sm sm:text-base font-bold text-white block leading-tight">
+                          {IPL_FRANCHISES[lot.winningTeam]?.name || lot.winningTeamName}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-[#FFC857] uppercase font-semibold block">Final Winning Bid</span>
+                      <span className="text-lg sm:text-xl font-mono font-black text-[#00E676] block">
+                        ₹{((lot.soldPrice || 0) / 10000000).toFixed(2)} Crore
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Countdown Progress Bar (4.5s transition) */}
+                <div className="w-full pt-1">
+                  <div className="flex items-center justify-between text-[10px] text-[#8E8E93] mb-1 font-mono">
+                    <span>AUCTION STAGE ADVANCING</span>
+                    <span className="text-[#FFC857]">Next player in seconds...</span>
+                  </div>
+                  <div className="w-full bg-[#1A1A1A] h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#FFC857] via-[#FFD700] to-[#00E676] h-full animate-sold-progress" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* UNSOLD OVERLAY: Strictly only the text "UNSOLD"          */}
+            {/* ======================================================== */}
+            {lot.status === 'UNSOLD' && (
+              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn">
+                <span className="text-4xl sm:text-5xl font-black font-display tracking-widest text-[#8E8E93] animate-pulse">
+                  UNSOLD
+                </span>
+                <span className="text-xs text-[#555555] font-mono mt-3">
+                  Player moves to the un-auctioned pool
+                </span>
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* SKIPPED OVERLAY                                          */}
+            {/* ======================================================== */}
+            {lot.status === 'SKIPPED' && (
+              <div className="absolute inset-0 z-40 bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-[#222222] animate-fadeIn">
+                <FastForward className="w-8 h-8 text-[#FFC857] mb-2" />
+                <span className="text-2xl font-black font-display text-[#FFC857] tracking-wider">
+                  SKIPPED BY HOST
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Synchronized Countdown Timer & Bidding Panel */}

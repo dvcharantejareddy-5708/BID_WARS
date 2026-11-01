@@ -38,6 +38,7 @@ export class GameRoom {
 
   private timerInterval: NodeJS.Timeout | null = null;
   private botTimeouts: NodeJS.Timeout[] = [];
+  private lotTransitionTimeout: NodeJS.Timeout | null = null;
   private broadcastCallback: (state: RoomState, eventMsg?: any) => void;
   private isProcessingBid: boolean = false;
   private pauseRemainingMs: number | null = null;
@@ -653,13 +654,16 @@ export class GameRoom {
       teamStats: summary
     });
 
-    // Advance to next lot after 2.8s transition pause
-    setTimeout(() => {
+    // Advance to next lot after strict coordinated sequence (maximum 6 seconds):
+    // SOLD: 4.5s (hammer 0.8s + TTS voice announcement ~3s + next player)
+    // UNSOLD: 2.5s (clean text animation + next player)
+    const transitionDelay = lot.status === 'SOLD' ? 4500 : 2500;
+    this.lotTransitionTimeout = setTimeout(() => {
       if (this.status === 'AUCTION') {
         this.currentLotIndex++;
         this.startCurrentLot();
       }
-    }, 2800);
+    }, transitionDelay);
   }
 
   public skipCurrentLot(memberId: string): { success: boolean; message?: string } {
@@ -868,6 +872,10 @@ export class GameRoom {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
+    }
+    if (this.lotTransitionTimeout) {
+      clearTimeout(this.lotTransitionTimeout);
+      this.lotTransitionTimeout = null;
     }
     for (const timeout of this.botTimeouts) clearTimeout(timeout);
     this.botTimeouts = [];

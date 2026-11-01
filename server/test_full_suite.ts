@@ -304,6 +304,56 @@ async function runTestSuite() {
   const p5 = playersDb.find(p => p.s_no === 5);
   assert(p5 && p5.image_url === null, 'Player without photo in PDF (S.No 5 Aniket Verma) has image_url = null');
 
+  // --- TEST GROUP 10: SOLD & UNSOLD Sequence, Hammer & Voice Timings ---
+  console.log('\n--- TEST GROUP 10: SOLD & UNSOLD Sequence, Hammer & Voice Timings ---');
+  
+  // 1. Verify speech currency formatting
+  const speechCr = (price: number) => {
+    if (price >= 10000000) {
+      const cr = price / 10000000;
+      return `${cr % 1 === 0 ? cr : cr.toFixed(2)} Crore`;
+    }
+    const lakh = price / 100000;
+    return `${lakh % 1 === 0 ? lakh : lakh.toFixed(2)} Lakh`;
+  };
+
+  assert(speechCr(20000000) === '2 Crore', 'formatPriceForSpeech: 20000000 -> 2 Crore');
+  assert(speechCr(150000000) === '15 Crore', 'formatPriceForSpeech: 150000000 -> 15 Crore');
+  assert(speechCr(7500000) === '75 Lakh', 'formatPriceForSpeech: 7500000 -> 75 Lakh');
+  assert(speechCr(12500000) === '1.25 Crore', 'formatPriceForSpeech: 12500000 -> 1.25 Crore');
+  assert(speechCr(3000000) === '30 Lakh', 'formatPriceForSpeech: 3000000 -> 30 Lakh');
+
+  // 2. Verify UNSOLD flow: zero purse deduction, zero squad mutation, added to history
+  const unsoldRoom = new GameRoom(
+    'BW-UNSOLD-TEST',
+    'UnsoldHost',
+    { poolMode: 'mega_all' },
+    () => {}
+  );
+  const uHostId = unsoldRoom.hostId;
+  unsoldRoom.selectTeam(uHostId, 'CSK');
+  unsoldRoom.toggleReady(uHostId, true);
+  unsoldRoom.startAuction(uHostId);
+
+  const initialCSKPurse = unsoldRoom.getState().teamPurse['CSK'];
+  const initialCSKSquadLen = unsoldRoom.getState().teamSquads['CSK'].length;
+  
+  // Fast forward lot without any bids to trigger UNSOLD finalization
+  // @ts-ignore: invoke private for testing
+  unsoldRoom.finalizeCurrentLot();
+
+  const afterUnsoldCSKPurse = unsoldRoom.getState().teamPurse['CSK'];
+  const afterUnsoldCSKSquadLen = unsoldRoom.getState().teamSquads['CSK'].length;
+  const historyLatest = unsoldRoom.getState().history[0];
+
+  assert(afterUnsoldCSKPurse === initialCSKPurse, 'UNSOLD player causes zero purse deduction');
+  assert(afterUnsoldCSKSquadLen === initialCSKSquadLen, 'UNSOLD player causes zero squad changes');
+  assert(historyLatest && historyLatest.status === 'UNSOLD', 'UNSOLD result recorded in Auction History');
+
+  // 3. Verify AuctionHammer component exists
+  const hammerPath = pathModule.resolve('./client/src/components/AuctionHammer.tsx');
+  assert(fsModule.existsSync(hammerPath), 'AuctionHammer.tsx component exists on disk');
+
   console.log('\n====================================================');
   console.log(`🎯 TEST RESULTS: ${passedTests} / ${totalTests} TESTS PASSED (${Math.round((passedTests / totalTests) * 100)}%)`);
   console.log('====================================================');

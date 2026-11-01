@@ -50,3 +50,122 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #00E676;
 }
+
+/* ======================================================== */
+/* AUCTION HAMMER & SOLD CELEBRATION ANIMATIONS             */
+/* ======================================================== */
+
+@keyframes hammerStrike {
+  0% {
+    transform: rotate(-60deg);
+  }
+  20% {
+    transform: rotate(-72deg);
+  }
+  45% {
+    transform: rotate(0deg);
+  }
+  55% {
+    transform: rotate(-12deg);
+  }
+  68% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes goldShockwave {
+  0%, 42% {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+  46% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(2.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkBurst1 {
+  0%, 44% { transform: translate(0, 0) scale(0); opacity: 0; }
+  46% { transform: translate(-14px, -12px) scale(1.2); opacity: 1; }
+  100% { transform: translate(-26px, -22px) scale(0.2); opacity: 0; }
+}
+
+@keyframes sparkBurst2 {
+  0%, 44% { transform: translate(0, 0) scale(0); opacity: 0; }
+  46% { transform: translate(14px, -14px) scale(1.2); opacity: 1; }
+  100% { transform: translate(26px, -24px) scale(0.2); opacity: 0; }
+}
+
+@keyframes sparkBurst3 {
+  0%, 44% { transform: translate(0, 0) scale(0); opacity: 0; }
+  46% { transform: translate(-18px, 6px) scale(1.2); opacity: 1; }
+  100% { transform: translate(-30px, 10px) scale(0.2); opacity: 0; }
+}
+
+@keyframes sparkBurst4 {
+  0%, 44% { transform: translate(0, 0) scale(0); opacity: 0; }
+  46% { transform: translate(18px, 6px) scale(1.2); opacity: 1; }
+  100% { transform: translate(30px, 10px) scale(0.2); opacity: 0; }
+}
+
+@keyframes soldGoldGlow {
+  0% {
+    box-shadow: 0 0 15px rgba(255, 200, 87, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(255, 200, 87, 0.7), 0 0 85px rgba(255, 215, 0, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(255, 200, 87, 0.4);
+  }
+}
+
+@keyframes progressCountdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-hammer-strike {
+  animation: hammerStrike 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-gold-shockwave {
+  animation: goldShockwave 0.85s ease-out forwards;
+}
+
+.animate-spark-1 {
+  animation: sparkBurst1 0.85s ease-out forwards;
+}
+.animate-spark-2 {
+  animation: sparkBurst2 0.85s ease-out forwards;
+}
+.animate-spark-3 {
+  animation: sparkBurst3 0.85s ease-out forwards;
+}
+.animate-spark-4 {
+  animation: sparkBurst4 0.85s ease-out forwards;
+}
+
+.animate-sold-glow {
+  animation: soldGoldGlow 2.5s ease-in-out infinite;
+}
+
+.animate-sold-progress {
+  animation: progressCountdown 4.5s linear forwards;
+}
+

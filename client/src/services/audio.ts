@@ -27,7 +27,59 @@ class SoundManager {
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
     localStorage.setItem('bid_wars_muted', String(this.isMuted));
+    if (this.isMuted) {
+      this.stopSpeech();
+    }
     return this.isMuted;
+  }
+
+  /**
+   * Stop any current speech synthesis immediately
+   */
+  public stopSpeech() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+  }
+
+  /**
+   * Authoritative Voice Announcement on confirmed sale:
+   * “SOLD! [Player Name] is sold to [Winning Team Name] for [Final Price]!”
+   */
+  public speakSoldAnnouncement(playerName: string, teamFullName: string, priceDisplay: string) {
+    if (this.isMuted) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    try {
+      this.stopSpeech();
+
+      const text = `SOLD! ${playerName} is sold to ${teamFullName} for ${priceDisplay}!`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05; // natural, energetic auctioneer tempo
+      utterance.pitch = 1.02;
+      utterance.volume = 1.0;
+
+      // Select preferred voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => 
+        v.lang.startsWith('en') && (
+          v.name.includes('Natural') || 
+          v.name.includes('India') || 
+          v.name.includes('Google') || 
+          v.name.includes('Guy') ||
+          v.name.includes('David')
+        )
+      );
+      if (preferred) {
+        utterance.voice = preferred;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis error:', e);
+    }
   }
 
   /**
@@ -205,4 +257,20 @@ class SoundManager {
 }
 
 export const soundManager = new SoundManager();
+
+/**
+ * Format numeric INR into clear spoken currency for auction announcement
+ * Example: 20000000 -> "2 Crore", 7500000 -> "75 Lakh"
+ */
+export function formatPriceForSpeech(priceInr: number): string {
+  if (priceInr >= 10000000) {
+    const cr = priceInr / 10000000;
+    const formatted = cr % 1 === 0 ? cr.toString() : cr.toFixed(2);
+    return `${formatted} Crore`;
+  }
+  const lakh = priceInr / 100000;
+  const formatted = lakh % 1 === 0 ? lakh.toString() : lakh.toFixed(2);
+  return `${formatted} Lakh`;
+}
+
 
