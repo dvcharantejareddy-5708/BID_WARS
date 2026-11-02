@@ -4,36 +4,57 @@
 
 @layer base {
   body {
-    background-color: #000000;
-    color: #FFFFFF;
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #080D18;
+    background-image: 
+      radial-gradient(circle at 50% 15%, rgba(84, 200, 255, 0.07) 0%, transparent 60%),
+      radial-gradient(circle at 50% 65%, rgba(200, 255, 69, 0.03) 0%, transparent 70%);
+    color: #F4F7FC;
+    font-family: 'IBM Plex Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    letter-spacing: -0.02em;
+    font-family: 'Barlow Condensed', 'Sora', sans-serif;
+    letter-spacing: 0.01em;
+    font-weight: 700;
   }
 }
 
-/* Premium Black Theme Glassmorphic & Solid Panels */
+/* Distinctive Typography Utility Classes */
+.font-heading {
+  font-family: 'Barlow Condensed', 'Sora', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.font-number {
+  font-family: 'Archivo Black', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.font-body {
+  font-family: 'IBM Plex Sans', 'DM Sans', sans-serif;
+}
+
+/* Premium Stadium Theme Glassmorphic & Solid Panels */
 .panel-main {
-  background-color: #0D0D0D;
-  border: 1px solid #292929;
+  background-color: #0E1626;
+  border: 1px solid #26354D;
 }
 
 .panel-card {
-  background-color: #151515;
-  border: 1px solid #292929;
+  background-color: #141F33;
+  border: 1px solid #26354D;
 }
 
 .panel-card:hover {
-  border-color: #3D3D3D;
+  border-color: #3D506E;
 }
 
 .panel-card-active {
-  background-color: #1A1A1A;
-  border: 1px solid #00E676;
+  background-color: #18253D;
+  border: 1px solid #C8FF45;
 }
 
 /* Custom Scrollbars */
@@ -42,14 +63,14 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: #080D18;
 }
 ::-webkit-scrollbar-thumb {
-  background: #292929;
+  background: #26354D;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #00E676;
+  background: #C8FF45;
 }
 
 /* ======================================================== */
@@ -302,6 +323,22 @@
   animation: realisticAuctioneerHammerStrike 1.25s cubic-bezier(0.25, 1, 0.35, 1) forwards;
   will-change: transform, filter;
   transform-origin: 75% 75%;
+}
+
+@keyframes hammerResonate {
+  0%, 100% {
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 18px rgba(200, 255, 69, 0.35));
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 32px rgba(200, 255, 69, 0.7));
+    transform: translateY(-3px) rotate(0.5deg) scale(1.018);
+  }
+}
+
+.animate-hammer-resonate {
+  animation: hammerResonate 1.4s ease-in-out infinite;
+  will-change: transform, filter;
 }
 
 @keyframes subtleGoldImpactFlash {

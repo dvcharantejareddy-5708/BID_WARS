@@ -43,6 +43,17 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
     }
   };
 
+  const handleManualComplete = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!completedRef.current) {
+      completedRef.current = true;
+      soundManager.stopSpeech();
+      setIsDismissed(true);
+      const resultId = lot.resultId || `${lot.lotNumber}_${player.id}_${lot.status}_${finalPrice}`;
+      onComplete(resultId);
+    }
+  };
+
   // 1. Coordinated Visual Strike and Animation Lifecycle
   useEffect(() => {
     // A. Strike sound & impact shake synchronized at hammer impact (~700ms)
@@ -129,23 +140,23 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
   }
 
   return (
-    <div className={`fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-8 animate-fadeIn select-none overflow-hidden ${
+    <div className={`fixed inset-0 z-50 bg-[#080D18]/96 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-8 animate-fadeIn select-none overflow-hidden font-body ${
       hasStruck ? 'animate-impact-shake' : ''
     }`}>
       {/* Top Bar: Official Confirmation & Mute Toggle */}
       <div className="flex items-center justify-between w-full max-w-5xl mx-auto z-10">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#141414] border border-[#2D2D2D]">
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141F33] border border-[#26354D]">
           {isSold ? (
             <>
-              <Sparkles className="w-4 h-4 text-[#FFD700] animate-spin" />
-              <span className="text-xs font-mono font-bold text-[#FFD700] tracking-wider uppercase">
+              <Sparkles className="w-4 h-4 text-[#C8FF45] animate-spin" />
+              <span className="text-xs font-heading font-extrabold text-[#C8FF45] tracking-wider uppercase">
                 Official Sale Confirmation
               </span>
             </>
           ) : (
             <>
-              <AlertCircle className="w-4 h-4 text-[#FF5252]" />
-              <span className="text-xs font-mono font-bold text-[#FF5252] tracking-wider uppercase">
+              <AlertCircle className="w-4 h-4 text-[#FF647C]" />
+              <span className="text-xs font-heading font-extrabold text-[#FF647C] tracking-wider uppercase">
                 Lot Concluded — Unsold
               </span>
             </>
@@ -155,17 +166,17 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         <button
           onClick={handleToggleMute}
           aria-label={isMuted ? 'Unmute voice' : 'Mute voice'}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181818] hover:bg-[#252525] border border-[#333333] text-white transition-all text-xs font-semibold shadow-md active:scale-95"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141F33] hover:bg-[#1B2942] border border-[#26354D] text-[#F4F7FC] transition-all text-xs font-semibold shadow-md active:scale-95"
         >
           {isMuted ? (
             <>
-              <VolumeX className="w-4 h-4 text-[#FF5252]" />
-              <span className="text-[#8E8E93]">Muted</span>
+              <VolumeX className="w-4 h-4 text-[#FF647C]" />
+              <span className="text-[#9BAAC0]">Muted</span>
             </>
           ) : (
             <>
-              <Volume2 className="w-4 h-4 text-[#00E676]" />
-              <span className="text-[#00E676]">Voice Active</span>
+              <Volume2 className="w-4 h-4 text-[#C8FF45]" />
+              <span className="text-[#C8FF45]">Voice Active</span>
             </>
           )}
         </button>
@@ -180,24 +191,28 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {isSold ? (
                 <>
-                  <div className="w-36 h-36 rounded-full border-4 border-[#FFD700] animate-cinematic-shockwave opacity-0" />
-                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FFD700]/50 via-[#FFA000]/25 to-transparent blur-xl animate-gold-impact-flash" />
+                  <div className="w-36 h-36 rounded-full border-4 border-[#C8FF45] animate-cinematic-shockwave opacity-0" />
+                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#C8FF45]/40 via-[#54C8FF]/20 to-transparent blur-xl animate-gold-impact-flash" />
                 </>
               ) : (
                 <>
-                  <div className="w-36 h-36 rounded-full border-4 border-[#FF5252] animate-cinematic-shockwave opacity-0" />
-                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FF5252]/50 via-[#D32F2F]/25 to-transparent blur-xl animate-gold-impact-flash" />
+                  <div className="w-36 h-36 rounded-full border-4 border-[#FF647C] animate-cinematic-shockwave opacity-0" />
+                  <div className="w-64 h-64 rounded-full bg-gradient-to-r from-[#FF647C]/40 via-[#D32F2F]/20 to-transparent blur-xl animate-gold-impact-flash" />
                 </>
               )}
             </div>
           )}
 
-          {/* User's Exact Provided Hammer Image */}
+          {/* User's Exact Provided Hammer Image — Continuously active throughout announcement */}
           <div className="relative z-10 w-full flex items-center justify-center">
             <img
               src="/auction-hammer.png"
               alt="Auctioneer Hammer"
-              className="w-full max-w-[340px] sm:max-w-[420px] md:max-w-[460px] h-auto object-contain animate-user-hammer-strike select-none pointer-events-none"
+              className={`w-full max-w-[340px] sm:max-w-[420px] md:max-w-[460px] h-auto object-contain select-none pointer-events-none ${
+                hasStruck
+                  ? (!voiceDone ? 'animate-hammer-resonate' : '')
+                  : 'animate-user-hammer-strike'
+              }`}
             />
           </div>
         </div>
@@ -207,40 +222,40 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
           hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-3 pointer-events-none'
         }`}>
           {isSold ? (
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFF59D] via-[#FFD700] to-[#FF8F00] drop-shadow-[0_0_35px_rgba(255,215,0,0.7)] animate-pulse">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-heading tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFFFFF] via-[#C8FF45] to-[#54C8FF] drop-shadow-[0_0_35px_rgba(200,255,69,0.7)] animate-pulse">
               SOLD!
             </h1>
           ) : (
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-display tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A80] via-[#FF5252] to-[#D32F2F] drop-shadow-[0_0_35px_rgba(255,82,82,0.6)] animate-pulse">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-heading tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFFFFF] via-[#FF647C] to-[#E04860] drop-shadow-[0_0_35px_rgba(255,100,124,0.6)] animate-pulse">
               UNSOLD
             </h1>
           )}
 
           {/* Player Name and Classification */}
-          <div className="text-2xl sm:text-3xl font-black text-white leading-tight">
+          <div className="text-2xl sm:text-3xl font-heading font-extrabold text-[#F4F7FC] leading-tight uppercase tracking-wide">
             {player.name}
           </div>
-          <div className="text-xs sm:text-sm text-[#8E8E93] font-medium">
+          <div className="text-xs sm:text-sm text-[#9BAAC0] font-medium">
             {player.category} • {player.is_overseas ? `✈️ Overseas (${player.nationality})` : '🇮🇳 Indian Player'}
           </div>
         </div>
 
         {/* Detail Card - Synchronized with Strike */}
         {isSold && winningTeamId && (
-          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141414] via-[#1A1A1A] to-[#141414] border-2 border-[#FFC857]/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(255,200,87,0.25)] animate-sold-glow transition-all duration-500 transform ${
+          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141F33] via-[#1B2942] to-[#141F33] border-2 border-[#C8FF45]/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(200,255,69,0.25)] transition-all duration-500 transform ${
             hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}>
             {/* Winning Team with Official Logo & Full Name */}
             <div className="flex items-center gap-3.5 text-left">
               <TeamLogo teamId={winningTeamId} className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0 drop-shadow-lg" />
               <div>
-                <span className="text-[11px] text-[#8E8E93] uppercase font-semibold tracking-wider block">
+                <span className="text-[10px] text-[#9BAAC0] uppercase font-bold tracking-wider block">
                   Acquired By
                 </span>
-                <span className="text-base sm:text-lg font-black text-white block leading-tight">
+                <span className="text-base sm:text-lg font-heading font-black text-[#F4F7FC] block leading-tight uppercase">
                   {fullTeamName}
                 </span>
-                <span className="text-xs font-mono font-bold text-[#FFD700]">
+                <span className="text-xs font-mono font-bold text-[#C8FF45]">
                   ({shortTeamName})
                 </span>
               </div>
@@ -248,10 +263,10 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
 
             {/* Final Sold Price */}
             <div className="text-right shrink-0">
-              <span className="text-[11px] text-[#FFC857] uppercase font-bold tracking-wider block">
+              <span className="text-[10px] text-[#9BAAC0] uppercase font-bold tracking-wider block">
                 Final Bid
               </span>
-              <span className="text-2xl sm:text-3xl font-mono font-black text-[#00E676] block leading-none">
+              <span className="text-2xl sm:text-3xl font-number text-[#C8FF45] block leading-none">
                 ₹{(finalPrice / 10000000).toFixed(2)} Cr
               </span>
             </div>
@@ -259,26 +274,26 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         )}
 
         {isUnsold && (
-          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141414] via-[#1C1616] to-[#141414] border border-[#FF5252]/40 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,82,82,0.15)] transition-all duration-500 transform ${
+          <div className={`mt-5 w-full max-w-xl bg-gradient-to-r from-[#141F33] via-[#1C1720] to-[#141F33] border border-[#FF647C]/40 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_0_30px_rgba(255,100,124,0.15)] transition-all duration-500 transform ${
             hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}>
             <div className="text-left">
-              <span className="text-[11px] text-[#8E8E93] uppercase font-semibold tracking-wider block">
+              <span className="text-[10px] text-[#9BAAC0] uppercase font-bold tracking-wider block">
                 Auction Outcome
               </span>
-              <span className="text-base sm:text-lg font-bold text-white block">
+              <span className="text-base sm:text-lg font-heading font-black text-[#F4F7FC] block uppercase">
                 No Bids Placed
               </span>
-              <span className="text-xs text-[#8E8E93]">
+              <span className="text-xs text-[#9BAAC0]">
                 Player moved to unsold pool for later accelerated round
               </span>
             </div>
 
             <div className="text-right shrink-0">
-              <span className="text-[11px] text-[#8E8E93] uppercase font-bold tracking-wider block">
+              <span className="text-[10px] text-[#9BAAC0] uppercase font-bold tracking-wider block">
                 Base Price
               </span>
-              <span className="text-xl sm:text-2xl font-mono font-bold text-[#CCCCCC] block leading-none">
+              <span className="text-xl sm:text-2xl font-number text-[#9BAAC0] block leading-none">
                 ₹{(player.base_price_inr / 10000000).toFixed(2)} Cr
               </span>
             </div>
@@ -286,16 +301,26 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         )}
       </div>
 
-      {/* Bottom Status & Voice Pacing Indicator */}
-      <div className="w-full max-w-md mx-auto text-center z-10 pt-2">
-        <p className="text-xs font-mono text-[#8E8E93] mb-2 flex items-center justify-center gap-2">
-          <span className={`inline-block w-2 h-2 rounded-full ${isSold ? 'bg-[#00E676]' : 'bg-[#FF5252]'} animate-ping`} />
+      {/* Bottom Status & Voice Pacing Indicator + Autoplay Recovery */}
+      <div className="w-full max-w-md mx-auto text-center z-10 pt-2 flex flex-col items-center gap-2">
+        <p className="text-xs font-mono text-[#9BAAC0] flex items-center justify-center gap-2">
+          <span className={`inline-block w-2 h-2 rounded-full ${isSold ? 'bg-[#C8FF45]' : 'bg-[#FF647C]'} animate-ping`} />
           <span>
             {isSold 
               ? `“${player.name} sold to ${shortTeamName} for ${spokenPrice}!”` 
               : `“${player.name} goes unsold!”`}
           </span>
         </p>
+
+        {/* Clear Autoplay / Manual Continuation Recovery Button */}
+        {hasStruck && (
+          <button
+            onClick={handleManualComplete}
+            className="px-4 py-1.5 rounded-full bg-[#141F33] hover:bg-[#1B2942] border border-[#26354D] hover:border-[#C8FF45]/50 text-xs font-heading font-bold uppercase tracking-wider text-[#9BAAC0] hover:text-[#C8FF45] transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+          >
+            <span>Next Player ➔</span>
+          </button>
+        )}
       </div>
     </div>
   );

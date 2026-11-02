@@ -10,12 +10,12 @@ export const CricketPlayerSilhouette: React.FC<CricketPlayerSilhouetteProps> = (
   category
 }) => {
   return (
-    <div className={`relative flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#181818] via-[#101010] to-[#0A0A0A] select-none ${className}`}>
+    <div className={`relative flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#141F33] via-[#0E1626] to-[#080D18] select-none ${className}`}>
       {/* Background Stadium Floodlight Rings / Ambient Aura */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
-        <div className="w-48 h-48 rounded-full bg-[#00E676]/15 blur-2xl animate-pulse" />
-        <div className="absolute w-36 h-36 rounded-full border border-white/5" />
-        <div className="absolute w-52 h-52 rounded-full border border-white/5" />
+        <div className="w-48 h-48 rounded-full bg-[#54C8FF]/15 blur-2xl animate-pulse" />
+        <div className="absolute w-36 h-36 rounded-full border border-[#26354D]" />
+        <div className="absolute w-52 h-52 rounded-full border border-[#26354D]" />
       </div>
 
       {/* Sharp Vector Silhouette of an Athletic Cricket Player */}

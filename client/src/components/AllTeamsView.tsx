@@ -70,56 +70,56 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
     const wks = squad.filter(p => p.is_wicketkeeper).length;
 
     return (
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-5 animate-fadeIn">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-5 animate-fadeIn selection:bg-[#C8FF45] selection:text-black">
         {/* Back Button & Team Header */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => setSelectedTeamId(null)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#151515] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-white transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0E1626] hover:bg-[#1B2942] border border-[#26354D] text-xs font-heading font-bold uppercase tracking-wider text-[#F4F7FC] transition-all shadow-sm"
           >
-            <ArrowLeft className="w-4 h-4 text-[#00E676]" />
+            <ArrowLeft className="w-4 h-4 text-[#C8FF45]" />
             <span>Back to All 10 Teams</span>
           </button>
 
           {isMyTeam && (
-            <span className="text-xs font-bold text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/20 px-3 py-1 rounded-full">
+            <span className="text-xs font-heading font-black uppercase tracking-wider text-[#C8FF45] bg-[#C8FF45]/10 border border-[#C8FF45]/20 px-3 py-1 rounded-full">
               Your Managed Franchise
             </span>
           )}
         </div>
 
         {/* Team Banner */}
-        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="bg-[#141F33] border border-[#26354D] rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             <TeamLogo teamId={selectedTeamId} className="w-16 h-16 shadow-xl" />
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#00E676] font-bold uppercase tracking-wider">
+                <span className="text-xs text-[#C8FF45] font-heading font-black uppercase tracking-wider">
                   MANAGER: {manager ? manager.nickname : 'Vacant'} {manager?.isBot ? '(AI BOT)' : ''}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
+              <h1 className="text-2xl sm:text-3xl font-black font-heading uppercase text-[#F4F7FC]">
                 {team.name}
               </h1>
-              <p className="text-xs text-[#8E8E93] mt-0.5">
+              <p className="text-xs text-[#9BAAC0] mt-0.5">
                 {team.city} · {team.emblemText}
               </p>
             </div>
           </div>
 
           {/* Purse Summary Box */}
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-3.5 flex items-center gap-5 text-xs font-mono">
+          <div className="bg-[#0E1626] border border-[#26354D] rounded-2xl p-3.5 flex items-center gap-5 text-xs">
             <div>
-              <span className="text-[10px] text-[#8E8E93] uppercase block">Purse Left</span>
-              <span className="text-xl font-bold text-[#00E676]">
+              <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold block">Purse Left</span>
+              <span className="text-xl font-number font-black text-[#C8FF45]">
                 ₹{(purse / 10000000).toFixed(2)} Cr
               </span>
             </div>
-            <div className="h-8 w-px bg-[#262626]" />
+            <div className="h-8 w-px bg-[#26354D]" />
             <div>
-              <span className="text-[10px] text-[#8E8E93] uppercase block">Total Spent</span>
-              <span className="text-xl font-bold text-[#FFC857]">
+              <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold block">Total Spent</span>
+              <span className="text-xl font-number font-black text-[#54C8FF]">
                 ₹{(spent / 10000000).toFixed(2)} Cr
               </span>
             </div>
@@ -128,76 +128,76 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
 
         {/* Squad Metrics Ribbon */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Squad Count</span>
-            <span className="text-lg font-mono font-bold text-white mt-0.5 block">
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Squad Count</span>
+            <span className="text-lg font-number font-black text-[#F4F7FC] mt-0.5 block">
               {squad.length} / {maxSquad}
             </span>
-            <span className="text-[10px] text-[#8E8E93]">Min: {minSquad}</span>
+            <span className="text-[10px] text-[#9BAAC0]">Min: {minSquad}</span>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Overseas</span>
-            <span className={`text-lg font-mono font-bold mt-0.5 block ${overseasCount >= maxOverseas ? 'text-[#FF5252]' : 'text-[#00E676]'}`}>
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Overseas</span>
+            <span className={`text-lg font-number font-black mt-0.5 block ${overseasCount >= maxOverseas ? 'text-[#FF647C]' : 'text-[#43D995]'}`}>
               {overseasCount} / {maxOverseas}
             </span>
-            <span className="text-[10px] text-[#8E8E93]">
+            <span className="text-[10px] text-[#9BAAC0]">
               {overseasCount >= maxOverseas ? 'LIMIT REACHED' : `${remainingOverseasSlots} slots left`}
             </span>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Indian Players</span>
-            <span className="text-lg font-mono font-bold text-white mt-0.5 block">
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Indian Players</span>
+            <span className="text-lg font-number font-black text-[#F4F7FC] mt-0.5 block">
               {indianCount}
             </span>
-            <span className="text-[10px] text-[#8E8E93]">Domestic squad</span>
+            <span className="text-[10px] text-[#9BAAC0]">Domestic squad</span>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Batters / WK</span>
-            <span className="text-lg font-mono font-bold text-white mt-0.5 block">
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Batters / WK</span>
+            <span className="text-lg font-number font-black text-[#F4F7FC] mt-0.5 block">
               {batters} / {wks}
             </span>
-            <span className="text-[10px] text-[#8E8E93]">Specialists</span>
+            <span className="text-[10px] text-[#9BAAC0]">Specialists</span>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Bowlers / AR</span>
-            <span className="text-lg font-mono font-bold text-white mt-0.5 block">
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Bowlers / AR</span>
+            <span className="text-lg font-number font-black text-[#F4F7FC] mt-0.5 block">
               {bowlers} / {allRounders}
             </span>
-            <span className="text-[10px] text-[#8E8E93]">Attack unit</span>
+            <span className="text-[10px] text-[#9BAAC0]">Attack unit</span>
           </div>
 
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3">
-            <span className="text-[10px] text-[#8E8E93] uppercase block">Status</span>
-            <span className="text-sm font-bold text-[#00E676] mt-1 flex items-center gap-1">
+          <div className="bg-[#141F33] border border-[#26354D] rounded-xl p-3">
+            <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-bold tracking-wider block">Status</span>
+            <span className="text-sm font-heading font-black text-[#43D995] mt-1 flex items-center gap-1 uppercase">
               <CheckCircle className="w-3.5 h-3.5" /> Verified
             </span>
-            <span className="text-[10px] text-[#8E8E93]">Authoritative</span>
+            <span className="text-[10px] text-[#9BAAC0]">Authoritative</span>
           </div>
         </div>
 
         {/* Full Purchased Squad Table */}
-        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 shadow-2xl">
+        <div className="bg-[#141F33] border border-[#26354D] rounded-2xl p-5 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-bold text-sm text-white flex items-center gap-2">
+            <h3 className="font-heading font-black text-sm text-[#F4F7FC] flex items-center gap-2 uppercase tracking-wide">
               <span>Purchased Squad ({squad.length} Players)</span>
             </h3>
-            <span className="text-[11px] text-[#8E8E93]">Showing exact final sold prices</span>
+            <span className="text-[11px] text-[#9BAAC0]">Showing exact final sold prices</span>
           </div>
 
           {squad.length === 0 ? (
-            <div className="py-12 text-center text-[#8E8E93]">
-              <p className="text-sm font-semibold text-white">No players acquired yet by {team.name}</p>
-              <p className="text-xs text-[#8E8E93] mt-1">Players bought by this franchise will appear here in real time.</p>
+            <div className="py-12 text-center text-[#9BAAC0]">
+              <p className="text-sm font-heading font-bold uppercase text-[#F4F7FC]">No players acquired yet by {team.name}</p>
+              <p className="text-xs text-[#9BAAC0] mt-1">Players bought by this franchise will appear here in real time.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#262626] text-[#8E8E93] font-semibold uppercase tracking-wider text-[11px]">
+                  <tr className="border-b border-[#26354D] text-[#9BAAC0] font-heading font-bold uppercase tracking-wider text-[11px]">
                     <th className="pb-3 pl-3">#</th>
                     <th className="pb-3">Player</th>
                     <th className="pb-3">Role</th>
@@ -206,53 +206,53 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                     <th className="pb-3 pr-3 text-right">ACTUAL SOLD PRICE</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1c1c1c]">
+                <tbody className="divide-y divide-[#26354D]">
                   {purchasesWithPrice.map(({ player: p, price }, idx) => (
-                    <tr key={p.id} className="hover:bg-[#151515] transition-colors">
-                      <td className="py-3 pl-3 font-mono text-[#8E8E93]">{idx + 1}</td>
+                    <tr key={p.id} className="hover:bg-[#1B2942]/50 transition-colors">
+                      <td className="py-3 pl-3 font-number text-[#9BAAC0]">{idx + 1}</td>
                       <td className="py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-[#181818] border border-[#262626] overflow-hidden flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-[#0E1626] border border-[#26354D] overflow-hidden flex items-center justify-center shrink-0">
                             {p.image_url ? (
                               <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
                             ) : (
-                              <span className="font-bold text-[10px] text-[#00E676]">{p.name.slice(0, 2)}</span>
+                              <span className="font-heading font-black text-[10px] text-[#C8FF45]">{p.name.slice(0, 2)}</span>
                             )}
                           </div>
                           <div>
-                            <div className="font-display font-bold text-white flex items-center gap-1.5">
+                            <div className="font-heading font-black uppercase text-[#F4F7FC] flex items-center gap-1.5">
                               <span>{p.name}</span>
                               {p.is_marquee && (
-                                <span className="text-[9px] bg-[#FFC857]/20 text-[#FFC857] px-1.5 py-0.2 rounded font-bold">
+                                <span className="text-[9px] bg-[#FFC857]/20 text-[#FFC857] px-1.5 py-0.2 rounded font-black border border-[#FFC857]/40">
                                   MARQUEE
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-[#8E8E93]">{p.primary_role}</span>
+                            <span className="text-[10px] text-[#9BAAC0]">{p.primary_role}</span>
                           </div>
                         </div>
                       </td>
                       <td className="py-3">
-                        <span className="bg-[#181818] border border-[#262626] px-2 py-0.5 rounded text-[11px] text-slate-300">
+                        <span className="bg-[#0E1626] border border-[#26354D] px-2 py-0.5 rounded text-[11px] text-[#F4F7FC] font-heading font-bold uppercase">
                           {p.category}
                         </span>
                       </td>
                       <td className="py-3">
                         {p.is_overseas ? (
-                          <span className="text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1 text-[11px] font-semibold">
+                          <span className="text-[#43D995] bg-[#43D995]/10 border border-[#43D995]/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1 text-[11px] font-semibold">
                             <Plane className="w-2.5 h-2.5" /> {p.nationality}
                           </span>
                         ) : (
-                          <span className="text-slate-300 text-[11px] flex items-center gap-1">
+                          <span className="text-[#9BAAC0] text-[11px] flex items-center gap-1">
                             <span>🇮🇳</span> {p.nationality}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 font-mono text-[#8E8E93]">
+                      <td className="py-3 font-number text-[#9BAAC0]">
                         {p.base_price_display}
                       </td>
                       <td className="py-3 pr-3 text-right">
-                        <span className="font-mono font-black text-sm text-[#00E676] bg-[#00E676]/10 border border-[#00E676]/20 px-2.5 py-0.5 rounded-full">
+                        <span className="font-number font-black text-sm text-[#C8FF45] bg-[#C8FF45]/10 border border-[#C8FF45]/20 px-2.5 py-0.5 rounded-full">
                           ₹{(price / 10000000).toFixed(2)} Cr
                         </span>
                       </td>
@@ -269,26 +269,26 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
 
   // ALL TEAMS 10-FRANCHISE OVERVIEW
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-5 selection:bg-[#C8FF45] selection:text-black">
       {/* Header */}
-      <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#141F33] border border-[#26354D] rounded-2xl p-5 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black font-display text-white">
+          <h1 className="text-2xl font-black font-heading uppercase tracking-wide text-[#F4F7FC]">
             10 Franchise Matrix
           </h1>
-          <p className="text-xs text-[#8E8E93] mt-0.5">
+          <p className="text-xs text-[#9BAAC0] mt-0.5">
             Click any team to inspect its full purchased roster, spending details, and overseas slots.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 text-xs font-mono">
-          <span className="flex items-center gap-1.5 text-white bg-[#151515] border border-[#262626] px-3 py-1.5 rounded-full">
-            <Users className="w-3.5 h-3.5 text-[#00E676]" />
-            Squad: {minSquad}-{maxSquad}
+        <div className="flex items-center gap-2.5 text-xs font-heading font-bold uppercase">
+          <span className="flex items-center gap-1.5 text-[#F4F7FC] bg-[#0E1626] border border-[#26354D] px-3 py-1.5 rounded-full">
+            <Users className="w-3.5 h-3.5 text-[#C8FF45]" />
+            Squad: <span className="font-number">{minSquad}-{maxSquad}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-white bg-[#151515] border border-[#262626] px-3 py-1.5 rounded-full">
-            <Plane className="w-3.5 h-3.5 text-[#FFC857]" />
-            Max Overseas: 8
+          <span className="flex items-center gap-1.5 text-[#F4F7FC] bg-[#0E1626] border border-[#26354D] px-3 py-1.5 rounded-full">
+            <Plane className="w-3.5 h-3.5 text-[#54C8FF]" />
+            Max Overseas: <span className="font-number">8</span>
           </span>
         </div>
       </div>
@@ -308,10 +308,10 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
             <div
               key={teamId}
               onClick={() => setSelectedTeamId(teamId)}
-              className={`bg-[#0D0D0D] rounded-2xl p-4 border transition-all cursor-pointer flex flex-col justify-between hover:border-[#00E676] hover:bg-[#121212] group relative shadow-lg ${
+              className={`bg-[#141F33] rounded-2xl p-4 border transition-all cursor-pointer flex flex-col justify-between hover:border-[#C8FF45] hover:bg-[#1B2942] group relative shadow-lg ${
                 isMyTeam
-                  ? 'border-[#00E676] shadow-[0_0_15px_rgba(0,230,118,0.2)]'
-                  : 'border-[#262626]'
+                  ? 'border-[#C8FF45] shadow-[0_0_15px_rgba(200,255,69,0.2)]'
+                  : 'border-[#26354D]'
               }`}
             >
               <div>
@@ -320,39 +320,39 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                   <TeamLogo teamId={teamId} className="w-11 h-11 shadow-md shrink-0" />
 
                   {manager?.isBot ? (
-                    <span className="text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-[10px] font-heading font-black uppercase bg-[#54C8FF]/20 text-[#54C8FF] border border-[#54C8FF]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Bot className="w-2.5 h-2.5" /> BOT
                     </span>
                   ) : manager ? (
-                    <span className="text-[10px] font-bold bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/30 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-heading font-black uppercase bg-[#C8FF45]/20 text-[#C8FF45] border border-[#C8FF45]/30 px-2 py-0.5 rounded-full">
                       HUMAN
                     </span>
                   ) : (
-                    <span className="text-[10px] font-bold bg-[#151515] text-[#8E8E93] border border-[#262626] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-heading font-bold uppercase bg-[#0E1626] text-[#9BAAC0] border border-[#26354D] px-2 py-0.5 rounded-full">
                       VACANT
                     </span>
                   )}
                 </div>
 
-                <h3 className="font-display font-bold text-sm text-white leading-tight">
+                <h3 className="font-heading font-black text-sm text-[#F4F7FC] leading-tight uppercase">
                   {team.name}
                 </h3>
-                <p className="text-[11px] text-[#8E8E93] truncate mt-0.5">
+                <p className="text-[11px] text-[#9BAAC0] truncate mt-0.5">
                   {manager ? manager.nickname : 'No manager'}
-                  {isMyTeam && <strong className="text-[#00E676] ml-1">(You)</strong>}
+                  {isMyTeam && <strong className="text-[#C8FF45] ml-1">(You)</strong>}
                 </p>
 
                 {/* Purse Metrics */}
-                <div className="my-2.5 py-2 px-2.5 bg-[#151515] border border-[#262626] rounded-xl space-y-1 text-xs font-mono">
+                <div className="my-2.5 py-2 px-2.5 bg-[#0E1626] border border-[#26354D] rounded-xl space-y-1 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-[#8E8E93]">Purse Left:</span>
-                    <span className="font-bold text-[#00E676]">
+                    <span className="text-[#9BAAC0] font-heading font-bold uppercase text-[10px]">Purse Left:</span>
+                    <span className="font-number font-black text-[#C8FF45]">
                       ₹{(purse / 10000000).toFixed(2)} Cr
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-[#8E8E93]">Spent:</span>
-                    <span className="text-[#FFC857]">
+                    <span className="text-[#9BAAC0] font-heading font-bold uppercase text-[10px]">Spent:</span>
+                    <span className="font-number font-black text-[#54C8FF]">
                       ₹{(spent / 10000000).toFixed(2)} Cr
                     </span>
                   </div>
@@ -360,28 +360,28 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
 
                 {/* Squad Counts */}
                 <div className="space-y-1 text-xs">
-                  <div className="flex justify-between text-slate-300">
-                    <span className="text-[#8E8E93]">Squad:</span>
-                    <span className="font-mono font-bold text-white">
+                  <div className="flex justify-between text-[#F4F7FC]">
+                    <span className="text-[#9BAAC0] font-heading font-bold uppercase text-[10px]">Squad:</span>
+                    <span className="font-number font-black text-[#F4F7FC]">
                       {squad.length} / {maxSquad}
                     </span>
                   </div>
-                  <div className="flex justify-between text-slate-300">
-                    <span className="text-[#8E8E93]">Overseas:</span>
-                    <span className={`font-mono font-bold ${overseas >= maxOverseas ? 'text-[#FF5252]' : 'text-slate-200'}`}>
+                  <div className="flex justify-between text-[#F4F7FC]">
+                    <span className="text-[#9BAAC0] font-heading font-bold uppercase text-[10px]">Overseas:</span>
+                    <span className={`font-number font-black ${overseas >= maxOverseas ? 'text-[#FF647C]' : 'text-[#43D995]'}`}>
                       {overseas} / {maxOverseas}
-                      {overseas >= maxOverseas && <span className="ml-1 text-[10px] text-[#FF5252]">(MAX)</span>}
+                      {overseas >= maxOverseas && <span className="ml-1 text-[10px] text-[#FF647C] font-heading uppercase">(MAX)</span>}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Bottom: Click to View Squad */}
-              <div className="pt-2.5 mt-2.5 border-t border-[#262626] text-[11px] flex items-center justify-between">
-                <span className="text-[#8E8E93]">
+              <div className="pt-2.5 mt-2.5 border-t border-[#26354D] text-[11px] flex items-center justify-between">
+                <span className="text-[#9BAAC0] font-number">
                   {squad.length} players bought
                 </span>
-                <span className="text-[#00E676] font-bold inline-flex items-center gap-0.5 group-hover:underline">
+                <span className="text-[#C8FF45] font-heading font-bold uppercase inline-flex items-center gap-0.5 group-hover:underline">
                   <span>View Squad</span>
                   <ExternalLink className="w-3 h-3" />
                 </span>

@@ -12,23 +12,23 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ logs, isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-[#0D0D0D] max-w-2xl w-full max-h-[80vh] flex flex-col rounded-3xl border border-[#262626] shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md selection:bg-[#C8FF45] selection:text-black">
+      <div className="bg-[#141F33] max-w-2xl w-full max-h-[80vh] flex flex-col rounded-3xl border border-[#26354D] shadow-2xl relative overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-[#262626] flex items-center justify-between">
+        <div className="p-6 border-b border-[#26354D] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 flex items-center justify-center">
-              <FileText className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-2xl bg-[#C8FF45]/10 text-[#C8FF45] border border-[#C8FF45]/30 flex items-center justify-center">
+              <FileText className="w-4 h-4 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-white">Authoritative Audit Log</h3>
-              <p className="text-[11px] text-[#8E8E93]">Chronological ledger of bids, purchases, and host controls</p>
+              <h3 className="font-heading font-black uppercase tracking-wide text-base text-[#F4F7FC]">Authoritative Audit Log</h3>
+              <p className="text-[11px] text-[#9BAAC0]">Chronological ledger of bids, purchases, and host controls</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="text-[#8E8E93] hover:text-white transition-colors"
+            className="text-[#9BAAC0] hover:text-[#F4F7FC] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -37,7 +37,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ logs, isOpen, onCl
         {/* Log Entries */}
         <div className="p-6 overflow-y-auto space-y-2.5 flex-1">
           {logs.length === 0 ? (
-            <p className="text-xs text-[#8E8E93] italic text-center py-8">No recorded activity yet.</p>
+            <p className="text-xs text-[#9BAAC0] italic text-center py-8">No recorded activity yet.</p>
           ) : (
             logs.map((log) => {
               const date = new Date(log.timestamp);
@@ -46,17 +46,17 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ logs, isOpen, onCl
               return (
                 <div
                   key={log.id}
-                  className="bg-[#151515] border border-[#262626] rounded-2xl p-3.5 flex items-start justify-between gap-3 text-xs"
+                  className="bg-[#0E1626] border border-[#26354D] rounded-2xl p-3.5 flex items-start justify-between gap-3 text-xs"
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#00E676] font-mono">{log.action}</span>
-                      <span className="text-[#8E8E93] font-medium">by {log.performer}</span>
+                      <span className="font-heading font-black text-[#C8FF45] uppercase tracking-wider">{log.action}</span>
+                      <span className="text-[#9BAAC0] font-medium">by {log.performer}</span>
                     </div>
-                    <p className="text-white">{log.details}</p>
+                    <p className="text-[#F4F7FC]">{log.details}</p>
                   </div>
 
-                  <span className="text-[11px] font-mono text-[#8E8E93] whitespace-nowrap flex items-center gap-1">
+                  <span className="text-[11px] font-number text-[#9BAAC0] whitespace-nowrap flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {timeStr}
                   </span>
