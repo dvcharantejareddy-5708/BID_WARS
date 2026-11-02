@@ -260,7 +260,7 @@ export class RoomManager {
         break;
       }
       case 'ANNOUNCEMENT_COMPLETE': {
-        room.advanceLot(msg.lotIndex);
+        room.advanceLot(msg.lotIndex, msg.resultId);
         break;
       }
       case 'LEAVE_ROOM': {
@@ -293,15 +293,15 @@ export class RoomManager {
     }
   }
 
-  public broadcastToRoom(roomCode: string, state: RoomState, eventMsg?: any) {
-    const rawState = JSON.stringify({ type: 'SYNC_STATE', state });
+  public broadcastToRoom(roomCode: string, state: RoomState | null, eventMsg?: any) {
     const rawEvent = eventMsg ? JSON.stringify(eventMsg) : null;
+    const rawState = !eventMsg && state ? JSON.stringify({ type: 'SYNC_STATE', state }) : null;
 
     for (const [ws, conn] of this.connections.entries()) {
       if (conn.roomCode === roomCode && ws.readyState === WebSocket.OPEN) {
         if (rawEvent) {
           ws.send(rawEvent);
-        } else {
+        } else if (rawState) {
           ws.send(rawState);
         }
       }

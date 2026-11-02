@@ -39,6 +39,7 @@ export class GameRoom {
   public bidLog: BidLogEntry[] = [];
   public announcementPhase: 'NONE' | 'ANNOUNCING' = 'NONE';
   public announcementLotNumber: number | null = null;
+  public currentResultId: string | null = null;
   public reAuctionRound: boolean = false;
   public isClosed: boolean = false;
 
@@ -496,6 +497,7 @@ export class GameRoom {
     this.deadlineTimestamp = Date.now() + (this.settings.timerDuration * 1000);
     this.announcementPhase = 'NONE';
     this.announcementLotNumber = null;
+    this.currentResultId = null;
 
     this.addAuditLog(
       'LOT_STARTED',
@@ -530,7 +532,8 @@ export class GameRoom {
         this.clearAllTimers();
         this.finalizeCurrentLot();
       } else {
-        this.broadcastCallback(this.getState(), {
+        // High-performance: emit targeted tick without reserializing the entire 350-player room state
+        this.broadcastCallback(null as any, {
           type: 'TIMER_TICK',
           remainingSeconds: remainingSec,
           deadlineTimestamp: this.deadlineTimestamp
@@ -807,6 +810,9 @@ export class GameRoom {
         lot.winningTeamName = IPL_FRANCHISES[winningTeam].name;
         lot.winningBidderName = lot.currentBidderName || undefined;
 
+        const resultId = `${this.roomCode}_round${lot.lotNumber}_SOLD_${winningPrice}_${Date.now()}`;
+        lot.resultId = resultId;
+        this.currentResultId = resultId;
         this.announcementPhase = 'ANNOUNCING';
         this.announcementLotNumber = lot.lotNumber;
 
@@ -848,6 +854,9 @@ export class GameRoom {
       // UNSOLD
       lot.status = 'UNSOLD';
       lot.player.auction_status = 'UNSOLD';
+      const resultId = `${this.roomCode}_round${lot.lotNumber}_UNSOLD_${Date.now()}`;
+      lot.resultId = resultId;
+      this.currentResultId = resultId;
       this.announcementPhase = 'ANNOUNCING';
       this.announcementLotNumber = lot.lotNumber;
       this.addAuditLog('PLAYER_UNSOLD', `UNSOLD: ${lot.player.name}`, 'System');
@@ -882,6 +891,7 @@ export class GameRoom {
         if (current && (current.status === 'SOLD' || current.status === 'UNSOLD')) {
           this.announcementPhase = 'NONE';
           this.announcementLotNumber = null;
+          this.currentResultId = null;
           this.currentLotIndex++;
           this.startCurrentLot();
         }
@@ -892,23 +902,35 @@ export class GameRoom {
   /**
    * Authoritative Next-Lot Advance after speech and visual sequences complete
    */
-  public advanceLot(lotIndex?: number) {
-    if (this.status !== 'AUCTION') return;
+  public advanceLot(lotIndex?: number, resultId?: string): { success: boolean; message?: string } {
+    if (this.status !== 'AUCTION') return { success: false, message: 'Auction is not active' };
     const lot = this.lots[this.currentLotIndex];
     if (!lot || (lot.status !== 'SOLD' && lot.status !== 'UNSOLD' && lot.status !== 'SKIPPED')) {
-      return;
+      return { success: false, message: 'Current lot is not in completed state' };
+    }
+
+    // Validate resultId if supplied to guarantee single transition
+    if (resultId && this.currentResultId && resultId !== this.currentResultId) {
+      return { success: false, message: 'Result ID mismatch' };
     }
 
     // Idempotent safeguard: prevent advancing twice if multiple clients report completion
     if (lotIndex !== undefined && lotIndex !== this.currentLotIndex) {
-      return;
+      return { success: false, message: 'Lot already advanced' };
+    }
+
+    if (this.lotTransitionTimeout) {
+      clearTimeout(this.lotTransitionTimeout);
+      this.lotTransitionTimeout = null;
     }
 
     this.announcementPhase = 'NONE';
     this.announcementLotNumber = null;
+    this.currentResultId = null;
     this.clearAllTimers();
     this.currentLotIndex++;
     this.startCurrentLot();
+    return { success: true };
   }
 
   public skipCurrentLot(memberId: string): { success: boolean; message?: string } {
@@ -1226,6 +1248,7 @@ export class GameRoom {
       bidLog: [...this.bidLog],
       announcementPhase: this.announcementPhase,
       announcementLotNumber: this.announcementLotNumber || undefined,
+      currentResultId: this.currentResultId,
       poolSize: this.lots.length,
       totalSets: this.lots.length > 0 ? Math.max(...this.lots.map(l => l.player.set_order)) : 1,
       currentSetOrder: currentLot ? currentLot.player.set_order : 1,

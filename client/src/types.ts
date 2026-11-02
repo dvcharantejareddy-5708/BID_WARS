@@ -269,6 +269,7 @@ export interface AuctionLot {
   winningTeam?: IPLTeamId;
   winningTeamName?: string;
   winningBidderName?: string;
+  resultId?: string;
 }
 
 export interface AuditLogEntry {
@@ -346,6 +347,7 @@ export interface RoomState {
   bidLog: BidLogEntry[];
   announcementPhase?: 'NONE' | 'ANNOUNCING';
   announcementLotNumber?: number;
+  currentResultId?: string | null;
   poolSize: number;
   totalSets: number;
   currentSetOrder: number;
@@ -371,7 +373,7 @@ export type ClientMessage =
   | { type: 'END_AUCTION' }
   | { type: 'REAUCTION_UNSOLD' }
   | { type: 'ADVANCE_LOT'; lotIndex?: number }
-  | { type: 'ANNOUNCEMENT_COMPLETE'; lotIndex: number }
+  | { type: 'ANNOUNCEMENT_COMPLETE'; lotIndex: number; resultId?: string }
   | { type: 'PING' };
 
 // Server to Client Message Events

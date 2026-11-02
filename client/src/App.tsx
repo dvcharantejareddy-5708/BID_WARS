@@ -133,6 +133,9 @@ export function App() {
       case 'TIMER_TICK': {
         setRoomState(prev => {
           if (!prev) return prev;
+          if (prev.remainingSeconds === msg.remainingSeconds && prev.deadlineTimestamp === msg.deadlineTimestamp) {
+            return prev;
+          }
           return {
             ...prev,
             remainingSeconds: msg.remainingSeconds,
@@ -168,6 +171,7 @@ export function App() {
           return {
             ...prev,
             currentLot: msg.lot,
+            currentResultId: null,
             currentLotIndex: msg.lot.lotNumber - 1,
             deadlineTimestamp: msg.deadlineTimestamp,
             announcementPhase: 'NONE',
@@ -185,6 +189,7 @@ export function App() {
           return {
             ...prev,
             currentLot: msg.lot,
+            currentResultId: msg.lot.resultId || `${msg.lot.lotNumber}_${msg.lot.status}_${Date.now()}`,
             teamPurse: msg.teamPurse,
             teamSquads: msg.teamSquads || prev.teamSquads,
             teamStats: msg.teamStats || prev.teamStats,
@@ -471,10 +476,11 @@ export function App() {
     socketService.send({ type: 'REAUCTION_UNSOLD' });
   };
 
-  const handleAdvanceLot = (lotIndex?: number) => {
+  const handleAdvanceLot = (lotIndex?: number, resultId?: string) => {
     socketService.send({ 
       type: 'ANNOUNCEMENT_COMPLETE', 
-      lotIndex: lotIndex ?? (roomState?.currentLotIndex || 0) 
+      lotIndex: lotIndex ?? (roomState?.currentLotIndex || 0),
+      resultId: resultId ?? roomState?.currentResultId ?? roomState?.currentLot?.resultId
     });
   };
 

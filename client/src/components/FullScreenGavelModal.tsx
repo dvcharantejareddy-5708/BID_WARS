@@ -8,7 +8,7 @@ import { soundManager, formatPriceForSpeech } from '../services/audio.js';
 interface FullScreenGavelModalProps {
   lot: AuctionLot;
   myTeamId?: string | null;
-  onComplete: () => void;
+  onComplete: (resultId?: string) => void;
 }
 
 export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
@@ -76,11 +76,11 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
   useEffect(() => {
     if (!hasStruck) return;
 
-    const lotKey = `${lot.lotNumber}_${player.id}_${lot.status}_${finalPrice}`;
-    if (spokenLotKeyRef.current === lotKey) {
+    const resultId = lot.resultId || `${lot.lotNumber}_${player.id}_${lot.status}_${finalPrice}`;
+    if (spokenLotKeyRef.current === resultId) {
       return; // Already triggered for this lot; avoid duplicate speech on rerenders
     }
-    spokenLotKeyRef.current = lotKey;
+    spokenLotKeyRef.current = resultId;
 
     if (isMuted) {
       setVoiceDone(true);
@@ -90,6 +90,7 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
     if (isSold) {
       // Call speech synthesis directly at the moment of hammer impact!
       soundManager.speakSoldAnnouncement(
+        resultId,
         player.name,
         shortTeamName,
         spokenPrice,
@@ -100,6 +101,7 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       );
     } else if (isUnsold) {
       soundManager.speakUnsoldAnnouncement(
+        resultId,
         player.name,
         () => {
           setVoiceDone(true);
@@ -108,7 +110,7 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
     } else {
       setVoiceDone(true);
     }
-  }, [hasStruck, isMuted, isSold, isUnsold, lot.lotNumber, lot.status, player.id, player.name, shortTeamName, spokenPrice, finalPrice]);
+  }, [hasStruck, isMuted, isSold, isUnsold, lot.resultId, lot.lotNumber, lot.status, player.id, player.name, shortTeamName, spokenPrice, finalPrice]);
 
   // 3. Strict Synchronization: Only when BOTH the voice announcement and visual animation finish:
   useEffect(() => {
@@ -116,10 +118,11 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       if (!completedRef.current) {
         completedRef.current = true;
         setIsDismissed(true);
-        onComplete();
+        const resultId = lot.resultId || `${lot.lotNumber}_${player.id}_${lot.status}_${finalPrice}`;
+        onComplete(resultId);
       }
     }
-  }, [visualDone, voiceDone, onComplete]);
+  }, [visualDone, voiceDone, onComplete, lot.resultId, lot.lotNumber, player.id, lot.status, finalPrice]);
 
   if (isDismissed) {
     return null;

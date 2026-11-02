@@ -26,6 +26,8 @@ class SoundManager {
 
   private activeAnnouncementText: string | null = null;
   private activeAnnouncementCallback: (() => void) | null = null;
+  private activeResultId: string | null = null;
+  private announcedResultIds: Set<string> = new Set<string>();
   private speechKeepAliveInterval: any = null;
 
   public toggleMute(): boolean {
@@ -63,8 +65,10 @@ class SoundManager {
    * “[Player Name] sold to [Team Abbreviation] for [Final Price]!”
    * Example: “Steve Smith sold to RCB for 12 crores!”
    * Awaits completion (onend) naturally without arbitrary timeouts.
+   * Deduplicates by authoritative resultId to prevent double announcements.
    */
   public speakSoldAnnouncement(
+    resultId: string,
     playerName: string, 
     teamAbbreviation: string, 
     priceDisplay: string,
@@ -79,22 +83,31 @@ class SoundManager {
       return;
     }
 
-    const text = `${playerName} sold to ${teamAbbreviation} for ${priceDisplay}!`;
+    // Deduplication check 1: Has this resultId already been announced?
+    if (this.announcedResultIds.has(resultId)) {
+      onComplete?.();
+      return;
+    }
 
-    // Prevent duplicate triggers if identical speech is already actively playing
-    if (this.activeAnnouncementText === text && window.speechSynthesis.speaking) {
+    // Deduplication check 2: Is this resultId currently active?
+    if (this.activeResultId === resultId) {
       if (onComplete) {
-        this.activeAnnouncementCallback = onComplete;
+        const prevCb = this.activeAnnouncementCallback;
+        this.activeAnnouncementCallback = () => {
+          prevCb?.();
+          onComplete();
+        };
       }
       return;
     }
 
-    try {
-      if (this.speechKeepAliveInterval) {
-        clearInterval(this.speechKeepAliveInterval);
-        this.speechKeepAliveInterval = null;
-      }
+    const text = `${playerName} sold to ${teamAbbreviation} for ${priceDisplay}!`;
 
+    try {
+      this.stopSpeech();
+
+      this.activeResultId = resultId;
+      this.announcedResultIds.add(resultId);
       this.activeAnnouncementText = text;
       this.activeAnnouncementCallback = onComplete || null;
 
@@ -134,6 +147,7 @@ class SoundManager {
           }
           (window as any).__soldUtterance = null;
           this.activeAnnouncementText = null;
+          this.activeResultId = null;
 
           const cb = this.activeAnnouncementCallback;
           this.activeAnnouncementCallback = null;
@@ -175,6 +189,7 @@ class SoundManager {
     } catch (e) {
       console.warn('Speech synthesis exception:', e);
       this.activeAnnouncementText = null;
+      this.activeResultId = null;
       this.activeAnnouncementCallback = null;
       onComplete?.();
     }
@@ -184,8 +199,10 @@ class SoundManager {
    * Authoritative Voice Announcement on unsold lot:
    * “[Player Name] goes unsold!”
    * Awaits completion (onend) naturally without arbitrary timeouts.
+   * Deduplicates by authoritative resultId to prevent double announcements.
    */
   public speakUnsoldAnnouncement(
+    resultId: string,
     playerName: string, 
     onComplete?: () => void
   ) {
@@ -198,22 +215,31 @@ class SoundManager {
       return;
     }
 
-    const text = `${playerName} goes unsold!`;
+    // Deduplication check 1: Has this resultId already been announced?
+    if (this.announcedResultIds.has(resultId)) {
+      onComplete?.();
+      return;
+    }
 
-    // Prevent duplicate triggers if identical speech is already actively playing
-    if (this.activeAnnouncementText === text && window.speechSynthesis.speaking) {
+    // Deduplication check 2: Is this resultId currently active?
+    if (this.activeResultId === resultId) {
       if (onComplete) {
-        this.activeAnnouncementCallback = onComplete;
+        const prevCb = this.activeAnnouncementCallback;
+        this.activeAnnouncementCallback = () => {
+          prevCb?.();
+          onComplete();
+        };
       }
       return;
     }
 
-    try {
-      if (this.speechKeepAliveInterval) {
-        clearInterval(this.speechKeepAliveInterval);
-        this.speechKeepAliveInterval = null;
-      }
+    const text = `${playerName} goes unsold!`;
 
+    try {
+      this.stopSpeech();
+
+      this.activeResultId = resultId;
+      this.announcedResultIds.add(resultId);
       this.activeAnnouncementText = text;
       this.activeAnnouncementCallback = onComplete || null;
 
@@ -251,6 +277,7 @@ class SoundManager {
           }
           (window as any).__unsoldUtterance = null;
           this.activeAnnouncementText = null;
+          this.activeResultId = null;
 
           const cb = this.activeAnnouncementCallback;
           this.activeAnnouncementCallback = null;
@@ -269,7 +296,7 @@ class SoundManager {
 
       failsafeTimer = setTimeout(() => {
         handleDone('failsafe');
-      }, 10000);
+      }, 20000);
 
       this.speechKeepAliveInterval = setInterval(() => {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -289,6 +316,7 @@ class SoundManager {
     } catch (e) {
       console.warn('Speech synthesis exception:', e);
       this.activeAnnouncementText = null;
+      this.activeResultId = null;
       this.activeAnnouncementCallback = null;
       onComplete?.();
     }

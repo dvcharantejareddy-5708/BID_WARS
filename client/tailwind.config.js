@@ -33,8 +33,8 @@ export default {
         }
       },
       fontFamily: {
-        display: ['"Space Grotesk"', 'sans-serif'],
-        sans: ['Inter', 'sans-serif'],
+        display: ['"Manrope"', 'sans-serif'],
+        sans: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
         'glow-green': '0 0 25px -5px rgba(0, 230, 118, 0.35)',

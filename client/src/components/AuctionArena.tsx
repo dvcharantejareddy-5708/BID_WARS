@@ -36,7 +36,8 @@ import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
-import { LiveBidLog } from './LiveBidLog.js';
+import { LiveBidFeed } from './LiveBidFeed.js';
+import { HammerClockBadge, HammerClockPanel } from './HammerClock.js';
 
 interface AuctionArenaProps {
   roomState: RoomState;
@@ -48,7 +49,7 @@ interface AuctionArenaProps {
   onResumeAuction: () => void;
   onRestartAuction: () => void;
   onEndAuction: () => void;
-  onAdvanceLot?: (lotIndex?: number) => void;
+  onAdvanceLot?: (lotIndex?: number, resultId?: string) => void;
 }
 
 const ALL_TEAMS: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
@@ -65,7 +66,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   onEndAuction,
   onAdvanceLot
 }) => {
-  const [now, setNow] = useState(Date.now());
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showHostDraw, setShowHostDraw] = useState(false);
   const [showSquadList, setShowSquadList] = useState(false);
@@ -84,8 +84,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   const isHost = myMember?.isHost;
   const lot = roomState.currentLot;
 
-  // Refs for precise 3-second countdown alert and bid tracking (Section 4 & 9)
-  const lastTickedSecondRef = useRef<number | null>(null);
+  // Refs for tracking leading state
   const lastBidRef = useRef<number>(lot?.currentBid || 0);
   const lastLotNumberRef = useRef<number>(lot?.lotNumber || 0);
   const wasLeadingRef = useRef<boolean>(false);
@@ -94,19 +93,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   useEffect(() => {
     setImageError(false);
   }, [lot?.player?.id]);
-
-  // Synchronized clock ticker for countdown bar
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Compute remaining seconds from server deadline
-  const deadline = roomState.deadlineTimestamp || 0;
-  const remainingMs = Math.max(0, deadline - now);
-  const remainingSec = Math.ceil(remainingMs / 1000);
-  const totalDurationMs = (roomState.settings.timerDuration || 10) * 1000;
-  const progressPercent = Math.min(100, Math.max(0, (remainingMs / totalDurationMs) * 100));
 
   const isHighestBidder = Boolean(myTeamId && lot && lot.currentBidder === myTeamId);
 
@@ -120,40 +106,19 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
     }
   }, [isHighestBidder, lot?.currentBidder, myTeamId]);
 
-  // Reset outbid alert and countdown state on lot change
+  // Reset outbid alert state on lot change
   useEffect(() => {
     wasLeadingRef.current = false;
     setWasOutbid(false);
     lastLotNumberRef.current = lot?.lotNumber || 0;
-    lastTickedSecondRef.current = null;
   }, [lot?.lotNumber]);
 
-  // Reset countdown alert state immediately when a new accepted bid resets the hammer clock
+  // Track last accepted bid
   useEffect(() => {
     if (lot && lot.currentBid !== lastBidRef.current) {
       lastBidRef.current = lot.currentBid;
-      lastTickedSecondRef.current = null;
     }
   }, [lot?.currentBid]);
-
-  // Synchronized Three-Second Countdown Tick sequence (3, 2, 1) (Section 4)
-  useEffect(() => {
-    // Never play ticks for paused, completed, or inactive auction timer
-    if (roomState.status !== 'AUCTION' || lot?.status !== 'IN_PROGRESS') {
-      lastTickedSecondRef.current = null;
-      return;
-    }
-
-    // Trigger alert strictly on final three seconds: exactly one at 3s, one at 2s, one at 1s
-    if (remainingSec >= 1 && remainingSec <= 3) {
-      if (lastTickedSecondRef.current !== remainingSec) {
-        lastTickedSecondRef.current = remainingSec;
-        soundManager.playCountdownTick(remainingSec);
-      }
-    } else if (remainingSec > 3) {
-      lastTickedSecondRef.current = null;
-    }
-  }, [remainingSec, roomState.status, lot?.status]);
 
   if (!lot) {
     return (
@@ -259,34 +224,11 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           </span>
 
           {/* Prominent Synchronized Hammer Clock Badge (Always visible across all devices) */}
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#141414] border border-[#2D2D2D]">
-            <Clock className="w-3.5 h-3.5 text-[#FFD700]" />
-            <span className="text-[10px] uppercase font-bold text-[#8E8E93] hidden xs:inline">
-              Clock:
-            </span>
-            {roomState.status === 'PAUSED' ? (
-              <span className="font-mono font-bold text-[#FFC857] text-[11px]">PAUSED</span>
-            ) : lot.status === 'IN_PROGRESS' ? (
-              <div className="flex items-center gap-1 font-mono font-black">
-                <span className={`text-[11px] sm:text-xs ${
-                  remainingSec <= 3 
-                    ? 'text-[#FF1744] animate-pulse drop-shadow-[0_0_8px_rgba(255,23,68,0.8)]' 
-                    : remainingSec <= 5 
-                    ? 'text-[#FFC857]' 
-                    : 'text-[#00E676]'
-                }`}>
-                  {remainingSec}s
-                </span>
-                {remainingSec <= 3 && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF1744] animate-ping" />
-                )}
-              </div>
-            ) : (
-              <span className="font-mono font-bold text-[10px] text-[#8E8E93] uppercase">
-                {lot.status}
-              </span>
-            )}
-          </div>
+          <HammerClockBadge 
+            deadlineTimestamp={roomState.deadlineTimestamp} 
+            roomStatus={roomState.status} 
+            lotStatus={lot.status} 
+          />
 
           {roomState.status === 'PAUSED' ? (
             <span className="bg-[#FFC857]/20 text-[#FFC857] font-bold px-2.5 py-0.5 rounded-full border border-[#FFC857]/40 flex items-center gap-1 text-[11px]">
@@ -319,54 +261,15 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
           {/* A. Bidding Panel & Timer (Clean Static Border) */}
-          <div 
-            key={`bid-panel-${lot.currentBid}-${lot.currentBidder || 'none'}`}
-            className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5"
-          >
-            {/* Hammer Timer Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#151515]">
-              <div
-                className={`h-full transition-all duration-100 ${
-                  remainingSec <= 2
-                    ? 'bg-[#FF5252] shadow-[0_0_12px_#FF5252] animate-pulse'
-                    : remainingSec <= 3
-                    ? 'bg-[#FFC857] shadow-[0_0_12px_#FFC857]'
-                    : 'bg-[#00E676] shadow-[0_0_12px_#00E676]'
-                }`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-
-            {/* Timer Clock & Leading Franchise Status */}
+          <div className="bg-[#0D0D0D] rounded-2xl p-4 border border-[#222222] shadow-xl relative overflow-hidden space-y-3.5">
+            {/* Hammer Clock & Progress Panel */}
             <div className="flex items-center justify-between gap-3 pt-1">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center font-mono font-black border transition-all ${
-                  remainingSec <= 1 && lot.status === 'IN_PROGRESS'
-                    ? 'bg-[#FF1744]/30 text-[#FF1744] border-[#FF1744] shadow-[0_0_18px_rgba(255,23,68,0.6)] animate-pulse scale-105'
-                    : remainingSec <= 2 && lot.status === 'IN_PROGRESS'
-                    ? 'bg-[#FF5252]/25 text-[#FF5252] border-[#FF5252] shadow-[0_0_14px_rgba(255,82,82,0.5)] animate-pulse'
-                    : remainingSec <= 3 && lot.status === 'IN_PROGRESS'
-                    ? 'bg-[#FFD700]/25 text-[#FFD700] border-[#FFD700] shadow-[0_0_12px_rgba(255,215,0,0.4)] animate-pulse'
-                    : 'bg-[#151515] text-[#00E676] border-[#00E676]/40'
-                }`}>
-                  <span className="text-xl leading-none">{remainingSec}</span>
-                  <span className="text-[8px] uppercase font-bold text-[#8E8E93]">SEC</span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Hammer Clock</span>
-                  {lot.status === 'IN_PROGRESS' && remainingSec <= 3 ? (
-                    <span className="text-xs font-bold text-[#FF5252] flex items-center gap-1.5 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF5252] animate-ping" />
-                      FINAL 3 SECONDS!
-                    </span>
-                  ) : (
-                    <span className="text-xs text-white font-medium">
-                      {lot.status === 'IN_PROGRESS' ? 'Resets on each bid' : lot.status}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <HammerClockPanel 
+                deadlineTimestamp={roomState.deadlineTimestamp} 
+                totalDurationSec={roomState.settings.timerDuration || 10} 
+                roomStatus={roomState.status} 
+                lotStatus={lot.status} 
+              />
 
               {/* Competitive Leader States (Section 9) */}
               {isHighestBidder ? (
@@ -395,10 +298,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             <div className="p-3 bg-[#141414] rounded-xl border border-[#222222] flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-[#8E8E93] uppercase font-semibold block">Current Bid</span>
-                <span 
-                  key={`bid-${currentBid}`}
-                  className="text-xl sm:text-2xl font-black font-mono text-[#00E676] block animate-price-pop"
-                >
+                <span className="text-xl sm:text-2xl font-black font-mono text-[#00E676] block">
                   {currentBid > 0 ? `₹${(currentBid / 10000000).toFixed(2)} Cr` : 'NO BIDS YET'}
                 </span>
               </div>
@@ -857,11 +757,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             )}
           </div>
 
-          {/* B. Real-Time Live Bid Log Feed (Replacing League Table) */}
-          <LiveBidLog
-            entries={roomState.bidLog || []}
-            currentLotNumber={lot.lotNumber}
-            currentPlayerName={player.name}
+          {/* B. Real-Time Live Bid Feed (Dedicated Current Lot Accepted Bids) */}
+          <LiveBidFeed
+            lot={lot}
+            roomSettings={roomState.settings}
           />
         </div>
       </div>
@@ -871,9 +770,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         <FullScreenGavelModal
           lot={lot}
           myTeamId={myTeamId}
-          onComplete={() => {
+          onComplete={(resultId) => {
             setDismissedLotNumber(lot.lotNumber);
-            onAdvanceLot?.(lot.lotNumber - 1);
+            onAdvanceLot?.(lot.lotNumber - 1, resultId);
           }}
         />
       )}
