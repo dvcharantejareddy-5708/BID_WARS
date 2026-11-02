@@ -8,47 +8,46 @@ export default {
     extend: {
       colors: {
         arena: {
-          bg: '#F3F0E8',         // warm light ivory
-          card: '#FFFFFF',       // elevated pure white
-          blue: '#173B78',       // deep royal blue
-          blueHover: '#122F61',
-          green: '#176B48',      // cricket field green
-          greenHover: '#125438',
-          ink: '#18243A',        // deep ink navy
-          softBlue: '#E6EDF8',   // soft blue surface
-          gold: '#F0C65B',       // muted golden yellow
-          slate: '#647084',      // secondary text slate
-          border: '#D8D8D1',     // warm grey border
-          sold: '#167447',       // sold/success deep green
-          unsold: '#C74444',     // unsold/error muted red
-        },
-        cricket: {
-          400: '#176B48',
-          500: '#125438',
-          300: '#1E855A',
-        },
-        gold: {
-          400: '#F0C65B',
-          500: '#DDAE3B',
-          300: '#F5D783',
-        },
-        alert: {
-          500: '#C74444',
-          600: '#A93333',
+          bg: '#101B2D',          // deep midnight blue
+          secondary: '#172840',   // secondary background
+          surface: '#203650',     // elevated surfaces
+          accent: '#2858A5',      // deep blue accent
+          green: '#3DBB83',       // cricket green accent
+          gold: '#F3C969',        // warm gold accent
+          text: '#F4F6FA',        // main text
+          muted: '#B0BED0',       // secondary text
+          border: '#344B65',      // borders
+          sold: '#3DBB83',        // sold/success
+          unsold: '#E85D5D',      // unsold/error
+          card: '#203650',        // card surfaces
         },
         stadium: {
-          bg: '#F3F0E8',
-          secondary: '#FFFFFF',
-          panel: '#FFFFFF',
-          border: '#D8D8D1',
-          lime: '#176B48',
-          ice: '#173B78',
-          text: '#18243A',
-          muted: '#647084',
-          success: '#167447',
-          warning: '#F0C65B',
-          error: '#C74444',
-        }
+          bg: '#101B2D',
+          secondary: '#172840',
+          panel: '#203650',
+          border: '#344B65',
+          lime: '#3DBB83',
+          ice: '#2858A5',
+          text: '#F4F6FA',
+          muted: '#B0BED0',
+          success: '#3DBB83',
+          warning: '#F3C969',
+          error: '#E85D5D',
+        },
+        cricket: {
+          300: '#5ECCA0',
+          400: '#3DBB83',
+          500: '#2A9B6A',
+        },
+        gold: {
+          300: '#F8DFA0',
+          400: '#F3C969',
+          500: '#E0AC3C',
+        },
+        alert: {
+          500: '#E85D5D',
+          600: '#C74444',
+        },
       },
       fontFamily: {
         teko: ['"Teko"', 'Impact', 'sans-serif'],
@@ -61,13 +60,15 @@ export default {
         mono: ['"Roboto Condensed"', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
-        'arena-card': '0 1px 3px 0 rgba(24, 36, 58, 0.06), 0 1px 2px -1px rgba(24, 36, 58, 0.06)',
-        'arena-elevated': '0 4px 16px -2px rgba(24, 36, 58, 0.08), 0 2px 6px -2px rgba(24, 36, 58, 0.04)',
-        'arena-modal': '0 20px 40px -10px rgba(24, 36, 58, 0.25)',
-        'glow-blue': '0 0 18px -2px rgba(23, 59, 120, 0.35)',
-        'glow-green': '0 0 18px -2px rgba(23, 107, 72, 0.35)',
-        'glow-gold': '0 0 18px -2px rgba(240, 198, 91, 0.35)',
-        'glow-red': '0 0 18px -2px rgba(199, 68, 68, 0.35)',
+        'arena-card': '0 2px 8px 0 rgba(0, 0, 0, 0.25), 0 1px 3px -1px rgba(0, 0, 0, 0.15)',
+        'arena-elevated': '0 8px 24px -4px rgba(0, 0, 0, 0.35), 0 2px 8px -2px rgba(0, 0, 0, 0.2)',
+        'arena-modal': '0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+        'glow-blue': '0 0 20px -2px rgba(40, 88, 165, 0.4)',
+        'glow-green': '0 0 20px -2px rgba(61, 187, 131, 0.4)',
+        'glow-gold': '0 0 20px -2px rgba(243, 201, 105, 0.35)',
+        'glow-red': '0 0 20px -2px rgba(232, 93, 93, 0.4)',
+        'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+        'stadium-light': '0 0 80px 20px rgba(243, 201, 105, 0.06)',
       }
     },
   },

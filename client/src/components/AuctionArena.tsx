@@ -134,10 +134,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   if (!lot) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center animate-fadeIn font-body">
-        <div className="bg-white border border-[#D8D8D1] p-8 rounded-xl shadow-sm">
-          <Trophy className="w-12 h-12 text-[#173B78] mx-auto mb-3 animate-bounce" />
-          <h2 className="text-xl font-heading font-bold text-[#18243A] mb-1 uppercase tracking-wide">Preparing Next Lot...</h2>
-          <p className="text-xs text-[#647084]">Loading official verified player records.</p>
+        <div className="bg-[#203650] border border-[#344B65] p-8 rounded-xl shadow-sm">
+          <Trophy className="w-12 h-12 text-[#2858A5] mx-auto mb-3 animate-bounce" />
+          <h2 className="text-xl font-heading font-bold text-[#F4F6FA] mb-1 uppercase tracking-wide">Preparing Next Lot...</h2>
+          <p className="text-xs text-[#B0BED0]">Loading official verified player records.</p>
         </div>
       </div>
     );
@@ -208,17 +208,17 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-2.5 space-y-3 font-body">
       {/* 1. TOP PROGRESS RIBBON: Compact Set, Lot Status & Quick Help */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#D8D8D1] px-3.5 py-2 rounded-xl text-xs shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#203650] border border-[#344B65] px-3.5 py-2 rounded-xl text-xs shadow-sm">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="font-heading font-bold text-[#173B78] bg-[#E6EDF8] px-2.5 py-0.5 rounded border border-[#D8D8D1] text-xs uppercase tracking-wider">
+          <span className="font-heading font-bold text-[#2858A5] bg-[#172840] px-2.5 py-0.5 rounded border border-[#344B65] text-xs uppercase tracking-wider">
             Set {roomState.currentSetOrder}/{roomState.totalSets}
           </span>
-          <span className="text-[#647084] hidden sm:inline">·</span>
-          <span className="font-heading font-bold text-[#18243A] tracking-wide truncate max-w-[220px] sm:max-w-none text-sm">
+          <span className="text-[#B0BED0] hidden sm:inline">·</span>
+          <span className="font-heading font-bold text-[#F4F6FA] tracking-wide truncate max-w-[220px] sm:max-w-none text-sm">
             {player.set_name}
           </span>
           {player.is_marquee && (
-            <span className="bg-[#F0C65B]/20 text-[#B8860B] text-[10px] font-heading font-bold px-2.5 py-0.5 rounded border border-[#F0C65B]/40 flex items-center gap-1 uppercase tracking-wider">
+            <span className="bg-[#F3C969]/20 text-[#B8860B] text-[10px] font-heading font-bold px-2.5 py-0.5 rounded border border-[#F3C969]/40 flex items-center gap-1 uppercase tracking-wider">
               <Sparkles className="w-3 h-3 text-[#B8860B]" />
               MARQUEE
             </span>
@@ -226,10 +226,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 sm:gap-3 text-xs">
-          <span className="text-[#647084]">
-            Lot <strong className="text-[#18243A] font-number font-bold text-sm">#{lot.lotNumber}</strong> of {lot.totalLots}
+          <span className="text-[#B0BED0]">
+            Lot <strong className="text-[#F4F6FA] font-number font-bold text-sm">#{lot.lotNumber}</strong> of {lot.totalLots}
           </span>
-          <span className="text-[#647084] hidden md:inline text-[11px]">
+          <span className="text-[#B0BED0] hidden md:inline text-[11px]">
             ({remainingLots} remaining)
           </span>
 
@@ -241,12 +241,12 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           />
 
           {roomState.status === 'PAUSED' ? (
-            <span className="bg-[#F0C65B]/20 text-[#B8860B] font-heading font-bold px-2.5 py-0.5 rounded border border-[#F0C65B]/40 flex items-center gap-1 text-xs">
+            <span className="bg-[#F3C969]/20 text-[#B8860B] font-heading font-bold px-2.5 py-0.5 rounded border border-[#F3C969]/40 flex items-center gap-1 text-xs">
               <Pause className="w-3 h-3" /> PAUSED
             </span>
           ) : (
-            <span className="bg-[#176B48]/10 text-[#176B48] font-heading font-bold px-2.5 py-0.5 rounded border border-[#176B48]/30 flex items-center gap-1 text-xs tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-[#176B48] animate-ping inline-block mr-0.5" />
+            <span className="bg-[#3DBB83]/10 text-[#3DBB83] font-heading font-bold px-2.5 py-0.5 rounded border border-[#3DBB83]/30 flex items-center gap-1 text-xs tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-[#3DBB83] animate-ping inline-block mr-0.5" />
               LIVE AUCTION
             </span>
           )}
@@ -254,7 +254,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           <button
             onClick={() => setShowOnboardingGuide(true)}
             aria-label="Auction Guide and Rules"
-            className="flex items-center gap-1 text-[#173B78] hover:text-[#176B48] bg-[#E6EDF8] hover:bg-[#D5E2F5] border border-[#D8D8D1] px-2.5 py-0.5 rounded transition-colors text-[11px] font-bold"
+            className="flex items-center gap-1 text-[#2858A5] hover:text-[#3DBB83] bg-[#172840] hover:bg-[#D5E2F5] border border-[#344B65] px-2.5 py-0.5 rounded transition-colors text-[11px] font-bold"
           >
             <HelpCircle className="w-3 h-3" />
             <span className="hidden sm:inline">Guide</span>
@@ -271,7 +271,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
           
           {/* A. Bidding Panel & Timer (Stadium Clean Card) */}
-          <div className="bg-white rounded-xl p-4 border border-[#D8D8D1] shadow-sm relative overflow-hidden space-y-3.5">
+          <div className="bg-[#203650] rounded-xl p-4 border border-[#344B65] shadow-sm relative overflow-hidden space-y-3.5">
             {/* Hammer Clock & Progress Panel */}
             <div className="flex items-center justify-between gap-3 pt-1">
               <HammerClockPanel 
@@ -283,32 +283,32 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
               {/* Competitive Leader States (Section 9) */}
               {isHighestBidder ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#176B48] font-heading font-bold uppercase bg-[#176B48]/10 border border-[#176B48]/30 px-3 py-1 rounded shadow-sm animate-pulse tracking-wide">
+                <div className="flex items-center gap-1.5 text-xs text-[#3DBB83] font-heading font-bold uppercase bg-[#3DBB83]/10 border border-[#3DBB83]/30 px-3 py-1 rounded shadow-sm animate-pulse tracking-wide">
                   <Shield className="w-3.5 h-3.5" />
                   <span>YOU ARE LEADING</span>
                 </div>
               ) : wasOutbid ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#C74444] font-heading font-bold uppercase bg-[#C74444]/10 border border-[#C74444]/30 px-3 py-1 rounded shadow-sm animate-bounce tracking-wide">
-                  <AlertTriangle className="w-3.5 h-3.5 text-[#C74444]" />
+                <div className="flex items-center gap-1.5 text-xs text-[#E85D5D] font-heading font-bold uppercase bg-[#E85D5D]/10 border border-[#E85D5D]/30 px-3 py-1 rounded shadow-sm animate-bounce tracking-wide">
+                  <AlertTriangle className="w-3.5 h-3.5 text-[#E85D5D]" />
                   <span>OUTBID! RAISE BID</span>
                 </div>
               ) : lot.currentBidder ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#173B78] font-heading font-bold uppercase bg-[#E6EDF8] border border-[#D8D8D1] px-3 py-1 rounded shadow-sm tracking-wide">
-                  <Shield className="w-3.5 h-3.5 text-[#173B78]" />
+                <div className="flex items-center gap-1.5 text-xs text-[#2858A5] font-heading font-bold uppercase bg-[#172840] border border-[#344B65] px-3 py-1 rounded shadow-sm tracking-wide">
+                  <Shield className="w-3.5 h-3.5 text-[#2858A5]" />
                   <span>{lot.currentBidder} LEADING</span>
                 </div>
               ) : (
-                <div className="text-xs text-[#647084] font-heading font-bold uppercase bg-[#F3F0E8] px-2.5 py-1 rounded border border-[#D8D8D1] tracking-wide">
+                <div className="text-xs text-[#B0BED0] font-heading font-bold uppercase bg-[#101B2D] px-2.5 py-1 rounded border border-[#344B65] tracking-wide">
                   AWAITING BID
                 </div>
               )}
             </div>
 
             {/* Current Highest Bid Banner */}
-            <div className="p-3.5 bg-[#E6EDF8] rounded-xl border border-[#D8D8D1] flex items-center justify-between">
+            <div className="p-3.5 bg-[#172840] rounded-xl border border-[#344B65] flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">Current Bid</span>
-                <span className="text-2xl sm:text-3xl font-number font-bold text-[#176B48] block">
+                <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">Current Bid</span>
+                <span className="text-2xl sm:text-3xl font-number font-bold text-[#3DBB83] block">
                   {currentBid > 0 ? `₹${(currentBid / 10000000).toFixed(2)} Cr` : 'NO BIDS YET'}
                 </span>
               </div>
@@ -316,8 +316,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 <div className="flex items-center gap-2 text-right">
                   <TeamLogo teamId={lot.currentBidder} className="w-8 h-8 object-contain drop-shadow-sm" />
                   <div className="text-left">
-                    <span className="text-[9px] text-[#647084] uppercase font-bold block">Leader</span>
-                    <span className="text-xs font-heading font-bold text-[#173B78] block uppercase tracking-wide">{lot.currentBidder}</span>
+                    <span className="text-[9px] text-[#B0BED0] uppercase font-bold block">Leader</span>
+                    <span className="text-xs font-heading font-bold text-[#2858A5] block uppercase tracking-wide">{lot.currentBidder}</span>
                   </div>
                 </div>
               )}
@@ -325,8 +325,8 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
             {/* Disabled Bidding Reason Alert */}
             {!canBid && bidDisabledReason && (
-              <div className="bg-[#C74444]/10 border border-[#C74444]/30 text-[#C74444] px-3 py-2 rounded-lg text-xs flex items-center gap-2 font-medium">
-                <AlertCircle className="w-4 h-4 text-[#C74444] shrink-0" />
+              <div className="bg-[#E85D5D]/10 border border-[#E85D5D]/30 text-[#E85D5D] px-3 py-2 rounded-lg text-xs flex items-center gap-2 font-medium">
+                <AlertCircle className="w-4 h-4 text-[#E85D5D] shrink-0" />
                 <span>{bidDisabledReason}</span>
               </div>
             )}
@@ -335,7 +335,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             <button
               onClick={() => handlePlaceBidSafe(nextMinBid)}
               disabled={!canBid || Boolean(announcingLot)}
-              className="w-full bg-[#176B48] hover:bg-[#125438] active:scale-[0.99] text-white font-heading font-bold py-3.5 px-5 rounded-xl transition-all shadow-md flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-base uppercase tracking-wider"
+              className="w-full bg-[#3DBB83] hover:bg-[#2A9B6A] active:scale-[0.99] text-white font-heading font-bold py-3.5 px-5 rounded-xl transition-all shadow-md flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-base uppercase tracking-wider"
             >
               <div className="flex items-center gap-2">
                 {isPlacingBid ? (
@@ -347,7 +347,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   {isPlacingBid ? 'SUBMITTING BID...' : 'PLACE BID'}
                 </span>
               </div>
-              <span className="font-number text-lg font-bold text-[#F0C65B]">
+              <span className="font-number text-lg font-bold text-[#F3C969]">
                 ₹{(nextMinBid / 10000000).toFixed(2)} Cr
               </span>
             </button>
@@ -361,10 +361,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                     key={i}
                     onClick={() => handlePlaceBidSafe(inc.amount)}
                     disabled={!isIncLegal}
-                    className="py-2 px-1.5 rounded-lg bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#18243A] font-body text-xs font-semibold transition-all border border-[#D8D8D1] hover:border-[#173B78] disabled:opacity-30 disabled:cursor-not-allowed flex flex-col items-center gap-0.5 shadow-sm"
+                    className="py-2 px-1.5 rounded-lg bg-[#172840] hover:bg-[#D5E2F5] text-[#F4F6FA] font-body text-xs font-semibold transition-all border border-[#344B65] hover:border-[#2858A5] disabled:opacity-30 disabled:cursor-not-allowed flex flex-col items-center gap-0.5 shadow-sm"
                   >
-                    <span className="text-[#173B78] font-heading font-bold text-xs">{inc.label}</span>
-                    <span className="text-[10px] text-[#647084] font-number">
+                    <span className="text-[#2858A5] font-heading font-bold text-xs">{inc.label}</span>
+                    <span className="text-[10px] text-[#B0BED0] font-number">
                       ₹{(inc.amount / 10000000).toFixed(2)}Cr
                     </span>
                   </button>
@@ -375,10 +375,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
           {/* B. Host Controls Card (Skip, Pause, Draw Random) */}
           {isHost && (
-            <div className="bg-white border border-[#D8D8D1] rounded-xl p-3.5 space-y-2.5 shadow-sm">
+            <div className="bg-[#203650] border border-[#344B65] rounded-xl p-3.5 space-y-2.5 shadow-sm">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-heading font-bold uppercase tracking-wider text-[#173B78] flex items-center gap-1.5 text-xs">
-                  <Shield className="w-3.5 h-3.5 text-[#173B78]" />
+                <span className="font-heading font-bold uppercase tracking-wider text-[#2858A5] flex items-center gap-1.5 text-xs">
+                  <Shield className="w-3.5 h-3.5 text-[#2858A5]" />
                   HOST CONTROLS
                 </span>
 
@@ -386,7 +386,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   <button
                     onClick={() => setShowSkipModal(true)}
                     disabled={lot.status !== 'IN_PROGRESS' || Boolean(announcingLot)}
-                    className="px-2.5 py-1 bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#B8860B] border border-[#D8D8D1] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-2.5 py-1 bg-[#172840] hover:bg-[#D5E2F5] text-[#B8860B] border border-[#344B65] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <FastForward className="w-3 h-3" />
                     <span>Skip</span>
@@ -395,7 +395,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   {roomState.status === 'AUCTION' ? (
                     <button
                       onClick={onPauseAuction}
-                      className="px-2.5 py-1 bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#173B78] border border-[#D8D8D1] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
+                      className="px-2.5 py-1 bg-[#172840] hover:bg-[#D5E2F5] text-[#2858A5] border border-[#344B65] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
                     >
                       <Pause className="w-3 h-3" />
                       <span>Pause</span>
@@ -403,7 +403,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   ) : (
                     <button
                       onClick={onResumeAuction}
-                      className="px-2.5 py-1 bg-[#176B48]/10 hover:bg-[#176B48]/20 text-[#176B48] border border-[#176B48]/30 rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
+                      className="px-2.5 py-1 bg-[#3DBB83]/10 hover:bg-[#3DBB83]/20 text-[#3DBB83] border border-[#3DBB83]/30 rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
                     >
                       <Play className="w-3 h-3" />
                       <span>Resume</span>
@@ -412,7 +412,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                   <button
                     onClick={onRestartAuction}
-                    className="px-2.5 py-1 bg-[#E6EDF8] hover:bg-[#C74444]/10 text-[#647084] hover:text-[#C74444] border border-[#D8D8D1] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
+                    className="px-2.5 py-1 bg-[#172840] hover:bg-[#E85D5D]/10 text-[#B0BED0] hover:text-[#E85D5D] border border-[#344B65] rounded font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px]"
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>Restart</span>
@@ -422,12 +422,12 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
               {/* Host Draw Random Player Toggle */}
               {onDrawRandomPlayer && (
-                <div className="pt-1 border-t border-[#D8D8D1]">
+                <div className="pt-1 border-t border-[#344B65]">
                   <button
                     onClick={() => setShowHostDraw(!showHostDraw)}
-                    className="w-full text-left flex items-center justify-between text-xs text-[#647084] hover:text-[#18243A] py-1 font-semibold transition-colors"
+                    className="w-full text-left flex items-center justify-between text-xs text-[#B0BED0] hover:text-[#F4F6FA] py-1 font-semibold transition-colors"
                   >
-                    <span className="flex items-center gap-1 font-heading font-bold uppercase tracking-wider text-[#173B78]">
+                    <span className="flex items-center gap-1 font-heading font-bold uppercase tracking-wider text-[#2858A5]">
                       <Dice5 className="w-3.5 h-3.5 text-[#B8860B]" />
                       Custom Random Draw
                     </span>
@@ -438,11 +438,11 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                     <div className="space-y-2 pt-2 animate-fadeIn">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[10px] text-[#647084] block mb-1 font-medium">Category</label>
+                          <label className="text-[10px] text-[#B0BED0] block mb-1 font-medium">Category</label>
                           <select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value as PlayerCategory)}
-                            className="w-full bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] text-xs rounded-lg px-2 py-1 outline-none font-medium"
+                            className="w-full bg-[#101B2D] border border-[#344B65] text-[#F4F6FA] text-xs rounded-lg px-2 py-1 outline-none font-medium"
                           >
                             <option value="Batsmen">Batsmen</option>
                             <option value="All-rounders">All-Rounders</option>
@@ -450,11 +450,11 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                           </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-[#647084] block mb-1 font-medium">Price Bracket</label>
+                          <label className="text-[10px] text-[#B0BED0] block mb-1 font-medium">Price Bracket</label>
                           <select
                             value={selectedPriceBracket}
                             onChange={(e) => setSelectedPriceBracket(Number(e.target.value))}
-                            className="w-full bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] text-xs rounded-lg px-2 py-1 outline-none font-number font-medium"
+                            className="w-full bg-[#101B2D] border border-[#344B65] text-[#F4F6FA] text-xs rounded-lg px-2 py-1 outline-none font-number font-medium"
                           >
                             <option value={20000000}>₹2.00 Cr</option>
                             <option value={15000000}>₹1.50 Cr</option>
@@ -469,9 +469,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                       <button
                         onClick={() => onDrawRandomPlayer(selectedCategory, selectedPriceBracket)}
                         disabled={lot.status !== 'IN_PROGRESS' || Boolean(announcingLot)}
-                        className="w-full bg-[#173B78] hover:bg-[#122E5E] active:scale-[0.99] text-white font-heading font-bold uppercase py-2 px-3 rounded-lg transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-30 tracking-wider"
+                        className="w-full bg-[#2858A5] hover:bg-[#122E5E] active:scale-[0.99] text-white font-heading font-bold uppercase py-2 px-3 rounded-lg transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-30 tracking-wider"
                       >
-                        <Dice5 className="w-3.5 h-3.5 text-[#F0C65B]" />
+                        <Dice5 className="w-3.5 h-3.5 text-[#F3C969]" />
                         <span>Draw Random {selectedCategory}</span>
                       </button>
                     </div>
@@ -482,14 +482,14 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           )}
 
           {/* C. Highest-Bidded Player Card */}
-          <div className="bg-white border border-[#D8D8D1] rounded-xl p-3.5 shadow-sm space-y-2.5">
-            <div className="flex items-center justify-between pb-1.5 border-b border-[#D8D8D1]">
-              <span className="text-[10px] text-[#173B78] uppercase font-heading font-bold tracking-wider flex items-center gap-1.5">
+          <div className="bg-[#203650] border border-[#344B65] rounded-xl p-3.5 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between pb-1.5 border-b border-[#344B65]">
+              <span className="text-[10px] text-[#2858A5] uppercase font-heading font-bold tracking-wider flex items-center gap-1.5">
                 <Crown className="w-3.5 h-3.5 text-[#B8860B]" />
                 Highest-Bidded Player
               </span>
               {highestBiddedLot && (
-                <span className="text-[10px] font-heading font-bold text-[#176B48] bg-[#176B48]/10 px-2 py-0.5 rounded border border-[#176B48]/25 uppercase tracking-wider">
+                <span className="text-[10px] font-heading font-bold text-[#3DBB83] bg-[#3DBB83]/10 px-2 py-0.5 rounded border border-[#3DBB83]/25 uppercase tracking-wider">
                   Record Buy
                 </span>
               )}
@@ -499,7 +499,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               <div className="flex items-center justify-between gap-3 pt-0.5">
                 {/* Player Photo & Details */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-12 h-12 rounded-lg bg-[#E6EDF8] border border-[#D8D8D1] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-[#172840] border border-[#344B65] flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                     {highestBiddedLot.player.image_url ? (
                       <img
                         src={highestBiddedLot.player.image_url}
@@ -512,10 +512,10 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   </div>
 
                   <div className="min-w-0">
-                    <span className="text-sm font-heading font-bold text-[#18243A] uppercase tracking-wide truncate block">
+                    <span className="text-sm font-heading font-bold text-[#F4F6FA] uppercase tracking-wide truncate block">
                       {highestBiddedLot.player.name}
                     </span>
-                    <span className="text-[11px] text-[#647084] block truncate">
+                    <span className="text-[11px] text-[#B0BED0] block truncate">
                       {highestBiddedLot.player.primary_role} · {highestBiddedLot.player.category}
                     </span>
 
@@ -524,7 +524,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                       {highestBiddedLot.winningTeam && (
                         <TeamLogo teamId={highestBiddedLot.winningTeam} className="w-4 h-4 object-contain shrink-0" />
                       )}
-                      <span className="text-[10px] font-semibold text-[#647084] truncate">
+                      <span className="text-[10px] font-semibold text-[#B0BED0] truncate">
                         {IPL_FRANCHISES[highestBiddedLot.winningTeam!]?.name || highestBiddedLot.winningTeamName || highestBiddedLot.winningTeam}
                       </span>
                     </div>
@@ -533,16 +533,16 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                 {/* Final Sold Price in Crores */}
                 <div className="text-right shrink-0">
-                  <span className="text-[9px] text-[#647084] uppercase font-bold block">Sold Price</span>
-                  <span className="text-base font-number font-bold text-[#176B48] block">
+                  <span className="text-[9px] text-[#B0BED0] uppercase font-bold block">Sold Price</span>
+                  <span className="text-base font-number font-bold text-[#3DBB83] block">
                     ₹{((highestBiddedLot.soldPrice || 0) / 10000000).toFixed(2)} Cr
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="py-2.5 px-3 text-center rounded-lg bg-[#F3F0E8] border border-[#D8D8D1]">
-                <p className="text-xs text-[#647084] font-medium">No players sold yet.</p>
-                <span className="text-[10px] text-[#647084] block mt-0.5">
+              <div className="py-2.5 px-3 text-center rounded-lg bg-[#101B2D] border border-[#344B65]">
+                <p className="text-xs text-[#B0BED0] font-medium">No players sold yet.</p>
+                <span className="text-[10px] text-[#B0BED0] block mt-0.5">
                   Top auction sale will appear here
                 </span>
               </div>
@@ -558,32 +558,32 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           {/* Active Player Card with Stadium Spotlight & Refined Borders */}
           <div 
             key={`player-card-${player.id}`}
-            className={`relative bg-white border rounded-xl overflow-hidden shadow-sm transition-all ${
-              player.is_marquee ? 'border-[#F0C65B] shadow-md ring-1 ring-[#F0C65B]/40' : 'border-[#D8D8D1]'
+            className={`relative bg-[#203650] border rounded-xl overflow-hidden shadow-sm transition-all ${
+              player.is_marquee ? 'border-[#F3C969] shadow-md ring-1 ring-[#F3C969]/40' : 'border-[#344B65]'
             }`}
           >
             {/* Top Details: Player Name, Badges & Base Price */}
-            <div className="p-4 sm:p-5 bg-white border-b border-[#D8D8D1] space-y-2">
+            <div className="p-4 sm:p-5 bg-[#203650] border-b border-[#344B65] space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#18243A] tracking-wide uppercase leading-tight">
+                  <h2 className="text-2xl sm:text-3xl font-heading font-bold text-[#F4F6FA] tracking-wide uppercase leading-tight">
                     {player.name}
                   </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-heading font-bold text-[#176B48] uppercase tracking-wider">
+                    <span className="text-xs font-heading font-bold text-[#3DBB83] uppercase tracking-wider">
                       {player.category}
                     </span>
-                    <span className="text-[#647084] text-xs">•</span>
-                    <span className="text-xs text-[#647084] font-medium">
-                      Role: <strong className="text-[#18243A]">{player.primary_role}</strong>
+                    <span className="text-[#B0BED0] text-xs">•</span>
+                    <span className="text-xs text-[#B0BED0] font-medium">
+                      Role: <strong className="text-[#F4F6FA]">{player.primary_role}</strong>
                     </span>
                   </div>
                 </div>
 
                 {/* Base Price Tag */}
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">Base Price</span>
-                  <span className="text-lg sm:text-xl font-number font-bold text-[#173B78] block">
+                  <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">Base Price</span>
+                  <span className="text-lg sm:text-xl font-number font-bold text-[#2858A5] block">
                     {player.base_price_display}
                   </span>
                 </div>
@@ -592,17 +592,17 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
               {/* Classification Badges */}
               <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 {player.is_overseas ? (
-                  <span className="bg-[#E6EDF8] border border-[#D8D8D1] text-[#173B78] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 shadow-sm">
+                  <span className="bg-[#172840] border border-[#344B65] text-[#2858A5] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 shadow-sm">
                     <Plane className="w-3.5 h-3.5" /> Overseas · {player.nationality}
                   </span>
                 ) : (
-                  <span className="bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 shadow-sm">
+                  <span className="bg-[#101B2D] border border-[#344B65] text-[#F4F6FA] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 shadow-sm">
                     <span>🇮🇳</span> Indian Player
                   </span>
                 )}
 
                 {player.is_wicketkeeper && (
-                  <span className="bg-[#F0C65B]/20 border border-[#F0C65B]/40 text-[#B8860B] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded shadow-sm">
+                  <span className="bg-[#F3C969]/20 border border-[#F3C969]/40 text-[#B8860B] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded shadow-sm">
                     🧤 Wicket-keeper
                   </span>
                 )}
@@ -610,9 +610,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             </div>
 
             {/* Prominent Stadium Showcase Frame */}
-            <div className="relative w-full h-64 sm:h-76 md:h-80 flex items-center justify-center overflow-hidden border-b border-[#D8D8D1] p-2.5 sm:p-4 bg-gradient-to-b from-[#F3F0E8] via-[#E6EDF8] to-[#F3F0E8]">
+            <div className="relative w-full h-64 sm:h-76 md:h-80 flex items-center justify-center overflow-hidden border-b border-[#344B65] p-2.5 sm:p-4 bg-gradient-to-b from-[#101B2D] via-[#172840] to-[#101B2D]">
               {player.image_url && !imageError ? (
-                <div className="relative z-10 w-52 h-52 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-full p-2 bg-white shadow-md border-2 border-[#173B78]/20 flex items-center justify-center overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+                <div className="relative z-10 w-52 h-52 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-full p-2 bg-[#203650] shadow-md border-2 border-[#2858A5]/20 flex items-center justify-center overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
                   <img
                     src={player.image_url}
                     alt={player.name}
@@ -626,21 +626,21 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             </div>
 
             {/* Bottom Card Summary: Status Banner */}
-            <div className="p-3 bg-[#F3F0E8] flex items-center justify-between text-xs font-heading uppercase tracking-wider text-[#647084]">
+            <div className="p-3 bg-[#101B2D] flex items-center justify-between text-xs font-heading uppercase tracking-wider text-[#B0BED0]">
               <span className="flex items-center gap-1.5 font-bold">
-                <Tag className="w-3.5 h-3.5 text-[#176B48]" />
-                Status: <strong className="text-[#18243A]">{lot.status}</strong>
+                <Tag className="w-3.5 h-3.5 text-[#3DBB83]" />
+                Status: <strong className="text-[#F4F6FA]">{lot.status}</strong>
               </span>
-              <span className="font-number text-xs text-[#647084]">Lot #{lot.lotNumber}</span>
+              <span className="font-number text-xs text-[#B0BED0]">Lot #{lot.lotNumber}</span>
             </div>
 
             {/* UNSOLD OVERLAY */}
             {lot.status === 'UNSOLD' && (
-              <div className="absolute inset-0 z-40 bg-[#18243A]/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-6 text-center border border-[#D8D8D1] animate-fadeIn select-none">
-                <span className="text-6xl sm:text-7xl font-heading font-black tracking-widest text-[#C74444] animate-pulse uppercase">
+              <div className="absolute inset-0 z-40 bg-[#F4F6FA]/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-6 text-center border border-[#344B65] animate-fadeIn select-none">
+                <span className="text-6xl sm:text-7xl font-heading font-black tracking-widest text-[#E85D5D] animate-pulse uppercase">
                   UNSOLD
                 </span>
-                <span className="text-xs text-[#E6EDF8] font-body mt-3">
+                <span className="text-xs text-[#172840] font-body mt-3">
                   Player moves to the un-auctioned pool
                 </span>
               </div>
@@ -648,9 +648,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
             {/* SKIPPED OVERLAY */}
             {lot.status === 'SKIPPED' && (
-              <div className="absolute inset-0 z-40 bg-[#18243A]/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-6 text-center border border-[#D8D8D1] animate-fadeIn select-none">
-                <FastForward className="w-8 h-8 text-[#F0C65B] mb-2" />
-                <span className="text-3xl font-heading font-black text-[#F0C65B] uppercase tracking-wider">
+              <div className="absolute inset-0 z-40 bg-[#F4F6FA]/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-6 text-center border border-[#344B65] animate-fadeIn select-none">
+                <FastForward className="w-8 h-8 text-[#F3C969] mb-2" />
+                <span className="text-3xl font-heading font-black text-[#F3C969] uppercase tracking-wider">
                   SKIPPED BY HOST
                 </span>
               </div>
@@ -664,13 +664,13 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
         <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 order-3">
           
           {/* A. My Franchise Card */}
-          <div className="bg-white border border-[#D8D8D1] rounded-xl p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#D8D8D1]">
-              <span className="text-[10px] text-[#647084] uppercase font-heading font-bold tracking-wider">
+          <div className="bg-[#203650] border border-[#344B65] rounded-xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#344B65]">
+              <span className="text-[10px] text-[#B0BED0] uppercase font-heading font-bold tracking-wider">
                 My Franchise
               </span>
               {myTeamId && (
-                <span className="text-xs font-heading font-bold text-[#173B78] bg-[#E6EDF8] px-2.5 py-0.5 rounded border border-[#D8D8D1] uppercase tracking-wider">
+                <span className="text-xs font-heading font-bold text-[#2858A5] bg-[#172840] px-2.5 py-0.5 rounded border border-[#344B65] uppercase tracking-wider">
                   {myTeamId}
                 </span>
               )}
@@ -681,28 +681,28 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 <div className="flex items-center gap-3">
                   <TeamLogo teamId={myTeamId} className="w-10 h-10 object-contain drop-shadow-sm" />
                   <div>
-                    <h3 className="font-heading font-bold text-base text-[#18243A] uppercase tracking-wide leading-tight">
+                    <h3 className="font-heading font-bold text-base text-[#F4F6FA] uppercase tracking-wide leading-tight">
                       {IPL_FRANCHISES[myTeamId]?.name}
                     </h3>
-                    <span className="text-[11px] text-[#647084]">
+                    <span className="text-[11px] text-[#B0BED0]">
                       Purse Remaining:
                     </span>
                   </div>
                 </div>
 
                 {/* Purse Balance */}
-                <div className="bg-[#E6EDF8] p-2.5 rounded-lg border border-[#D8D8D1]">
+                <div className="bg-[#172840] p-2.5 rounded-lg border border-[#344B65]">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#647084] flex items-center gap-1 font-body">
-                      <Wallet className="w-3.5 h-3.5 text-[#176B48]" /> Balance
+                    <span className="text-[#B0BED0] flex items-center gap-1 font-body">
+                      <Wallet className="w-3.5 h-3.5 text-[#3DBB83]" /> Balance
                     </span>
-                    <span className="font-number font-bold text-[#176B48] text-base">
+                    <span className="font-number font-bold text-[#3DBB83] text-base">
                       ₹{(myPurse / 10000000).toFixed(2)} Cr
                     </span>
                   </div>
-                  <div className="w-full bg-[#D8D8D1] h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#344B65] h-1.5 rounded-full overflow-hidden">
                     <div 
-                      className="bg-[#176B48] h-full"
+                      className="bg-[#3DBB83] h-full"
                       style={{ width: `${Math.min(100, Math.max(0, (myPurse / (roomState.settings.startingPurse || 1200000000)) * 100))}%` }}
                     />
                   </div>
@@ -710,15 +710,15 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                 {/* Squad Count & Overseas Count */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-[#F3F0E8] p-2 rounded-lg border border-[#D8D8D1]">
-                    <span className="text-[10px] text-[#647084] block font-medium">Squad</span>
-                    <span className="font-number font-bold text-[#18243A] text-xs">
+                  <div className="bg-[#101B2D] p-2 rounded-lg border border-[#344B65]">
+                    <span className="text-[10px] text-[#B0BED0] block font-medium">Squad</span>
+                    <span className="font-number font-bold text-[#F4F6FA] text-xs">
                       {mySquad.length} / {roomState.settings.maxSquad}
                     </span>
                   </div>
-                  <div className="bg-[#F3F0E8] p-2 rounded-lg border border-[#D8D8D1]">
-                    <span className="text-[10px] text-[#647084] block font-medium">Overseas</span>
-                    <span className={`font-number font-bold text-xs ${myOverseasCount >= 8 ? 'text-[#C74444]' : 'text-[#18243A]'}`}>
+                  <div className="bg-[#101B2D] p-2 rounded-lg border border-[#344B65]">
+                    <span className="text-[10px] text-[#B0BED0] block font-medium">Overseas</span>
+                    <span className={`font-number font-bold text-xs ${myOverseasCount >= 8 ? 'text-[#E85D5D]' : 'text-[#F4F6FA]'}`}>
                       {myOverseasCount} / 8 max
                     </span>
                   </div>
@@ -726,7 +726,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
                 {/* Squad Reserve Requirement Notice */}
                 {minReserveRequired > 0 && (
-                  <p className="text-[10px] text-[#647084] font-body leading-tight bg-[#F3F0E8] p-2 rounded-lg border border-[#D8D8D1]">
+                  <p className="text-[10px] text-[#B0BED0] font-body leading-tight bg-[#101B2D] p-2 rounded-lg border border-[#344B65]">
                     🛡️ Min squad reserve: <strong className="text-[#B8860B] font-number font-bold">₹{(minReserveRequired / 10000000).toFixed(2)} Cr</strong> required for remaining {slotsRemainingNeeded} slots.
                   </p>
                 )}
@@ -736,7 +736,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                   <div>
                     <button
                       onClick={() => setShowSquadList(!showSquadList)}
-                      className="w-full text-left text-xs text-[#173B78] font-heading font-bold uppercase tracking-wider flex items-center justify-between py-1 transition-colors hover:underline"
+                      className="w-full text-left text-xs text-[#2858A5] font-heading font-bold uppercase tracking-wider flex items-center justify-between py-1 transition-colors hover:underline"
                     >
                       <span>View My Squad ({mySquad.length})</span>
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showSquadList ? 'rotate-180' : ''}`} />
@@ -745,9 +745,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                     {showSquadList && (
                       <div className="space-y-1.5 mt-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
                         {mySquad.map(sq => (
-                          <div key={sq.id} className="flex items-center justify-between text-[11px] py-1 px-2.5 rounded-lg bg-[#F3F0E8] border border-[#D8D8D1]">
-                            <span className="text-[#18243A] font-medium truncate max-w-[120px]">{sq.name}</span>
-                            <span className="font-number font-bold text-[#176B48] text-[11px]">
+                          <div key={sq.id} className="flex items-center justify-between text-[11px] py-1 px-2.5 rounded-lg bg-[#101B2D] border border-[#344B65]">
+                            <span className="text-[#F4F6FA] font-medium truncate max-w-[120px]">{sq.name}</span>
+                            <span className="font-number font-bold text-[#3DBB83] text-[11px]">
                               ₹{(((sq.sold_price_inr || 0) / 10000000)).toFixed(2)}Cr
                             </span>
                           </div>
@@ -758,7 +758,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 )}
               </div>
             ) : (
-              <div className="py-4 text-center text-xs text-[#647084]">
+              <div className="py-4 text-center text-xs text-[#B0BED0]">
                 <span>No franchise selected.</span>
               </div>
             )}
@@ -801,49 +801,49 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
       {/* 5. QUICK ONBOARDING GUIDE MODAL */}
       {showOnboardingGuide && (
-        <div className="fixed inset-0 z-50 bg-[#18243A]/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn font-body">
-          <div className="bg-white border border-[#D8D8D1] rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 bg-[#F4F6FA]/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn font-body">
+          <div className="bg-[#203650] border border-[#344B65] rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
             <button
               onClick={() => setShowOnboardingGuide(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#173B78] transition-colors"
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-[#172840] hover:bg-[#D5E2F5] text-[#2858A5] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 text-[#173B78]">
-              <Sparkles className="w-5 h-5 text-[#176B48]" />
-              <h3 className="font-heading font-bold text-xl text-[#173B78] uppercase tracking-wide">How Bidding Works in Bid Wars</h3>
+            <div className="flex items-center gap-2 text-[#2858A5]">
+              <Sparkles className="w-5 h-5 text-[#3DBB83]" />
+              <h3 className="font-heading font-bold text-xl text-[#2858A5] uppercase tracking-wide">How Bidding Works in Bid Wars</h3>
             </div>
 
-            <div className="space-y-3 text-xs text-[#647084]">
-              <div className="p-3 bg-[#E6EDF8]/50 rounded-xl border border-[#D8D8D1] flex gap-3">
-                <span className="font-number font-bold text-[#176B48] text-sm shrink-0">01</span>
+            <div className="space-y-3 text-xs text-[#B0BED0]">
+              <div className="p-3 bg-[#172840]/50 rounded-xl border border-[#344B65] flex gap-3">
+                <span className="font-number font-bold text-[#3DBB83] text-sm shrink-0">01</span>
                 <div>
-                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#18243A] mb-0.5">Current Lot & Base Price</h4>
+                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#F4F6FA] mb-0.5">Current Lot & Base Price</h4>
                   <p>Each player enters the arena with an official base price. The first valid bid opens at the base price.</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#E6EDF8]/50 rounded-xl border border-[#D8D8D1] flex gap-3">
+              <div className="p-3 bg-[#172840]/50 rounded-xl border border-[#344B65] flex gap-3">
                 <span className="font-number font-bold text-[#B8860B] text-sm shrink-0">02</span>
                 <div>
-                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#18243A] mb-0.5">Hammer Clock & 3-Second Warning</h4>
+                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#F4F6FA] mb-0.5">Hammer Clock & 3-Second Warning</h4>
                   <p>Each accepted bid resets the countdown clock. At 3 seconds, warning ticks alert players before final sale.</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#E6EDF8]/50 rounded-xl border border-[#D8D8D1] flex gap-3">
-                <span className="font-number font-bold text-[#176B48] text-sm shrink-0">03</span>
+              <div className="p-3 bg-[#172840]/50 rounded-xl border border-[#344B65] flex gap-3">
+                <span className="font-number font-bold text-[#3DBB83] text-sm shrink-0">03</span>
                 <div>
-                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#18243A] mb-0.5">Placing Bids & Increments</h4>
+                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#F4F6FA] mb-0.5">Placing Bids & Increments</h4>
                   <p>Click "Place Bid" to submit the minimum increment, or use quick buttons (+20L, +50L, +1Cr, +2Cr).</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#E6EDF8]/50 rounded-xl border border-[#D8D8D1] flex gap-3">
+              <div className="p-3 bg-[#172840]/50 rounded-xl border border-[#344B65] flex gap-3">
                 <span className="font-number font-bold text-[#B8860B] text-sm shrink-0">04</span>
                 <div>
-                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#18243A] mb-0.5">Squad & Overseas Limits</h4>
+                  <h4 className="font-heading font-bold uppercase tracking-wider text-[#F4F6FA] mb-0.5">Squad & Overseas Limits</h4>
                   <p>Min 18 to max 25 players per team. Maximum 8 overseas players. You must reserve enough purse to fill 18 slots.</p>
                 </div>
               </div>
@@ -851,7 +851,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
             <button
               onClick={() => setShowOnboardingGuide(false)}
-              className="w-full py-3 bg-[#176B48] hover:bg-[#125438] text-white font-heading font-bold uppercase text-sm rounded-xl transition-all shadow-md mt-2 tracking-wider"
+              className="w-full py-3 bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold uppercase text-sm rounded-xl transition-all shadow-md mt-2 tracking-wider"
             >
               Got It, Let's Bid!
             </button>

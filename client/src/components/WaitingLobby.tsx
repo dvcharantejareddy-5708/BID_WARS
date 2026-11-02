@@ -41,45 +41,45 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 relative font-body">
       {/* Lobby Top Banner */}
-      <div className="bg-white rounded-xl p-6 sm:p-8 border border-[#D8D8D1] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#203650] rounded-xl p-6 sm:p-8 border border-[#344B65] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-[#E6EDF8] text-[#173B78] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border border-[#D8D8D1]">
+            <span className="bg-[#172840] text-[#2858A5] text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border border-[#344B65]">
               WAITING LOBBY
             </span>
             {roomState.isPrivate && (
-              <span className="bg-[#F0C65B]/20 text-[#B8860B] text-xs font-heading font-bold px-2.5 py-0.5 rounded border border-[#F0C65B]/40 flex items-center gap-1 uppercase tracking-wider">
+              <span className="bg-[#F3C969]/20 text-[#F3C969] text-xs font-heading font-bold px-2.5 py-0.5 rounded border border-[#F3C969]/40 flex items-center gap-1 uppercase tracking-wider">
                 <Lock className="w-3 h-3" /> PRIVATE
               </span>
             )}
-            <span className="text-xs text-[#647084]">
+            <span className="text-xs text-[#B0BED0]">
               Season {roomState.settings.season} · {roomState.poolSize} Players
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-[#18243A] uppercase tracking-wide">
+          <h1 className="text-3xl sm:text-4xl font-heading font-bold text-[#F4F6FA] uppercase tracking-wide">
             {roomState.settings.roomName}
           </h1>
-          <p className="text-xs sm:text-sm text-[#647084] mt-1">
+          <p className="text-xs sm:text-sm text-[#B0BED0] mt-1">
             Select your franchise and confirm readiness. The host will start once everyone is prepared.
           </p>
         </div>
 
         {/* Room Code & Share Link */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-          <div className="bg-[#E6EDF8] border border-[#D8D8D1] rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+          <div className="bg-[#2858A5] border border-[#344B65] rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
             <div className="flex flex-col">
-              <span className="text-[10px] text-[#647084] uppercase tracking-wider font-heading font-bold">Room Code</span>
-              <span className="text-xl font-number font-bold text-[#173B78] tracking-wider">
+              <span className="text-[10px] text-[#B0BED0] uppercase tracking-wider font-heading font-bold">Room Code</span>
+              <span className="text-xl font-number font-bold text-[#F3C969] tracking-wider">
                 {roomState.roomCode}
               </span>
             </div>
             <button
               onClick={handleCopyLink}
-              className="bg-white hover:bg-[#D5E2F5] text-[#173B78] px-3.5 py-1.5 rounded-lg text-xs font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#D8D8D1]"
+              className="bg-[#203650] hover:bg-[#172840] text-[#F4F6FA] px-3.5 py-1.5 rounded-lg text-xs font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#344B65]"
             >
               {copiedLink ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-[#176B48]" />
+                  <Check className="w-3.5 h-3.5 text-[#3DBB83]" />
                   <span>Copied!</span>
                 </>
               ) : (
@@ -94,33 +94,33 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
       </div>
 
       {/* User Ready & Team Banner */}
-      <div className="bg-white border border-[#D8D8D1] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-[#203650] border border-[#344B65] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
           {myMember?.teamId ? (
             <TeamLogo teamId={myMember.teamId} className="w-14 h-14 shadow-sm" />
           ) : (
-            <div className="w-12 h-12 rounded-xl bg-[#C74444]/15 text-[#C74444] flex items-center justify-center font-bold">
+            <div className="w-12 h-12 rounded-xl bg-[#E85D5D]/15 text-[#E85D5D] flex items-center justify-center font-bold">
               !
             </div>
           )}
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-heading font-bold text-base text-[#18243A] uppercase tracking-wide">
+              <h3 className="font-heading font-bold text-base text-[#F4F6FA] uppercase tracking-wide">
                 {myMember?.nickname}
               </h3>
               {myMember?.isHost && (
-                <span className="bg-[#F0C65B]/20 text-[#B8860B] text-[10px] font-heading font-bold px-1.5 py-0.5 rounded border border-[#F0C65B]/40 uppercase tracking-wider">
+                <span className="bg-[#F3C969]/20 text-[#F3C969] text-[10px] font-heading font-bold px-1.5 py-0.5 rounded border border-[#F3C969]/40 uppercase tracking-wider">
                   HOST
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#647084]">
+            <p className="text-xs text-[#B0BED0]">
               Franchise:{' '}
               {myMember?.teamId ? (
-                <strong className="text-[#173B78] font-heading font-bold uppercase">{IPL_FRANCHISES[myMember.teamId].name}</strong>
+                <strong className="text-[#2858A5] font-heading font-bold uppercase">{IPL_FRANCHISES[myMember.teamId].name}</strong>
               ) : (
-                <strong className="text-[#C74444]">No franchise selected</strong>
+                <strong className="text-[#E85D5D]">No franchise selected</strong>
               )}
             </p>
           </div>
@@ -129,7 +129,7 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={onChangeTeamClick}
-            className="px-3.5 py-2 rounded-xl bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#173B78] border border-[#D8D8D1] text-xs font-semibold transition-all"
+            className="px-3.5 py-2 rounded-xl bg-[#172840] hover:bg-[#101B2D] text-[#F4F6FA] border border-[#344B65] text-xs font-semibold transition-all"
           >
             Change Team
           </button>
@@ -138,8 +138,8 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
             onClick={() => onToggleReady(!isReady)}
             className={`px-5 py-2.5 rounded-xl font-heading font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 ${
               isReady
-                ? 'bg-[#176B48] text-white shadow-md'
-                : 'bg-[#E6EDF8] hover:bg-[#D5E2F5] text-[#647084] hover:text-[#18243A] border border-[#D8D8D1]'
+                ? 'bg-[#3DBB83] text-white shadow-md'
+                : 'bg-[#172840] hover:bg-[#101B2D] text-[#B0BED0] hover:text-[#F4F6FA] border border-[#344B65]'
             }`}
           >
             {isReady ? (
@@ -160,8 +160,8 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
       {/* Participants & Settings Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-heading font-bold text-base text-[#18243A] uppercase tracking-wide flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#173B78]" />
+          <h3 className="font-heading font-bold text-base text-[#F4F6FA] uppercase tracking-wide flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#2858A5]" />
             <span>Participants ({humanMembers.length} Humans, {botMembers.length} Bots)</span>
           </h3>
 
@@ -174,31 +174,31 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
                 <div
                   key={member.id}
                   className={`rounded-xl p-3.5 flex items-center justify-between border transition-all ${
-                    isMe ? 'border-[#176B48] bg-[#E6EDF8]/50 shadow-sm' : 'border-[#D8D8D1] bg-white shadow-sm'
+                    isMe ? 'border-[#3DBB83] bg-[#172840] shadow-sm' : 'border-[#344B65] bg-[#203650] shadow-sm'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     {team ? (
                       <TeamLogo teamId={member.teamId} className="w-10 h-10 shadow-sm shrink-0" />
                     ) : (
-                      <div className="w-10 h-10 rounded-xl bg-[#F3F0E8] border border-dashed border-[#D8D8D1] flex items-center justify-center text-xs text-[#647084] font-bold shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#172840] border border-dashed border-[#344B65] flex items-center justify-center text-xs text-[#B0BED0] font-bold shrink-0">
                         ?
                       </div>
                     )}
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-heading font-bold uppercase tracking-wide text-sm text-[#18243A]">
+                        <span className="font-heading font-bold uppercase tracking-wide text-sm text-[#F4F6FA]">
                           {member.nickname}
                         </span>
-                        {isMe && <span className="text-[10px] text-[#176B48] font-semibold">(You)</span>}
+                        {isMe && <span className="text-[10px] text-[#3DBB83] font-semibold">(You)</span>}
                         {member.isHost && (
-                          <span className="bg-[#F0C65B]/20 text-[#B8860B] text-[9px] font-heading font-bold px-1.5 py-0.2 rounded border border-[#F0C65B]/40 uppercase tracking-wider">
+                          <span className="bg-[#F3C969]/20 text-[#F3C969] text-[9px] font-heading font-bold px-1.5 py-0.2 rounded border border-[#F3C969]/40 uppercase tracking-wider">
                             HOST
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#647084]">
+                      <p className="text-xs text-[#B0BED0]">
                         {team ? team.name : 'Selecting team...'}
                       </p>
                     </div>
@@ -208,8 +208,8 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
                     <span
                       className={`text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-1 rounded flex items-center gap-1 ${
                         member.isReady
-                          ? 'bg-[#176B48]/10 text-[#176B48] border border-[#176B48]/30'
-                          : 'bg-[#F0C65B]/20 text-[#B8860B] border border-[#F0C65B]/40'
+                          ? 'bg-[#3DBB83]/10 text-[#3DBB83] border border-[#3DBB83]/30'
+                          : 'bg-[#F3C969]/20 text-[#F3C969] border border-[#F3C969]/40'
                       }`}
                     >
                       {member.isReady ? 'READY' : 'WAITING'}
@@ -224,7 +224,7 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
               return (
                 <div
                   key={bot.id}
-                  className="rounded-xl p-3.5 flex items-center justify-between border border-[#D8D8D1] bg-[#F3F0E8]"
+                  className="rounded-xl p-3.5 flex items-center justify-between border border-[#344B65] bg-[#172840]"
                 >
                   <div className="flex items-center gap-3">
                     {team && (
@@ -232,20 +232,20 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
                     )}
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-heading font-bold uppercase tracking-wide text-sm text-[#647084]">
+                        <span className="font-heading font-bold uppercase tracking-wide text-sm text-[#B0BED0]">
                           {bot.nickname}
                         </span>
-                        <span className="bg-[#E6EDF8] text-[#173B78] text-[10px] font-heading font-bold px-1.5 py-0.2 rounded border border-[#D8D8D1] uppercase tracking-wider">
+                        <span className="bg-[#172840] text-[#2858A5] text-[10px] font-heading font-bold px-1.5 py-0.2 rounded border border-[#344B65] uppercase tracking-wider">
                           AI BOT
                         </span>
                       </div>
-                      <p className="text-xs text-[#647084]">
-                        Strategy: <span className="capitalize text-[#18243A] font-medium">{bot.botStrategy}</span>
+                      <p className="text-xs text-[#B0BED0]">
+                        Strategy: <span className="capitalize text-[#F4F6FA] font-medium">{bot.botStrategy}</span>
                       </p>
                     </div>
                   </div>
 
-                  <span className="text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-[#176B48]/10 text-[#176B48] border border-[#176B48]/30">
+                  <span className="text-xs font-heading font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-[#3DBB83]/10 text-[#3DBB83] border border-[#3DBB83]/30">
                     READY
                   </span>
                 </div>
@@ -256,50 +256,50 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
 
         {/* Right Settings Summary & Host Launch */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl p-5 border border-[#D8D8D1] shadow-sm">
-            <h3 className="font-heading font-bold text-sm text-[#18243A] mb-3 flex items-center gap-2 uppercase tracking-wide">
-              <Sliders className="w-4 h-4 text-[#173B78]" />
+          <div className="bg-[#203650] rounded-xl p-5 border border-[#344B65] shadow-sm">
+            <h3 className="font-heading font-bold text-sm text-[#F4F6FA] mb-3 flex items-center gap-2 uppercase tracking-wide">
+              <Sliders className="w-4 h-4 text-[#2858A5]" />
               <span>Auction Rules</span>
             </h3>
 
-            <div className="space-y-2.5 text-xs text-[#647084]">
-              <div className="flex justify-between py-1.5 border-b border-[#D8D8D1]">
+            <div className="space-y-2.5 text-xs text-[#B0BED0]">
+              <div className="flex justify-between py-1.5 border-b border-[#344B65]">
                 <span>Starting Purse:</span>
-                <span className="font-number font-bold text-[#176B48]">
+                <span className="font-number font-bold text-[#3DBB83]">
                   ₹{(roomState.settings.startingPurse / 10000000).toFixed(0)} Cr
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-[#D8D8D1]">
+              <div className="flex justify-between py-1.5 border-b border-[#344B65]">
                 <span>Timer Per Lot:</span>
-                <span className="font-number font-bold text-[#173B78]">
+                <span className="font-number font-bold text-[#2858A5]">
                   {roomState.settings.timerDuration}s
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-[#D8D8D1]">
+              <div className="flex justify-between py-1.5 border-b border-[#344B65]">
                 <span>Squad Limits:</span>
-                <span className="font-number font-bold text-[#18243A]">Min 18 · Max 25</span>
+                <span className="font-number font-bold text-[#F4F6FA]">Min 18 · Max 25</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-[#D8D8D1]">
+              <div className="flex justify-between py-1.5 border-b border-[#344B65]">
                 <span>Overseas Limit:</span>
-                <span className="font-number font-bold text-[#18243A]">Max 8 per team</span>
+                <span className="font-number font-bold text-[#F4F6FA]">Max 8 per team</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-[#D8D8D1]">
+              <div className="flex justify-between py-1.5 border-b border-[#344B65]">
                 <span>Min Increment:</span>
-                <span className="font-number font-bold text-[#18243A]">
+                <span className="font-number font-bold text-[#F4F6FA]">
                   ₹{(roomState.settings.minBidIncrement / 100000).toFixed(0)}L
                 </span>
               </div>
               <div className="flex justify-between py-1.5">
                 <span>Room Mode:</span>
-                <span className="font-bold text-[#18243A] capitalize">{roomState.settings.playMode.replace('_', ' ')}</span>
+                <span className="font-bold text-[#F4F6FA] capitalize">{roomState.settings.playMode.replace('_', ' ')}</span>
               </div>
             </div>
 
             {/* Host Start Action */}
             {isHost ? (
-              <div className="mt-6 pt-4 border-t border-[#D8D8D1]">
+              <div className="mt-6 pt-4 border-t border-[#344B65]">
                 {unassignedHumans.length > 0 && (
-                  <div className="mb-3 bg-[#F0C65B]/20 border border-[#F0C65B]/40 rounded-xl p-2.5 text-xs text-[#B8860B] flex items-start gap-2">
+                  <div className="mb-3 bg-[#F3C969]/20 border border-[#F3C969]/40 rounded-xl p-2.5 text-xs text-[#F3C969] flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>Waiting for all participants to select their franchise.</span>
                   </div>
@@ -308,16 +308,16 @@ export const WaitingLobby: React.FC<WaitingLobbyProps> = ({
                 <button
                   onClick={onStartAuction}
                   disabled={!canStart}
-                  className="w-full bg-[#176B48] hover:bg-[#125438] text-white font-heading font-bold uppercase tracking-wider py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-base"
+                  className="w-full bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold uppercase tracking-wider py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-base"
                 >
                   <Play className="w-5 h-5 fill-current" />
                   <span>Start Auction</span>
                 </button>
               </div>
             ) : (
-              <div className="mt-6 pt-4 border-t border-[#D8D8D1] text-center">
-                <p className="text-xs text-[#647084]">
-                  Waiting for host (<strong className="text-[#18243A]">{roomState.members[roomState.hostId]?.nickname || 'Host'}</strong>) to start...
+              <div className="mt-6 pt-4 border-t border-[#344B65] text-center">
+                <p className="text-xs text-[#B0BED0]">
+                  Waiting for host (<strong className="text-[#F4F6FA]">{roomState.members[roomState.hostId]?.nickname || 'Host'}</strong>) to start...
                 </p>
               </div>
             )}

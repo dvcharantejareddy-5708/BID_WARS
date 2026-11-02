@@ -63,16 +63,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const myTeam = myMember?.teamId ? IPL_FRANCHISES[myMember.teamId] : null;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#173B78] text-white border-b border-[#122F61] px-3.5 lg:px-6 py-2 transition-all shadow-md">
+    <header className="sticky top-0 z-50 bg-[#101B2D] text-white border-b border-[#344B65] px-3.5 lg:px-6 py-2 transition-all shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         {/* Logo & Brand */}
         <div className="flex items-center gap-2.5 shrink-0">
           <span className="text-xl">🏏</span>
           <div className="flex items-center gap-1.5">
             <span className="text-2xl font-heading font-bold tracking-wider text-white">
-              BID<span className="text-[#F0C65B]">WARS</span>
+              BID<span className="text-[#F3C969]">WARS</span>
             </span>
-            <span className="bg-[#176B48] text-white text-[11px] font-heading font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+            <span className="bg-[#3DBB83] text-white text-[11px] font-heading font-bold px-2 py-0.5 rounded uppercase tracking-wider">
               IPL 2026
             </span>
           </div>
@@ -80,16 +80,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center Navigation Tabs (When inside a room) */}
         {roomCode && (
-          <nav className="hidden md:flex items-center bg-[#122F61]/80 p-1 rounded-lg border border-white/10 gap-1">
+          <nav className="hidden md:flex items-center bg-[#172840]/80 p-1 rounded-lg border border-[#344B65] gap-1">
             <button
               onClick={() => setActiveTab('auction')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'auction'
-                  ? 'bg-[#176B48] text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#3DBB83] text-white shadow-sm'
+                  : 'text-[#B0BED0] hover:text-white hover:bg-white/10'
               }`}
             >
-              <Radio className="w-3.5 h-3.5 text-[#F0C65B]" />
+              <Radio className="w-3.5 h-3.5 text-[#F3C969]" />
               <span>Auction Arena</span>
             </button>
 
@@ -97,15 +97,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('my-team')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'my-team'
-                  ? 'bg-[#176B48] text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#3DBB83] text-white shadow-sm'
+                  : 'text-[#B0BED0] hover:text-white hover:bg-white/10'
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
               <span>My Team</span>
               {squadCount > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-number ${
-                  activeTab === 'my-team' ? 'bg-[#F0C65B] text-[#18243A]' : 'bg-white/20 text-white'
+                  activeTab === 'my-team' ? 'bg-[#F3C969] text-[#101B2D]' : 'bg-white/20 text-white'
                 }`}>
                   {squadCount}
                 </span>
@@ -116,8 +116,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('all-teams')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'all-teams'
-                  ? 'bg-[#176B48] text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#3DBB83] text-white shadow-sm'
+                  : 'text-[#B0BED0] hover:text-white hover:bg-white/10'
               }`}
             >
               <Trophy className="w-3.5 h-3.5" />
@@ -128,8 +128,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('players')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'players'
-                  ? 'bg-[#176B48] text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#3DBB83] text-white shadow-sm'
+                  : 'text-[#B0BED0] hover:text-white hover:bg-white/10'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -140,8 +140,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('history')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wider transition-all ${
                 activeTab === 'history'
-                  ? 'bg-[#176B48] text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                  ? 'bg-[#3DBB83] text-white shadow-sm'
+                  : 'text-[#B0BED0] hover:text-white hover:bg-white/10'
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MessageSquare className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Chat</span>
               {unreadChatCount > 0 && !isChatOpen && (
-                <span className="bg-[#F0C65B] text-[#18243A] text-[10px] font-number px-1.5 py-0.2 rounded-full font-bold">
+                <span className="bg-[#F3C969] text-[#101B2D] text-[10px] font-number px-1.5 py-0.2 rounded-full font-bold">
                   {unreadChatCount}
                 </span>
               )}
@@ -196,7 +196,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {myMember.nickname}
               </span>
               {myMember.isHost && (
-                <span className="text-[9px] bg-[#F0C65B] text-[#18243A] font-heading font-bold px-1.5 rounded uppercase tracking-wider">
+                <span className="text-[9px] bg-[#F3C969] text-[#101B2D] font-heading font-bold px-1.5 rounded uppercase tracking-wider">
                   HOST
                 </span>
               )}

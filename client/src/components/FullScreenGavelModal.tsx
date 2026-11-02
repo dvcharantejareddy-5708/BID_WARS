@@ -140,23 +140,23 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
   }
 
   return (
-    <div className={`fixed inset-0 z-50 bg-[#18243A]/90 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 animate-fadeIn select-none overflow-hidden font-body ${
+    <div className={`fixed inset-0 z-50 bg-[#0A111D]/90 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 animate-fadeIn select-none overflow-hidden font-body ${
       hasStruck ? 'animate-impact-shake' : ''
     }`}>
       {/* Top Bar: Official Confirmation & Mute Toggle */}
       <div className="flex items-center justify-between w-full max-w-5xl mx-auto z-10">
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 border border-[#D8D8D1] shadow-md">
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#172840] border border-[#344B65] shadow-md">
           {isSold ? (
             <>
-              <Sparkles className="w-4 h-4 text-[#167447] animate-spin" />
-              <span className="text-xs font-heading font-bold text-[#167447] tracking-wider uppercase">
+              <Sparkles className="w-4 h-4 text-[#3DBB83] animate-spin" />
+              <span className="text-xs font-heading font-bold text-[#3DBB83] tracking-wider uppercase">
                 Official Sale Confirmation
               </span>
             </>
           ) : (
             <>
-              <AlertCircle className="w-4 h-4 text-[#C74444]" />
-              <span className="text-xs font-heading font-bold text-[#C74444] tracking-wider uppercase">
+              <AlertCircle className="w-4 h-4 text-[#E85D5D]" />
+              <span className="text-xs font-heading font-bold text-[#E85D5D] tracking-wider uppercase">
                 Lot Concluded — Unsold
               </span>
             </>
@@ -166,17 +166,17 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         <button
           onClick={handleToggleMute}
           aria-label={isMuted ? 'Unmute voice' : 'Mute voice'}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 hover:bg-[#E6EDF8] border border-[#D8D8D1] text-[#18243A] transition-all text-xs font-semibold shadow-md active:scale-95"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#172840] hover:bg-[#203650] border border-[#344B65] text-[#F4F6FA] transition-all text-xs font-semibold shadow-md active:scale-95"
         >
           {isMuted ? (
             <>
-              <VolumeX className="w-4 h-4 text-[#C74444]" />
-              <span className="text-[#647084]">Muted</span>
+              <VolumeX className="w-4 h-4 text-[#E85D5D]" />
+              <span className="text-[#B0BED0]">Muted</span>
             </>
           ) : (
             <>
-              <Volume2 className="w-4 h-4 text-[#176B48]" />
-              <span className="text-[#176B48] font-bold">Voice Active</span>
+              <Volume2 className="w-4 h-4 text-[#3DBB83]" />
+              <span className="text-[#3DBB83] font-bold">Voice Active</span>
             </>
           )}
         </button>
@@ -242,20 +242,20 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
 
         {/* Detail Card - Synchronized with Strike */}
         {isSold && winningTeamId && (
-          <div className={`mt-5 w-full max-w-xl bg-white border-2 border-[#167447] rounded-xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-2xl transition-all duration-500 transform ${
+          <div className={`mt-5 w-full max-w-xl bg-[#203650] border-2 border-[#3DBB83] rounded-xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-2xl transition-all duration-500 transform ${
             hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}>
             {/* Winning Team with Official Logo & Full Name */}
             <div className="flex items-center gap-3.5 text-left">
               <TeamLogo teamId={winningTeamId} className="w-12 h-12 sm:w-14 sm:h-14 object-contain shrink-0 drop-shadow-md" />
               <div>
-                <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">
+                <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">
                   Acquired By
                 </span>
-                <span className="text-base sm:text-lg font-heading font-black text-[#173B78] block leading-tight uppercase">
+                <span className="text-base sm:text-lg font-heading font-black text-[#F4F6FA] block leading-tight uppercase">
                   {fullTeamName}
                 </span>
-                <span className="text-xs font-mono font-bold text-[#167447]">
+                <span className="text-xs font-mono font-bold text-[#3DBB83]">
                   ({shortTeamName})
                 </span>
               </div>
@@ -263,10 +263,10 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
 
             {/* Final Sold Price */}
             <div className="text-right shrink-0">
-              <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">
+              <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">
                 Final Bid
               </span>
-              <span className="text-2xl sm:text-3xl font-number font-bold text-[#167447] block leading-none">
+              <span className="text-2xl sm:text-3xl font-number font-bold text-[#3DBB83] block leading-none">
                 ₹{(finalPrice / 10000000).toFixed(2)} Cr
               </span>
             </div>
@@ -274,26 +274,26 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         )}
 
         {isUnsold && (
-          <div className={`mt-5 w-full max-w-xl bg-white border border-[#C74444]/60 rounded-xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xl transition-all duration-500 transform ${
+          <div className={`mt-5 w-full max-w-xl bg-[#203650] border border-[#E85D5D]/60 rounded-xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xl transition-all duration-500 transform ${
             hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}>
             <div className="text-left">
-              <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">
+              <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">
                 Auction Outcome
               </span>
-              <span className="text-base sm:text-lg font-heading font-black text-[#C74444] block uppercase">
+              <span className="text-base sm:text-lg font-heading font-black text-[#E85D5D] block uppercase">
                 No Bids Placed
               </span>
-              <span className="text-xs text-[#647084]">
+              <span className="text-xs text-[#B0BED0]">
                 Player moved to unsold pool for later accelerated round
               </span>
             </div>
 
             <div className="text-right shrink-0">
-              <span className="text-[10px] text-[#647084] uppercase font-bold tracking-wider block">
+              <span className="text-[10px] text-[#B0BED0] uppercase font-bold tracking-wider block">
                 Base Price
               </span>
-              <span className="text-xl sm:text-2xl font-number font-bold text-[#173B78] block leading-none">
+              <span className="text-xl sm:text-2xl font-number font-bold text-[#F3C969] block leading-none">
                 ₹{(player.base_price_inr / 10000000).toFixed(2)} Cr
               </span>
             </div>
@@ -304,7 +304,7 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       {/* Bottom Status & Voice Pacing Indicator + Autoplay Recovery */}
       <div className="w-full max-w-md mx-auto text-center z-10 pt-2 flex flex-col items-center gap-2">
         <p className="text-xs font-mono text-white/90 flex items-center justify-center gap-2">
-          <span className={`inline-block w-2 h-2 rounded-full ${isSold ? 'bg-[#F0C65B]' : 'bg-[#FF8A8A]'} animate-ping`} />
+          <span className={`inline-block w-2 h-2 rounded-full ${isSold ? 'bg-[#3DBB83]' : 'bg-[#E85D5D]'} animate-ping`} />
           <span>
             {isSold 
               ? `“${player.name} sold to ${shortTeamName} for ${spokenPrice}!”` 
@@ -316,7 +316,7 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
         {hasStruck && (
           <button
             onClick={handleManualComplete}
-            className="px-4 py-1.5 rounded-full bg-white hover:bg-[#E6EDF8] border border-[#D8D8D1] text-xs font-heading font-bold uppercase tracking-wider text-[#173B78] hover:text-[#176B48] transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+            className="px-4 py-1.5 rounded-full bg-[#172840] hover:bg-[#203650] border border-[#344B65] text-xs font-heading font-bold uppercase tracking-wider text-[#F4F6FA] hover:text-[#3DBB83] transition-all flex items-center gap-1.5 shadow-md active:scale-95"
           >
             <span>Next Player ➔</span>
           </button>
