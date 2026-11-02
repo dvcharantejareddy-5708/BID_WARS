@@ -4,65 +4,70 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        stadium: {
-          bg: '#080D18',
-          secondary: '#0E1626',
-          panel: '#141F33',
-          border: '#26354D',
-          lime: '#C8FF45',
-          ice: '#54C8FF',
-          text: '#F4F7FC',
-          muted: '#9BAAC0',
-          success: '#43D995',
-          warning: '#FFC857',
-          error: '#FF647C',
-        },
-        dark: {
-          950: '#080D18', // Stadium midnight navy base
-          900: '#0E1626', // Secondary background
-          850: '#141F33', // Elevated panel
-          800: '#1B2942', // Interactive surfaces
-          700: '#26354D', // Stadium borders
-          600: '#3D506E',
-          500: '#5A6F8F',
+        arena: {
+          bg: '#F3F0E8',         // warm light ivory
+          card: '#FFFFFF',       // elevated pure white
+          blue: '#173B78',       // deep royal blue
+          blueHover: '#122F61',
+          green: '#176B48',      // cricket field green
+          greenHover: '#125438',
+          ink: '#18243A',        // deep ink navy
+          softBlue: '#E6EDF8',   // soft blue surface
+          gold: '#F0C65B',       // muted golden yellow
+          slate: '#647084',      // secondary text slate
+          border: '#D8D8D1',     // warm grey border
+          sold: '#167447',       // sold/success deep green
+          unsold: '#C74444',     // unsold/error muted red
         },
         cricket: {
-          400: '#C8FF45', // Electric Lime accent
-          500: '#B0E635',
-          300: '#D9FF75',
-        },
-        ice: {
-          400: '#54C8FF', // Ice Blue supporting accent
-          500: '#38B6FF',
-          300: '#8AE0FF',
+          400: '#176B48',
+          500: '#125438',
+          300: '#1E855A',
         },
         gold: {
-          400: '#FFC857', // Trophy gold
-          500: '#FFB300',
-          300: '#FFE082',
+          400: '#F0C65B',
+          500: '#DDAE3B',
+          300: '#F5D783',
         },
         alert: {
-          500: '#FF647C', // Error red
-          600: '#E04860',
+          500: '#C74444',
+          600: '#A93333',
+        },
+        stadium: {
+          bg: '#F3F0E8',
+          secondary: '#FFFFFF',
+          panel: '#FFFFFF',
+          border: '#D8D8D1',
+          lime: '#176B48',
+          ice: '#173B78',
+          text: '#18243A',
+          muted: '#647084',
+          success: '#167447',
+          warning: '#F0C65B',
+          error: '#C74444',
         }
       },
       fontFamily: {
-        display: ['"Barlow Condensed"', '"Sora"', 'sans-serif'],
-        heading: ['"Barlow Condensed"', '"Sora"', 'sans-serif'],
-        number: ['"Archivo Black"', 'tabular-nums', 'sans-serif'],
-        sans: ['"IBM Plex Sans"', '"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['"Archivo Black"', 'ui-monospace', 'monospace'],
+        teko: ['"Teko"', 'Impact', 'sans-serif'],
+        display: ['"Teko"', 'Impact', 'sans-serif'],
+        heading: ['"Teko"', 'Impact', 'sans-serif'],
+        roboto: ['"Roboto Condensed"', 'sans-serif'],
+        number: ['"Roboto Condensed"', 'tabular-nums', 'sans-serif'],
+        sans: ['"Source Sans 3"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        body: ['"Source Sans 3"', '-apple-system', 'sans-serif'],
+        mono: ['"Roboto Condensed"', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
-        'glow-lime': '0 0 25px -4px rgba(200, 255, 69, 0.4)',
-        'glow-ice': '0 0 25px -4px rgba(84, 200, 255, 0.35)',
-        'glow-gold': '0 0 25px -5px rgba(255, 200, 87, 0.35)',
-        'glow-red': '0 0 25px -5px rgba(255, 100, 124, 0.35)',
-        'stadium-card': '0 8px 24px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(38, 53, 77, 0.8)',
+        'arena-card': '0 1px 3px 0 rgba(24, 36, 58, 0.06), 0 1px 2px -1px rgba(24, 36, 58, 0.06)',
+        'arena-elevated': '0 4px 16px -2px rgba(24, 36, 58, 0.08), 0 2px 6px -2px rgba(24, 36, 58, 0.04)',
+        'arena-modal': '0 20px 40px -10px rgba(24, 36, 58, 0.25)',
+        'glow-blue': '0 0 18px -2px rgba(23, 59, 120, 0.35)',
+        'glow-green': '0 0 18px -2px rgba(23, 107, 72, 0.35)',
+        'glow-gold': '0 0 18px -2px rgba(240, 198, 91, 0.35)',
+        'glow-red': '0 0 18px -2px rgba(199, 68, 68, 0.35)',
       }
     },
   },

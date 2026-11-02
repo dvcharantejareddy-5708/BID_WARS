@@ -28,30 +28,30 @@ export const HammerClockBadge: React.FC<HammerClockBadgeProps> = ({
   const remainingSec = Math.ceil(remainingMs / 1000);
 
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#141F33] border border-[#26354D] select-none shadow-sm">
-      <Clock className="w-3.5 h-3.5 text-[#C8FF45]" />
-      <span className="text-[10px] font-heading font-extrabold uppercase tracking-wider text-[#9BAAC0] hidden xs:inline">
+    <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-white border border-[#D8D8D1] select-none shadow-sm">
+      <Clock className="w-3.5 h-3.5 text-[#173B78]" />
+      <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-[#647084] hidden xs:inline">
         Clock:
       </span>
       {roomStatus === 'PAUSED' ? (
-        <span className="font-heading font-bold text-[#FFC857] text-xs uppercase">PAUSED</span>
+        <span className="font-heading font-bold text-[#F0C65B] text-xs uppercase">PAUSED</span>
       ) : lotStatus === 'IN_PROGRESS' ? (
         <div className="flex items-center gap-1 font-number">
-          <span className={`text-xs ${
-            remainingSec <= 3 
-              ? 'text-[#FF647C] animate-pulse drop-shadow-[0_0_8px_rgba(255,100,124,0.8)]' 
-              : remainingSec <= 5 
-              ? 'text-[#FFC857]' 
-              : 'text-[#C8FF45]'
+          <span className={`text-sm font-bold ${
+            remainingSec <= 2 
+              ? 'text-[#C74444]' 
+              : remainingSec <= 3 
+              ? 'text-[#B8860B]' 
+              : 'text-[#176B48]'
           }`}>
             {remainingSec}s
           </span>
-          {remainingSec <= 3 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF647C] animate-ping" />
+          {remainingSec <= 2 && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C74444] animate-ping" />
           )}
         </div>
       ) : (
-        <span className="font-heading font-bold text-[11px] text-[#9BAAC0] uppercase tracking-wider">
+        <span className="font-heading font-bold text-xs text-[#647084] uppercase tracking-wider">
           {lotStatus}
         </span>
       )}
@@ -109,14 +109,14 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
   return (
     <>
       {/* Top Hammer Timer Progress Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#080D18] overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#E6EDF8] overflow-hidden">
         <div
           className={`h-full transition-all duration-100 ${
             remainingSec <= 2
-              ? 'bg-[#FF647C] shadow-[0_0_12px_#FF647C] animate-pulse'
+              ? 'bg-[#C74444]'
               : remainingSec <= 3
-              ? 'bg-[#FFC857] shadow-[0_0_12px_#FFC857]'
-              : 'bg-gradient-to-r from-[#C8FF45] to-[#54C8FF] shadow-[0_0_12px_#C8FF45]'
+              ? 'bg-[#F0C65B]'
+              : 'bg-[#176B48]'
           }`}
           style={{ width: `${progressPercent}%` }}
         />
@@ -124,28 +124,28 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
 
       {/* Countdown Box & Indicator */}
       <div className="flex items-center gap-2.5">
-        <div className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center font-number border transition-all ${
+        <div className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center font-number border transition-all ${
           remainingSec <= 1 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#FF647C]/30 text-[#FF647C] border-[#FF647C] shadow-[0_0_18px_rgba(255,100,124,0.6)] animate-pulse scale-105'
+            ? 'bg-[#C74444]/15 text-[#C74444] border-[#C74444] shadow-sm animate-pulse scale-105'
             : remainingSec <= 2 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#FF647C]/25 text-[#FF647C] border-[#FF647C] shadow-[0_0_14px_rgba(255,100,124,0.5)] animate-pulse'
+            ? 'bg-[#C74444]/10 text-[#C74444] border-[#C74444] shadow-sm animate-pulse'
             : remainingSec <= 3 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#FFC857]/25 text-[#FFC857] border-[#FFC857] shadow-[0_0_12px_rgba(255,200,87,0.4)] animate-pulse'
-            : 'bg-[#141F33] text-[#C8FF45] border-[#26354D]'
+            ? 'bg-[#F0C65B]/20 text-[#B8860B] border-[#F0C65B] shadow-sm animate-pulse'
+            : 'bg-[#E6EDF8] text-[#173B78] border-[#D8D8D1]'
         }`}>
-          <span className="text-xl leading-none">{remainingSec}</span>
-          <span className="text-[8px] font-heading font-extrabold uppercase text-[#9BAAC0]">SEC</span>
+          <span className="text-xl font-bold leading-none">{remainingSec}</span>
+          <span className="text-[9px] font-heading font-bold uppercase text-[#647084]">SEC</span>
         </div>
 
         <div>
-          <span className="text-[10px] text-[#9BAAC0] uppercase font-heading font-extrabold tracking-wider block">Hammer Clock</span>
+          <span className="text-[10px] text-[#647084] uppercase font-heading font-bold tracking-wider block">Hammer Clock</span>
           {lotStatus === 'IN_PROGRESS' && remainingSec <= 3 ? (
-            <span className="text-xs font-heading font-extrabold text-[#FF647C] flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF647C] animate-ping" />
+            <span className="text-xs font-heading font-bold text-[#C74444] flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C74444] animate-ping" />
               FINAL 3 SECONDS!
             </span>
           ) : (
-            <span className="text-xs text-[#F4F7FC] font-medium">
+            <span className="text-xs text-[#18243A] font-semibold">
               {lotStatus === 'IN_PROGRESS' ? 'Resets on each bid' : lotStatus}
             </span>
           )}

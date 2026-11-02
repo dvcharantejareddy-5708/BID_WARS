@@ -112,21 +112,21 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
   }, [remainingList, search, roleFilter, nationalityFilter, priceFilter]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-5 selection:bg-[#C8FF45] selection:text-black">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-5 selection:bg-[#E6EDF8] selection:text-[#173B78]">
       {/* 3 Main Group Segmented Tabs */}
-      <div className="bg-[#0E1626] border border-[#26354D] rounded-2xl p-2 flex items-center justify-between gap-2 shadow-2xl">
+      <div className="bg-white border border-[#D8D8D1] rounded-2xl p-2 flex items-center justify-between gap-2 shadow-sm">
         <button
           onClick={() => setActiveGroup('SOLD')}
           className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-heading font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
             activeGroup === 'SOLD'
-              ? 'bg-[#43D995] text-black shadow-md'
-              : 'text-[#9BAAC0] hover:text-[#F4F7FC] hover:bg-[#141F33]'
+              ? 'bg-[#167447] text-white shadow-sm'
+              : 'text-[#647084] hover:text-[#18243A] hover:bg-[#F3F0E8]'
           }`}
         >
           <Award className="w-4 h-4 stroke-[2.5]" />
           <span>Sold Players</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-number font-black ${
-            activeGroup === 'SOLD' ? 'bg-black text-[#43D995]' : 'bg-[#141F33] text-[#9BAAC0]'
+            activeGroup === 'SOLD' ? 'bg-white/20 text-white' : 'bg-[#E6EDF8] text-[#173B78]'
           }`}>
             {soldList.length}
           </span>
@@ -136,14 +136,14 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           onClick={() => setActiveGroup('UNSOLD')}
           className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-heading font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
             activeGroup === 'UNSOLD'
-              ? 'bg-[#FF647C] text-black shadow-md'
-              : 'text-[#9BAAC0] hover:text-[#F4F7FC] hover:bg-[#141F33]'
+              ? 'bg-[#C74444] text-white shadow-sm'
+              : 'text-[#647084] hover:text-[#18243A] hover:bg-[#F3F0E8]'
           }`}
         >
           <XCircle className="w-4 h-4 stroke-[2.5]" />
           <span>Unsold Players</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-number font-black ${
-            activeGroup === 'UNSOLD' ? 'bg-black text-[#FF647C]' : 'bg-[#141F33] text-[#9BAAC0]'
+            activeGroup === 'UNSOLD' ? 'bg-white/20 text-white' : 'bg-[#F3F0E8] text-[#647084]'
           }`}>
             {unsoldList.length}
           </span>
@@ -153,14 +153,14 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           onClick={() => setActiveGroup('REMAINING')}
           className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-heading font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
             activeGroup === 'REMAINING'
-              ? 'bg-[#C8FF45] text-black shadow-md'
-              : 'text-[#9BAAC0] hover:text-[#F4F7FC] hover:bg-[#141F33]'
+              ? 'bg-[#173B78] text-white shadow-sm'
+              : 'text-[#647084] hover:text-[#18243A] hover:bg-[#F3F0E8]'
           }`}
         >
           <Clock className="w-4 h-4 stroke-[2.5]" />
           <span>Remaining Players</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-number font-black ${
-            activeGroup === 'REMAINING' ? 'bg-black text-[#C8FF45]' : 'bg-[#141F33] text-[#9BAAC0]'
+            activeGroup === 'REMAINING' ? 'bg-white/20 text-white' : 'bg-[#E6EDF8] text-[#173B78]'
           }`}>
             {remainingList.length}
           </span>
@@ -168,15 +168,15 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[#141F33] border border-[#26354D] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+      <div className="bg-white border border-[#D8D8D1] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-[#9BAAC0]" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-[#647084]" />
           <input
             type="text"
             placeholder={`Search ${activeGroup.toLowerCase()} players by name...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#0E1626] border border-[#26354D] rounded-xl text-xs text-[#F4F7FC] placeholder-[#54627A] focus:outline-none focus:border-[#C8FF45]"
+            className="w-full pl-9 pr-3 py-2 bg-[#F3F0E8] border border-[#D8D8D1] rounded-xl text-xs text-[#18243A] placeholder-[#647084] focus:outline-none focus:border-[#173B78] focus:bg-white"
           />
         </div>
 
@@ -184,7 +184,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-[#0E1626] border border-[#26354D] text-[#F4F7FC] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#C8FF45] font-heading font-bold uppercase"
+            className="bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#173B78] focus:bg-white font-heading font-bold uppercase"
           >
             <option value="ALL">All Categories</option>
             <option value="Batsmen">Batsmen</option>
@@ -196,7 +196,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           <select
             value={nationalityFilter}
             onChange={(e) => setNationalityFilter(e.target.value as any)}
-            className="bg-[#0E1626] border border-[#26354D] text-[#F4F7FC] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#C8FF45] font-heading font-bold uppercase"
+            className="bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#173B78] focus:bg-white font-heading font-bold uppercase"
           >
             <option value="ALL">All Nationalities</option>
             <option value="INDIAN">Indian (🇮🇳)</option>
@@ -206,7 +206,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           <select
             value={priceFilter}
             onChange={(e) => setPriceFilter(e.target.value)}
-            className="bg-[#0E1626] border border-[#26354D] text-[#F4F7FC] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#C8FF45] font-heading font-bold uppercase"
+            className="bg-[#F3F0E8] border border-[#D8D8D1] text-[#18243A] rounded-xl px-2.5 py-2 focus:outline-none focus:border-[#173B78] focus:bg-white font-heading font-bold uppercase"
           >
             <option value="ALL">All Base Prices</option>
             <option value="2 Crore">₹2 Crore</option>
@@ -222,28 +222,28 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
       </div>
 
       {/* Main Players List Container */}
-      <div className="bg-[#141F33] border border-[#26354D] rounded-2xl p-5 shadow-2xl">
+      <div className="bg-white border border-[#D8D8D1] rounded-2xl p-5 shadow-sm">
         {/* GROUP 1: SOLD PLAYERS */}
         {activeGroup === 'SOLD' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#43D995] flex items-center gap-1.5">
+              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#167447] flex items-center gap-1.5">
                 <Award className="w-4 h-4 stroke-[2.5]" />
                 <span>Sold Players ({filteredSold.length})</span>
               </h2>
-              <span className="text-[11px] text-[#9BAAC0]">Showing winning team & final price</span>
+              <span className="text-[11px] text-[#647084]">Showing winning team & final price</span>
             </div>
 
             {filteredSold.length === 0 ? (
-              <div className="py-12 text-center text-[#9BAAC0]">
-                <p className="text-sm font-heading font-bold uppercase text-[#F4F7FC]">No players sold yet</p>
-                <p className="text-xs text-[#9BAAC0] mt-1">Winning bids in the live auction will appear here.</p>
+              <div className="py-12 text-center text-[#647084]">
+                <p className="text-sm font-heading font-bold uppercase text-[#18243A]">No players sold yet</p>
+                <p className="text-xs text-[#647084] mt-1">Winning bids in the live auction will appear here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#26354D] text-[#9BAAC0] font-heading font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="border-b border-[#D8D8D1] text-[#647084] font-heading font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pl-3">#</th>
                       <th className="pb-3">Player Name</th>
                       <th className="pb-3">Category</th>
@@ -252,27 +252,27 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                       <th className="pb-3 pr-3 text-right">WINNING FRANCHISE</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#26354D]">
+                  <tbody className="divide-y divide-[#D8D8D1]">
                     {filteredSold.map(({ player: p, soldPrice, winningTeam }, idx) => {
                       const franchise = winningTeam ? (IPL_FRANCHISES as Record<string, any>)[winningTeam] : null;
 
                       return (
-                        <tr key={p.id} className="hover:bg-[#1B2942]/50 transition-colors">
-                          <td className="py-3 pl-3 font-number text-[#9BAAC0]">{idx + 1}</td>
+                        <tr key={p.id} className="hover:bg-[#F3F0E8]/70 transition-colors">
+                          <td className="py-3 pl-3 font-number text-[#647084]">{idx + 1}</td>
                           <td className="py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-[#0E1626] border border-[#26354D] overflow-hidden flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-lg bg-[#E6EDF8] border border-[#D8D8D1] overflow-hidden flex items-center justify-center shrink-0">
                                 {p.image_url ? (
                                   <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
                                 ) : (
-                                  <span className="font-heading font-black text-[10px] text-[#C8FF45]">{p.name.slice(0, 2)}</span>
+                                  <span className="font-heading font-black text-[10px] text-[#173B78]">{p.name.slice(0, 2)}</span>
                                 )}
                               </div>
                               <div>
-                                <span className="font-heading font-black uppercase text-[#F4F7FC] block">{p.name}</span>
-                                <span className="text-[10px] text-[#9BAAC0] flex items-center gap-1">
+                                <span className="font-heading font-black uppercase text-[#18243A] block">{p.name}</span>
+                                <span className="text-[10px] text-[#647084] flex items-center gap-1">
                                   {p.is_overseas ? (
-                                    <span className="text-[#43D995] flex items-center gap-0.5 font-semibold">
+                                    <span className="text-[#176B48] flex items-center gap-0.5 font-semibold">
                                       <Plane className="w-2.5 h-2.5" /> {p.nationality}
                                     </span>
                                   ) : (
@@ -283,28 +283,28 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                             </div>
                           </td>
                           <td className="py-3">
-                            <span className="bg-[#0E1626] border border-[#26354D] px-2 py-0.5 rounded text-[11px] text-[#F4F7FC] font-heading font-bold uppercase">
+                            <span className="bg-[#E6EDF8] border border-[#D8D8D1] px-2 py-0.5 rounded text-[11px] text-[#173B78] font-heading font-bold uppercase">
                               {p.category}
                             </span>
                           </td>
-                          <td className="py-3 font-number text-[#9BAAC0]">
+                          <td className="py-3 font-number text-[#647084]">
                             {p.base_price_display}
                           </td>
                           <td className="py-3 text-center">
-                            <span className="bg-[#C8FF45]/10 text-[#C8FF45] border border-[#C8FF45]/30 px-3 py-1 rounded-full font-number font-black text-sm inline-block shadow-sm">
+                            <span className="bg-[#167447]/10 text-[#167447] border border-[#167447]/30 px-3 py-1 rounded-full font-number font-black text-sm inline-block shadow-xs">
                               ₹{(soldPrice / 10000000).toFixed(2)} Cr
                             </span>
                           </td>
                           <td className="py-3 pr-3 text-right">
                             {franchise ? (
                               <div className="inline-flex items-center gap-2">
-                                <TeamLogo teamId={winningTeam} className="w-6 h-6 shrink-0 shadow-sm" />
-                                <span className="font-heading font-bold text-[#F4F7FC] text-xs uppercase">
+                                <TeamLogo teamId={winningTeam} className="w-6 h-6 shrink-0 shadow-xs" />
+                                <span className="font-heading font-bold text-[#18243A] text-xs uppercase">
                                   {franchise.name}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-[#F4F7FC] font-heading font-bold uppercase">{winningTeam}</span>
+                              <span className="text-[#18243A] font-heading font-bold uppercase">{winningTeam}</span>
                             )}
                           </td>
                         </tr>
@@ -321,23 +321,23 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
         {activeGroup === 'UNSOLD' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#FF647C] flex items-center gap-1.5">
+              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#C74444] flex items-center gap-1.5">
                 <XCircle className="w-4 h-4 stroke-[2.5]" />
                 <span>Unsold Players ({filteredUnsold.length})</span>
               </h2>
-              <span className="text-[11px] text-[#9BAAC0]">Eligible for re-auction round</span>
+              <span className="text-[11px] text-[#647084]">Eligible for re-auction round</span>
             </div>
 
             {filteredUnsold.length === 0 ? (
-              <div className="py-12 text-center text-[#9BAAC0]">
-                <p className="text-sm font-heading font-bold uppercase text-[#F4F7FC]">No unsold players in this session</p>
-                <p className="text-xs text-[#9BAAC0] mt-1">Players who receive no bids will appear here.</p>
+              <div className="py-12 text-center text-[#647084]">
+                <p className="text-sm font-heading font-bold uppercase text-[#18243A]">No unsold players in this session</p>
+                <p className="text-xs text-[#647084] mt-1">Players who receive no bids will appear here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#26354D] text-[#9BAAC0] font-heading font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="border-b border-[#D8D8D1] text-[#647084] font-heading font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pl-3">#</th>
                       <th className="pb-3">Player Name</th>
                       <th className="pb-3">Category</th>
@@ -346,41 +346,41 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                       <th className="pb-3 pr-3 text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#26354D]">
+                  <tbody className="divide-y divide-[#D8D8D1]">
                     {filteredUnsold.map((p, idx) => (
-                      <tr key={p.id} className="hover:bg-[#1B2942]/50 transition-colors">
-                        <td className="py-3 pl-3 font-number text-[#9BAAC0]">{idx + 1}</td>
+                      <tr key={p.id} className="hover:bg-[#F3F0E8]/70 transition-colors">
+                        <td className="py-3 pl-3 font-number text-[#647084]">{idx + 1}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-[#0E1626] border border-[#26354D] overflow-hidden flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-[#E6EDF8] border border-[#D8D8D1] overflow-hidden flex items-center justify-center shrink-0">
                               {p.image_url ? (
                                 <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
                               ) : (
-                                <span className="font-heading font-black text-[10px] text-[#FF647C]">{p.name.slice(0, 2)}</span>
+                                <span className="font-heading font-black text-[10px] text-[#C74444]">{p.name.slice(0, 2)}</span>
                               )}
                             </div>
-                            <span className="font-heading font-black uppercase text-[#F4F7FC]">{p.name}</span>
+                            <span className="font-heading font-black uppercase text-[#18243A]">{p.name}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-[#9BAAC0]">
-                          <span className="bg-[#0E1626] border border-[#26354D] px-2 py-0.5 rounded text-[11px] font-heading font-bold uppercase">
+                        <td className="py-3 text-[#647084]">
+                          <span className="bg-[#E6EDF8] border border-[#D8D8D1] px-2 py-0.5 rounded text-[11px] font-heading font-bold uppercase text-[#173B78]">
                             {p.category}
                           </span>
                         </td>
-                        <td className="py-3 text-[#9BAAC0]">
+                        <td className="py-3 text-[#647084]">
                           {p.is_overseas ? (
-                            <span className="text-[#43D995] flex items-center gap-1 font-semibold">
+                            <span className="text-[#176B48] flex items-center gap-1 font-semibold">
                               <Plane className="w-2.5 h-2.5" /> {p.nationality}
                             </span>
                           ) : (
                             <span>🇮🇳 {p.nationality}</span>
                           )}
                         </td>
-                        <td className="py-3 font-number text-[#FFC857]">
+                        <td className="py-3 font-number text-[#18243A]">
                           {p.base_price_display}
                         </td>
                         <td className="py-3 pr-3 text-right">
-                          <span className="bg-[#FF647C]/10 text-[#FF647C] border border-[#FF647C]/30 px-3 py-1 rounded-full text-[10px] font-heading font-black uppercase">
+                          <span className="bg-[#C74444]/10 text-[#C74444] border border-[#C74444]/30 px-3 py-1 rounded-full text-[10px] font-heading font-black uppercase">
                             UNSOLD
                           </span>
                         </td>
@@ -397,23 +397,23 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
         {activeGroup === 'REMAINING' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#F4F7FC] flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-[#FFC857]" />
+              <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#18243A] flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-[#173B78]" />
                 <span>Remaining Players to be Auctioned ({filteredRemaining.length})</span>
               </h2>
-              <span className="text-[11px] text-[#9BAAC0]">Pending in the official auction pool</span>
+              <span className="text-[11px] text-[#647084]">Pending in the official auction pool</span>
             </div>
 
             {filteredRemaining.length === 0 ? (
-              <div className="py-12 text-center text-[#9BAAC0]">
-                <p className="text-sm font-heading font-bold uppercase text-[#F4F7FC]">No remaining players in the pool</p>
-                <p className="text-xs text-[#9BAAC0] mt-1">All lots have been brought forward for bidding.</p>
+              <div className="py-12 text-center text-[#647084]">
+                <p className="text-sm font-heading font-bold uppercase text-[#18243A]">No remaining players in the pool</p>
+                <p className="text-xs text-[#647084] mt-1">All lots have been brought forward for bidding.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#26354D] text-[#9BAAC0] font-heading font-bold uppercase tracking-wider text-[11px]">
+                    <tr className="border-b border-[#D8D8D1] text-[#647084] font-heading font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pl-3">S.No</th>
                       <th className="pb-3">Player Name</th>
                       <th className="pb-3">Category</th>
@@ -422,24 +422,24 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                       <th className="pb-3 pr-3 text-right">Official Base Price</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#26354D]">
+                  <tbody className="divide-y divide-[#D8D8D1]">
                     {filteredRemaining.slice(0, 100).map((p, idx) => (
-                      <tr key={p.id} className="hover:bg-[#1B2942]/50 transition-colors">
-                        <td className="py-2.5 pl-3 font-number text-[#9BAAC0]">#{p.s_no}</td>
+                      <tr key={p.id} className="hover:bg-[#F3F0E8]/70 transition-colors">
+                        <td className="py-2.5 pl-3 font-number text-[#647084]">#{p.s_no}</td>
                         <td className="py-2.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-[#0E1626] border border-[#26354D] overflow-hidden flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-[#E6EDF8] border border-[#D8D8D1] overflow-hidden flex items-center justify-center shrink-0">
                               {p.image_url ? (
                                 <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
                               ) : (
-                                <span className="font-heading font-black text-[9px] text-[#F4F7FC]">{p.name.slice(0, 2)}</span>
+                                <span className="font-heading font-black text-[9px] text-[#173B78]">{p.name.slice(0, 2)}</span>
                               )}
                             </div>
                             <div>
-                              <div className="font-heading font-black uppercase text-[#F4F7FC] flex items-center gap-1.5">
+                              <div className="font-heading font-black uppercase text-[#18243A] flex items-center gap-1.5">
                                 <span>{p.name}</span>
                                 {p.is_marquee && (
-                                  <span className="text-[9px] bg-[#FFC857]/20 text-[#FFC857] px-1 rounded font-black border border-[#FFC857]/30 uppercase">
+                                  <span className="text-[9px] bg-[#F0C65B]/25 text-[#925C05] px-1.5 py-0.5 rounded font-black border border-[#F0C65B] uppercase">
                                     MARQUEE
                                   </span>
                                 )}
@@ -447,24 +447,24 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                             </div>
                           </div>
                         </td>
-                        <td className="py-2.5 text-[#9BAAC0]">
-                          <span className="bg-[#0E1626] border border-[#26354D] px-2 py-0.5 rounded text-[11px] font-heading font-bold uppercase">
+                        <td className="py-2.5 text-[#647084]">
+                          <span className="bg-[#E6EDF8] border border-[#D8D8D1] px-2 py-0.5 rounded text-[11px] font-heading font-bold uppercase text-[#173B78]">
                             {p.category}
                           </span>
                         </td>
                         <td className="py-2.5">
                           {p.is_overseas ? (
-                            <span className="text-[#43D995] inline-flex items-center gap-1 text-[11px] font-semibold">
+                            <span className="text-[#176B48] inline-flex items-center gap-1 text-[11px] font-semibold">
                               <Plane className="w-2.5 h-2.5" /> {p.nationality}
                             </span>
                           ) : (
-                            <span className="text-[#9BAAC0] text-[11px]">🇮🇳 {p.nationality}</span>
+                            <span className="text-[#647084] text-[11px]">🇮🇳 {p.nationality}</span>
                           )}
                         </td>
-                        <td className="py-2.5 text-[11px] text-[#9BAAC0] truncate max-w-[160px]">
+                        <td className="py-2.5 text-[11px] text-[#647084] truncate max-w-[160px]">
                           {p.set_name}
                         </td>
-                        <td className="py-2.5 pr-3 text-right font-number font-black text-[#FFC857]">
+                        <td className="py-2.5 pr-3 text-right font-number font-black text-[#18243A]">
                           {p.base_price_display}
                         </td>
                       </tr>
@@ -474,7 +474,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
               </div>
             )}
             {filteredRemaining.length > 100 && (
-              <p className="text-center text-xs text-[#9BAAC0] italic pt-3">
+              <p className="text-center text-xs text-[#647084] italic pt-3">
                 Showing first 100 of {filteredRemaining.length} remaining players. Use the search or filter to narrow results.
               </p>
             )}
