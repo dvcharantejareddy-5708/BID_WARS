@@ -515,7 +515,7 @@ export function App() {
   const mySquadCount = myMember?.teamId && roomState ? (roomState.teamSquads[myMember.teamId] || []).length : 0;
 
   return (
-    <div className="min-h-screen bg-[#101B2D] text-[#F4F6FA] flex flex-col selection:bg-[#F3C969]/40 selection:text-white">
+    <div className="min-h-screen bg-[#0A0B14] text-[#F4F6FA] flex flex-col selection:bg-[#C8FF3D] selection:text-[#0A0B14]">
       {/* Top Navigation */}
       <Navbar
         roomCode={roomState?.roomCode}
@@ -538,7 +538,7 @@ export function App() {
 
       {/* Global Error Notification */}
       {errorMessage && (
-        <div className="fixed top-16 right-4 z-50 bg-[#E85D5D] text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 border border-white/20">
+        <div className="fixed top-16 right-4 z-50 bg-[#FF3B5C] text-white px-4 py-2.5 rounded-xl shadow-crimson-glow text-xs font-semibold flex items-center gap-2 border border-white/20">
           <span>⚠️ {errorMessage}</span>
         </div>
       )}

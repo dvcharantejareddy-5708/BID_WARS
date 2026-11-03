@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, X, Shield, Clock } from 'lucide-react';
+import { MessageSquare, Send, X } from 'lucide-react';
 import { ChatMessage, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
 
@@ -39,22 +39,22 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed sm:absolute right-0 top-14 bottom-0 z-40 w-full sm:w-80 md:w-88 bg-[#172840] border-l border-[#344B65] shadow-2xl flex flex-col animate-slideLeft selection:bg-[#F3C969]/30 selection:text-white">
+    <div className="fixed sm:absolute right-0 top-14 bottom-0 z-40 w-full sm:w-80 md:w-88 bg-[#12142A] border-l border-[#23274D] shadow-2xl flex flex-col animate-slideLeft selection:bg-[#C8FF3D]/30 selection:text-white font-body">
       {/* Chat Header */}
-      <div className="px-4 py-3 border-b border-[#344B65] flex items-center justify-between bg-[#101B2D] text-[#F4F6FA]">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#203650] text-[#F3C969] flex items-center justify-center border border-[#344B65]">
-            <MessageSquare className="w-3.5 h-3.5" />
+      <div className="px-4 py-3.5 border-b border-[#23274D] flex items-center justify-between bg-[#0A0B14] text-white">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#12142A] text-[#C8FF3D] flex items-center justify-center border border-[#23274D]">
+            <MessageSquare className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-heading font-black text-xs uppercase tracking-wider text-[#F4F6FA]">Live Room Chat</h3>
-            <p className="text-[10px] text-[#B0BED0]">Real-time banter & strategy</p>
+            <h3 className="font-heading font-black text-xs uppercase tracking-wider text-white">Live Room Chat</h3>
+            <p className="text-[10px] text-[#9E9EB8]">Tactics & table talk</p>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-full bg-[#172840] hover:bg-[#203650] border border-[#344B65] text-[#B0BED0] hover:text-[#F4F6FA] flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-xl bg-[#12142A] hover:bg-[#181B38] border border-[#23274D] text-[#9E9EB8] hover:text-white flex items-center justify-center transition-colors"
           title="Close Chat"
         >
           <X className="w-3.5 h-3.5" />
@@ -62,13 +62,13 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#101B2D]/60">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#0A0B14]/80 custom-scrollbar">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-4 text-[#B0BED0]">
-            <MessageSquare className="w-8 h-8 text-[#344B65] mb-2" />
-            <p className="text-xs font-heading font-bold uppercase text-[#F4F6FA]">No messages yet</p>
-            <p className="text-[11px] text-[#B0BED0] mt-0.5">
-              Send the first message to discuss bids and auction tactics with fellow managers!
+          <div className="h-full flex flex-col items-center justify-center text-center p-4 text-[#9E9EB8]">
+            <MessageSquare className="w-8 h-8 text-[#23274D] mb-2" />
+            <p className="text-xs font-heading font-extrabold uppercase text-white">No messages yet</p>
+            <p className="text-[11px] text-[#62658A] mt-0.5">
+              Discuss bids and auction tactics with fellow managers in real time!
             </p>
           </div>
         ) : (
@@ -88,22 +88,22 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
                     <TeamLogo teamId={msg.teamId} className="w-4 h-4 shadow-xs" />
                   )}
                   {franchise && (
-                    <span className="font-heading font-black uppercase text-[10px] text-[#F4F6FA]">
+                    <span className="font-heading font-black uppercase text-[10px] text-white">
                       {franchise.shortName}
                     </span>
                   )}
-                  <span className={`font-heading font-bold uppercase ${isMe ? 'text-[#3DBB83]' : 'text-[#B0BED0]'}`}>
+                  <span className={`font-heading font-bold uppercase ${isMe ? 'text-[#C8FF3D]' : 'text-[#9E9EB8]'}`}>
                     {msg.senderName} {isMe && '(You)'}
                   </span>
-                  <span className="text-[#B0BED0]/60 font-number text-[9px]">{timeStr}</span>
+                  <span className="text-[#62658A] font-number text-[9px]">{timeStr}</span>
                 </div>
 
                 {/* Message bubble */}
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs break-words leading-relaxed shadow-xs ${
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs break-words leading-relaxed shadow-sm ${
                     isMe
-                      ? 'bg-[#2858A5] text-[#F4F6FA] font-medium rounded-tr-xs border border-[#344B65]'
-                      : 'bg-[#203650] border border-[#344B65] text-[#F4F6FA] rounded-tl-xs'
+                      ? 'bg-[#7C5CFF] text-white font-medium rounded-tr-xs'
+                      : 'bg-[#181B38] border border-[#23274D] text-white rounded-tl-xs'
                   }`}
                 >
                   {msg.text}
@@ -116,7 +116,7 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
       </div>
 
       {/* Message Input Form */}
-      <form onSubmit={handleSend} className="p-3 border-t border-[#344B65] bg-[#172840]">
+      <form onSubmit={handleSend} className="p-3 border-t border-[#23274D] bg-[#12142A]">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -124,14 +124,14 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             maxLength={300}
-            className="flex-1 bg-[#101B2D] border border-[#344B65] rounded-xl px-3 py-2 text-xs text-[#F4F6FA] placeholder-[#B0BED0]/50 focus:outline-none focus:border-[#3DBB83]"
+            className="flex-1 bg-[#0A0B14] border border-[#23274D] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-[#62658A] focus:outline-none focus:border-[#C8FF3D]"
           />
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="w-8 h-8 rounded-xl bg-[#3DBB83] hover:bg-[#2A9B6A] disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shrink-0 shadow-sm"
+            className="w-9 h-9 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F522] disabled:opacity-30 disabled:cursor-not-allowed text-[#0A0B14] flex items-center justify-center transition-all shrink-0 shadow-sm"
           >
-            <Send className="w-3.5 h-3.5 stroke-[2.5]" />
+            <Send className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
       </form>

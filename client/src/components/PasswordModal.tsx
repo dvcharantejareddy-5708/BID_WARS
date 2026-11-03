@@ -36,30 +36,30 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A111D]/80 backdrop-blur-md animate-fadeIn">
-      <div className="bg-[#203650] max-w-md w-full rounded-2xl p-6 border border-[#344B65] shadow-2xl relative text-[#F4F6FA]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0B14]/80 backdrop-blur-md animate-fadeIn font-body">
+      <div className="bg-[#12142A] max-w-md w-full rounded-3xl p-6 sm:p-8 border border-[#23274D] shadow-2xl relative text-white">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#B0BED0] hover:text-[#F4F6FA] transition-colors"
+          className="absolute top-5 right-5 text-[#9E9EB8] hover:text-white transition-colors p-1.5 rounded-xl hover:bg-[#181B38]"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#172840] text-[#F3C969] flex items-center justify-center border border-[#344B65]">
-            <Lock className="w-5 h-5 stroke-[2.5]" />
+          <div className="w-12 h-12 rounded-2xl bg-[#0A0B14] text-[#FFC93D] flex items-center justify-center border border-[#23274D]">
+            <Lock className="w-6 h-6 stroke-[2.5]" />
           </div>
           <div>
-            <h3 className="font-heading font-bold uppercase tracking-wide text-lg text-[#F4F6FA]">Private Room Access</h3>
-            <p className="text-xs text-[#B0BED0]">
-              Room: <strong className="text-[#F3C969] font-number font-bold">{roomCode}</strong>
+            <h3 className="font-heading font-black uppercase tracking-tight text-lg text-white">Private Room Access</h3>
+            <p className="text-xs text-[#9E9EB8]">
+              Room: <strong className="text-[#FFC93D] font-number font-bold">{roomCode}</strong>
               {roomName ? ` · ${roomName}` : ''}
             </p>
           </div>
         </div>
 
         {displayError && (
-          <div className="mb-4 bg-[#E85D5D]/15 border border-[#E85D5D]/30 text-[#E85D5D] px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2">
+          <div className="mb-4 bg-[#FF3B5C]/15 border border-[#FF3B5C]/30 text-[#FF3B5C] px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{displayError}</span>
           </div>
@@ -67,7 +67,7 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-heading font-bold uppercase tracking-wider text-[#B0BED0] mb-1.5">
+            <label className="block text-xs font-heading font-extrabold uppercase tracking-wider text-[#9E9EB8] mb-2">
               Room Password
             </label>
             <div className="relative">
@@ -77,36 +77,27 @@ export const PasswordModal: React.FC<PasswordModalProps> = ({
                 autoFocus
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
-                className="w-full bg-[#172840] border border-[#344B65] focus:border-[#3DBB83] focus:ring-1 focus:ring-[#3DBB83] rounded-xl pl-4 pr-11 py-3 text-sm text-[#F4F6FA] placeholder-[#B0BED0]/60 outline-none transition-all"
+                placeholder="Enter room password..."
+                className="w-full bg-[#0A0B14] border border-[#23274D] focus:border-[#C8FF3D] focus:ring-1 focus:ring-[#C8FF3D] rounded-xl px-4 py-3 text-sm text-white placeholder-[#62658A] outline-none transition-all pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0BED0] hover:text-[#F4F6FA]"
+                className="absolute right-3 top-3 text-[#9E9EB8] hover:text-white"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl bg-[#172840] hover:bg-[#1D3048] text-[#F4F6FA] text-xs font-heading font-bold uppercase tracking-wider transition-all border border-[#344B65]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || !password.trim()}
-              className="flex-1 py-3 px-4 rounded-xl bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-30"
-            >
-              <span>{isLoading ? 'Verifying...' : 'Join Room'}</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading || !password.trim()}
+            className="w-full py-3.5 px-4 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <span>{isLoading ? 'Verifying...' : 'Unlock Auction Room'}</span>
+            <ArrowRight className="w-4 h-4 stroke-[3]" />
+          </button>
         </form>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Check, User, ArrowLeft, ArrowRight, Lock, AlertCircle } from 'lucide-react';
+import { Check, User, ArrowLeft, ArrowRight, Lock, AlertCircle } from 'lucide-react';
 import { IPLTeamId, IPL_FRANCHISES, RoomMember } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
 
@@ -81,27 +81,30 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#101B2D] text-[#F4F6FA] flex flex-col justify-center items-center px-4 py-8 relative selection:bg-[#F3C969]/30 selection:text-white font-body">
+    <div className="min-h-screen bg-[#0A0B14] text-white flex flex-col justify-center items-center px-4 py-8 relative selection:bg-[#C8FF3D]/30 selection:text-white font-body">
+      {/* Background radial glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7C5CFF]/10 rounded-full blur-[140px] pointer-events-none" />
+
       <div className="relative z-10 w-full max-w-4xl mx-auto">
         {/* Navigation & Room Info */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={step === 'franchise' && !initialNickname ? () => setStep('name') : onBackToLanding}
-            className="flex items-center gap-1.5 text-xs font-heading font-bold uppercase tracking-wider text-[#3DBB83] hover:text-[#2A9B6A] transition-colors bg-[#203650] px-3.5 py-2 rounded-xl border border-[#344B65] shadow-sm"
+            className="flex items-center gap-2 text-xs font-heading font-extrabold uppercase tracking-wider text-[#9E9EB8] hover:text-white transition-colors bg-[#12142A] px-4 py-2.5 rounded-xl border border-[#23274D] shadow-md"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{step === 'franchise' && !initialNickname ? 'Change Name' : 'Leave Room'}</span>
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-number font-bold text-[#F3C969] bg-[#203650] border border-[#344B65] px-3 py-1.5 rounded-xl shadow-sm">
+            <span className="text-xs font-number font-bold text-[#FFC93D] bg-[#12142A] border border-[#23274D] px-4 py-2 rounded-xl shadow-md">
               ROOM: {roomCode}
             </span>
           </div>
         </div>
 
         {errorMessage && (
-          <div className="mb-4 bg-[#E85D5D]/10 border border-[#E85D5D]/30 text-[#E85D5D] px-4 py-3 rounded-xl flex items-center gap-2.5 text-xs">
+          <div className="mb-4 bg-[#FF3B5C]/15 border border-[#FF3B5C]/30 text-[#FF3B5C] px-4 py-3 rounded-xl flex items-center gap-2.5 text-xs">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -109,22 +112,22 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
         {/* Live Auction In Progress Badge */}
         {isAuctionActive && (
-          <div className="mb-4 bg-[#3DBB83]/10 border border-[#3DBB83]/30 text-[#3DBB83] px-4 py-3 rounded-xl flex items-center justify-between gap-2.5 text-xs shadow-sm">
+          <div className="mb-5 bg-[#C8FF3D]/10 border border-[#C8FF3D]/30 text-[#C8FF3D] px-4 py-3 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-md">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#3DBB83] animate-ping" />
-              <span className="font-heading font-bold uppercase tracking-wider">Live Auction In Progress</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#C8FF3D] animate-ping" />
+              <span className="font-heading font-extrabold uppercase tracking-wider">Live Auction In Progress</span>
             </div>
-            <span className="text-[11px] text-[#B0BED0]">Pick any available franchise to join active bidding</span>
+            <span className="text-[11px] text-[#9E9EB8]">Pick any open franchise to enter active bidding</span>
           </div>
         )}
 
         {/* Room Full Notice */}
         {isRoomFull && (
-          <div className="mb-4 bg-[#E85D5D]/10 border border-[#E85D5D]/40 text-[#E85D5D] px-4 py-3 rounded-xl flex items-center gap-3 text-xs">
+          <div className="mb-5 bg-[#FF3B5C]/15 border border-[#FF3B5C]/40 text-[#FF3B5C] px-4 py-3.5 rounded-2xl flex items-center gap-3 text-xs">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <div>
-              <p className="font-heading font-bold text-sm uppercase">Room is Full</p>
-              <p className="text-[#B0BED0] mt-0.5">
+              <p className="font-heading font-black text-sm uppercase">Room is Full</p>
+              <p className="text-[#9E9EB8] mt-0.5">
                 All 10 IPL franchises have already been claimed by other participants.
               </p>
             </div>
@@ -133,20 +136,20 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
         {/* STEP 1: ENTER NAME */}
         {step === 'name' && (
-          <div className="max-w-md mx-auto bg-[#203650] rounded-2xl p-6 sm:p-8 border border-[#344B65] shadow-lg">
+          <div className="max-w-md mx-auto bg-[#12142A] rounded-3xl p-6 sm:p-8 border border-[#23274D] shadow-2xl">
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-xl bg-[#172840] text-[#2858A5] flex items-center justify-center mx-auto mb-3 border border-[#344B65]">
-                <User className="w-6 h-6" />
+              <div className="w-14 h-14 rounded-2xl bg-[#0A0B14] text-[#C8FF3D] flex items-center justify-center mx-auto mb-3.5 border border-[#23274D]">
+                <User className="w-7 h-7" />
               </div>
-              <h2 className="text-2xl font-bold font-heading uppercase tracking-wide text-[#F4F6FA]">Enter Your Name</h2>
-              <p className="text-xs text-[#B0BED0] mt-1">
-                Your manager display name during bidding and on the franchise roster.
+              <h2 className="text-2xl font-black font-heading uppercase tracking-tight text-white">Enter Your Name</h2>
+              <p className="text-xs text-[#9E9EB8] mt-1">
+                Your manager display name during live bidding and on the franchise roster.
               </p>
             </div>
 
             <form onSubmit={handleNameSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-heading font-bold uppercase tracking-wider text-[#B0BED0] mb-1.5">
+                <label className="block text-xs font-heading font-extrabold uppercase tracking-wider text-[#9E9EB8] mb-2">
                   Player Display Name
                 </label>
                 <input
@@ -160,17 +163,17 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                     setNameError('');
                   }}
                   placeholder="e.g. MasterBlaster, ThalaFan"
-                  className="w-full bg-[#172840] border border-[#344B65] focus:border-[#3DBB83] focus:ring-1 focus:ring-[#3DBB83] rounded-xl px-4 py-3 text-base text-[#F4F6FA] placeholder-[#B0BED0] outline-none transition-all"
+                  className="w-full bg-[#0A0B14] border border-[#23274D] focus:border-[#C8FF3D] focus:ring-1 focus:ring-[#C8FF3D] rounded-xl px-4 py-3 text-base text-white placeholder-[#62658A] outline-none transition-all"
                 />
                 {nameError && (
-                  <p className="text-xs text-[#E85D5D] mt-1.5 font-medium">{nameError}</p>
+                  <p className="text-xs text-[#FF3B5C] mt-2 font-medium">{nameError}</p>
                 )}
               </div>
 
               <button
                 type="submit"
                 disabled={!nickname.trim()}
-                className="w-full bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold uppercase tracking-wider py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
+                className="w-full bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-black uppercase tracking-wider py-4 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
               >
                 <span>Select IPL Franchise</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 stroke-[3]" />
@@ -181,13 +184,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
         {/* STEP 2: SELECT FRANCHISE */}
         {step === 'franchise' && (
-          <div className="bg-[#203650] rounded-2xl p-6 sm:p-8 border border-[#344B65] shadow-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-[#344B65]">
+          <div className="bg-[#12142A] rounded-3xl p-6 sm:p-8 border border-[#23274D] shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#23274D]">
               <div>
-                <span className="text-xs text-[#3DBB83] font-heading font-bold uppercase tracking-wider">Step 2 of 2</span>
-                <h2 className="text-2xl font-bold font-heading uppercase tracking-wide text-[#F4F6FA]">Select Your IPL Franchise</h2>
-                <p className="text-xs text-[#B0BED0] mt-0.5">
-                  Manager: <strong className="text-[#F4F6FA]">{nickname}</strong>. Exactly one human/bot per franchise.
+                <span className="text-xs text-[#C8FF3D] font-heading font-extrabold uppercase tracking-wider">Step 2 of 2</span>
+                <h2 className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight text-white">Select Your Franchise</h2>
+                <p className="text-xs text-[#9E9EB8] mt-0.5">
+                  Manager: <strong className="text-white">{nickname}</strong>. Exactly one human/bot per franchise.
                 </p>
               </div>
 
@@ -196,7 +199,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   <button
                     onClick={handleFinalConfirm}
                     disabled={isSubmitting}
-                    className="bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold uppercase tracking-wider py-2.5 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 text-sm disabled:opacity-30"
+                    className="bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-black uppercase tracking-wider py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(200,255,61,0.35)] flex items-center gap-2 text-sm disabled:opacity-30"
                   >
                     <span>
                       {isSubmitting 
@@ -223,51 +226,51 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   <div
                     key={teamId}
                     onClick={() => !isTakenByOther && handleTeamClick(teamId)}
-                    className={`relative rounded-xl p-4 transition-all duration-200 flex flex-col justify-between border ${
+                    className={`relative rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between border ${
                       isTakenByOther
-                        ? 'opacity-40 cursor-not-allowed bg-[#172840] border-[#344B65]'
+                        ? 'opacity-35 cursor-not-allowed bg-[#0A0B14] border-[#23274D]'
                         : isSelected
-                        ? 'ring-2 ring-[#3DBB83] shadow-md bg-[#172840] border-[#3DBB83] cursor-pointer transform scale-[1.02]'
-                        : 'bg-[#203650] border-[#344B65] hover:border-[#3DBB83] hover:bg-[#172840] cursor-pointer'
+                        ? 'ring-2 ring-[#C8FF3D] shadow-[0_0_20px_rgba(200,255,61,0.25)] bg-[#0A0B14] border-[#C8FF3D] cursor-pointer transform scale-[1.02]'
+                        : 'bg-[#0A0B14] border-[#23274D] hover:border-[#C8FF3D]/50 hover:bg-[#181B38] cursor-pointer'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <TeamLogo teamId={teamId} className="w-11 h-11 shadow-sm" />
+                      <TeamLogo teamId={teamId} className="w-12 h-12 drop-shadow-sm" />
 
                       {isTakenByOther ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold bg-[#E85D5D]/15 text-[#E85D5D] border border-[#E85D5D]/30 px-2 py-0.5 rounded">
+                        <span className="flex items-center gap-1 text-[10px] font-heading font-extrabold bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 px-2 py-0.5 rounded">
                           <Lock className="w-2.5 h-2.5" />
                           TAKEN
                         </span>
                       ) : isSelected ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold bg-[#3DBB83] text-white px-2 py-0.5 rounded">
+                        <span className="flex items-center gap-1 text-[10px] font-heading font-extrabold bg-[#C8FF3D] text-[#0A0B14] px-2 py-0.5 rounded">
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                           SELECTED
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold bg-[#3DBB83]/10 text-[#3DBB83] border border-[#3DBB83]/30 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-heading font-extrabold bg-[#C8FF3D]/10 text-[#C8FF3D] border border-[#C8FF3D]/30 px-2 py-0.5 rounded">
                           OPEN
                         </span>
                       )}
                     </div>
 
                     <div>
-                      <h4 className="font-heading font-bold text-sm text-[#F4F6FA] leading-tight uppercase">
+                      <h4 className="font-heading font-bold text-sm text-white leading-tight uppercase">
                         {team.name}
                       </h4>
-                      <p className="text-[11px] text-[#B0BED0] mt-0.5">
+                      <p className="text-[11px] text-[#9E9EB8] mt-0.5">
                         {team.city} · {team.emblemText}
                       </p>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-[#344B65]">
+                    <div className="mt-3 pt-2.5 border-t border-[#23274D]">
                       {isTakenByOther ? (
-                        <span className="text-[11px] text-[#E85D5D] font-medium truncate block">
-                          Controlled by: {occupant.nickname}
+                        <span className="text-[11px] text-[#FF3B5C] font-medium truncate block">
+                          Manager: {occupant.nickname}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-[#B0BED0]">
-                          Starting Purse: <strong className="text-[#F4F6FA] font-number font-bold">₹120 Cr</strong>
+                        <span className="text-[11px] text-[#9E9EB8]">
+                          Purse: <strong className="text-[#FFC93D] font-number font-bold">₹120 Cr</strong>
                         </span>
                       )}
                     </div>
@@ -277,11 +280,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </div>
 
             {selectedTeamId && (
-              <div className="mt-6 pt-4 border-t border-[#344B65] sm:hidden">
+              <div className="mt-6 pt-4 border-t border-[#23274D] sm:hidden">
                 <button
                   onClick={handleFinalConfirm}
                   disabled={isSubmitting}
-                  className="w-full bg-[#3DBB83] hover:bg-[#2A9B6A] text-white font-heading font-bold uppercase tracking-wider py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm disabled:opacity-30"
+                  className="w-full bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-black uppercase tracking-wider py-4 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center justify-center gap-2 text-sm disabled:opacity-30"
                 >
                   <span>{isSubmitting ? 'Reserving...' : `Confirm ${IPL_FRANCHISES[selectedTeamId].name}`}</span>
                   <Check className="w-4 h-4 stroke-[3]" />

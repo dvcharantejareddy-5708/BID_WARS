@@ -26,32 +26,31 @@ export const HammerClockBadge: React.FC<HammerClockBadgeProps> = ({
 
   const remainingMs = Math.max(0, effectiveDeadline - now);
   const remainingSec = Math.ceil(remainingMs / 1000);
+  const formattedTime = `00:${remainingSec.toString().padStart(2, '0')}`;
 
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#203650] border border-[#344B65] select-none shadow-sm">
-      <Clock className="w-3.5 h-3.5 text-[#F3C969]" />
-      <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-[#B0BED0] hidden xs:inline">
+    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#12142A] border border-[#23274D] select-none shadow-sm">
+      <Clock className="w-3.5 h-3.5 text-[#FFC93D]" />
+      <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-[#8A92B2] hidden xs:inline">
         Clock:
       </span>
       {roomStatus === 'PAUSED' ? (
-        <span className="font-heading font-bold text-[#F3C969] text-xs uppercase">PAUSED</span>
+        <span className="font-display font-bold text-[#FFC93D] text-xs uppercase">PAUSED</span>
       ) : lotStatus === 'IN_PROGRESS' ? (
-        <div className="flex items-center gap-1 font-number">
-          <span className={`text-sm font-bold ${
-            remainingSec <= 2 
-              ? 'text-[#E85D5D]' 
-              : remainingSec <= 3 
-              ? 'text-[#F3C969]' 
-              : 'text-[#3DBB83]'
+        <div className="flex items-center gap-1.5 font-mono">
+          <span className={`text-sm font-bold tracking-wider ${
+            remainingSec <= 3 
+              ? 'text-[#FF3B5C] animate-pulse' 
+              : 'text-[#C8FF3D]'
           }`}>
-            {remainingSec}s
+            {formattedTime}
           </span>
-          {remainingSec <= 2 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E85D5D] animate-ping" />
+          {remainingSec <= 3 && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B5C] animate-ping" />
           )}
         </div>
       ) : (
-        <span className="font-heading font-bold text-xs text-[#B0BED0] uppercase tracking-wider">
+        <span className="font-display font-bold text-xs text-[#8A92B2] uppercase tracking-wider">
           {lotStatus}
         </span>
       )}
@@ -88,6 +87,7 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
   const remainingSec = Math.ceil(remainingMs / 1000);
   const totalDurationMs = Math.max(1000, totalDurationSec * 1000);
   const progressPercent = Math.min(100, Math.max(0, (remainingMs / totalDurationMs) * 100));
+  const formattedTime = `00:${remainingSec.toString().padStart(2, '0')}`;
 
   // Audio countdown alert on final 3 seconds
   useEffect(() => {
@@ -108,45 +108,42 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
 
   return (
     <>
-      {/* Top Hammer Timer Progress Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#172840] overflow-hidden">
+      {/* Top Hammer Timer Progress Bar matching signature gradient */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-[#181A36] overflow-hidden">
         <div
           className={`h-full transition-all duration-100 ${
-            remainingSec <= 2
-              ? 'bg-[#E85D5D]'
-              : remainingSec <= 3
-              ? 'bg-[#F3C969]'
-              : 'bg-[#3DBB83]'
+            remainingSec <= 3
+              ? 'bg-[#FF3B5C]'
+              : 'bg-signature-gradient-h'
           }`}
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      {/* Countdown Box & Indicator */}
-      <div className="flex items-center gap-2.5">
-        <div className={`w-11 h-11 rounded-lg flex flex-col items-center justify-center font-number border transition-all ${
-          remainingSec <= 1 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#E85D5D]/20 text-[#E85D5D] border-[#E85D5D] shadow-sm animate-pulse scale-105'
-            : remainingSec <= 2 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#E85D5D]/15 text-[#E85D5D] border-[#E85D5D] shadow-sm animate-pulse'
+      {/* Countdown Box & Indicator matching 00:12 in PDF */}
+      <div className="flex items-center gap-3">
+        <div className={`px-3 py-1.5 rounded-xl flex items-center justify-center font-mono border transition-all ${
+          remainingSec <= 2 && lotStatus === 'IN_PROGRESS'
+            ? 'bg-[#FF3B5C]/20 text-[#FF3B5C] border-[#FF3B5C] shadow-crimson-glow animate-pulse'
             : remainingSec <= 3 && lotStatus === 'IN_PROGRESS'
-            ? 'bg-[#F3C969]/20 text-[#F3C969] border-[#F3C969] shadow-sm animate-pulse'
-            : 'bg-[#172840] text-[#F4F6FA] border-[#344B65]'
+            ? 'bg-[#FF3B5C]/15 text-[#FF3B5C] border-[#FF3B5C]/60 shadow-sm'
+            : 'bg-[#181A36] text-[#C8FF3D] border-[#23274D]'
         }`}>
-          <span className="text-xl font-bold leading-none">{remainingSec}</span>
-          <span className="text-[9px] font-heading font-bold uppercase text-[#B0BED0]">SEC</span>
+          <span className="text-xl font-bold tracking-widest">{formattedTime}</span>
         </div>
 
         <div>
-          <span className="text-[10px] text-[#B0BED0] uppercase font-heading font-bold tracking-wider block">Hammer Clock</span>
+          <span className="text-[10px] text-[#8A92B2] uppercase font-sans font-bold tracking-wider block">
+            AUCTION CLOCK
+          </span>
           {lotStatus === 'IN_PROGRESS' && remainingSec <= 3 ? (
-            <span className="text-xs font-heading font-bold text-[#E85D5D] flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E85D5D] animate-ping" />
-              FINAL 3 SECONDS!
+            <span className="text-xs font-display font-bold text-[#FF3B5C] flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B5C] animate-ping" />
+              GOING THREE TIMES!
             </span>
           ) : (
-            <span className="text-xs text-[#F4F6FA] font-semibold">
-              {lotStatus === 'IN_PROGRESS' ? 'Resets on each bid' : lotStatus}
+            <span className="text-xs text-[#F4F6FA] font-sans font-medium">
+              {lotStatus === 'IN_PROGRESS' ? 'Resets on every raise' : lotStatus}
             </span>
           )}
         </div>
