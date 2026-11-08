@@ -72,3 +72,4 @@ export const BidWarsLogo: React.FC<BidWarsLogoProps> = ({
     </div>
   );
 };
+

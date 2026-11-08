@@ -98,6 +98,7 @@ async function runAuctionFlowFeedTests() {
   console.log('\n====================================================');
   console.log(`🎯 ALL FLOW & FEED TESTS PASSED (${passedTests}/${totalTests})`);
   console.log('====================================================\n');
+  process.exit(totalTests === passedTests ? 0 : 1);
 }
 
 runAuctionFlowFeedTests().catch(console.error);

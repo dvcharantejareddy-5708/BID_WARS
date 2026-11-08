@@ -159,3 +159,4 @@ export const PowerUpIcon: React.FC<IconProps> = ({ className = 'w-5 h-5', size, 
     <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" />
   </svg>
 );
+

@@ -212,6 +212,17 @@ export function App() {
         setRoomState(prev => prev ? { ...prev, status: 'COMPLETED' } : prev);
         break;
       }
+      case 'KICKED': {
+        setRoomState(null);
+        setMyMemberId('');
+        sessionStorage.removeItem('bid_wars_room_code');
+        sessionStorage.removeItem('bid_wars_member_id');
+        localStorage.removeItem('bid_wars_room_code');
+        localStorage.removeItem('bid_wars_member_id');
+        setErrorMessage(msg.message || 'You have been removed from the auction room by the host.');
+        setView('landing');
+        break;
+      }
       case 'ERROR': {
         if (msg.code === 'INVALID_PASSWORD') {
           setPasswordError(msg.message);
@@ -472,6 +483,30 @@ export function App() {
     socketService.send({ type: 'END_AUCTION' });
   };
 
+  const handleBringAllUnsoldBack = () => {
+    socketService.send({ type: 'BRING_ALL_UNSOLD_BACK' });
+  };
+
+  const handleRandomDrawUnsold = (count: number, playerIds?: string[]) => {
+    socketService.send({ type: 'RANDOM_DRAW_UNSOLD', count, playerIds });
+  };
+
+  const handleSkipMultiplePlayers = (count: number) => {
+    socketService.send({ type: 'SKIP_MULTIPLE_PLAYERS', count });
+  };
+
+  const handleKickMember = (targetMemberId: string) => {
+    socketService.send({ type: 'KICK_MEMBER', targetMemberId });
+  };
+
+  const handleUpdateTimer = (timerDuration: number) => {
+    socketService.send({ type: 'UPDATE_TIMER', timerDuration });
+  };
+
+  const handleUpdateSettings = (settings: any) => {
+    socketService.send({ type: 'UPDATE_SETTINGS', settings });
+  };
+
   const handleReAuctionUnsold = () => {
     socketService.send({ type: 'REAUCTION_UNSOLD' });
   };
@@ -599,6 +634,12 @@ export function App() {
                     onRestartAuction={handleRestartAuction}
                     onEndAuction={handleEndAuction}
                     onAdvanceLot={handleAdvanceLot}
+                    onBringAllUnsoldBack={handleBringAllUnsoldBack}
+                    onRandomDrawUnsold={handleRandomDrawUnsold}
+                    onSkipMultiplePlayers={handleSkipMultiplePlayers}
+                    onKickMember={handleKickMember}
+                    onUpdateTimer={handleUpdateTimer}
+                    onUpdateSettings={handleUpdateSettings}
                   />
                 )}
 

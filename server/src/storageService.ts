@@ -51,6 +51,7 @@ export interface SerializedRoomData {
   auditLog: any[];
   chatMessages: any[];
   bidLog: any[];
+  kickedMemberIds?: string[];
   updatedAt: number;
 }
 

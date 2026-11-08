@@ -25,6 +25,7 @@ export class GameRoom {
     currentResultId = null;
     reAuctionRound = false;
     isClosed = false;
+    kickedMemberIds = new Set();
     timerInterval = null;
     botTimeouts = [];
     lotTransitionTimeout = null;
@@ -155,6 +156,10 @@ export class GameRoom {
         return { success: true };
     }
     join(nickname, sessionToken) {
+        // Kicked check
+        if (sessionToken && this.kickedMemberIds.has(sessionToken)) {
+            throw new Error('You have been removed from this auction room by the host.');
+        }
         // Reconnect check
         if (sessionToken && this.members.has(sessionToken)) {
             const existing = this.members.get(sessionToken);
@@ -246,10 +251,18 @@ export class GameRoom {
             return { success: false, message: 'Only the host can modify room settings' };
         }
         if (this.status !== 'LOBBY') {
-            return { success: false, message: 'Cannot modify core settings while auction is active' };
+            if (newSettings.timerDuration !== undefined) {
+                this.settings.timerDuration = Math.min(60, Math.max(5, Math.round(Number(newSettings.timerDuration))));
+            }
+            if (newSettings.minBidIncrement !== undefined) {
+                this.settings.minBidIncrement = Math.max(100000, Math.min(20000000, Number(newSettings.minBidIncrement)));
+            }
+            this.addAuditLog('SETTINGS_UPDATED', `Host updated auction settings (Timer: ${this.settings.timerDuration}s, Min Increment: ₹${(this.settings.minBidIncrement / 100000).toFixed(0)}L)`, this.members.get(this.hostId)?.nickname || 'Host');
+            this.broadcastState();
+            return { success: true };
         }
         if (newSettings.timerDuration !== undefined) {
-            this.settings.timerDuration = Math.min(20, Math.max(5, newSettings.timerDuration));
+            this.settings.timerDuration = Math.min(60, Math.max(5, Math.round(Number(newSettings.timerDuration))));
         }
         if (newSettings.startingPurse !== undefined) {
             this.settings.startingPurse = Math.max(500000000, newSettings.startingPurse);
@@ -410,7 +423,11 @@ export class GameRoom {
     startCurrentLot() {
         this.clearAllTimers();
         if (this.currentLotIndex >= this.lots.length) {
-            this.finishAuction();
+            this.deadlineTimestamp = null;
+            this.announcementPhase = 'NONE';
+            this.announcementLotNumber = null;
+            this.currentResultId = null;
+            this.broadcastState();
             return;
         }
         const lot = this.lots[this.currentLotIndex];
@@ -924,12 +941,249 @@ export class GameRoom {
         });
         return { success: true, chat: chatMsg };
     }
-    finishAuction() {
+    finishAuction(memberId) {
+        if (memberId && memberId !== this.hostId) {
+            return { success: false, message: 'Only the host can end the auction' };
+        }
         this.clearAllTimers();
         this.status = 'COMPLETED';
         this.deadlineTimestamp = null;
-        this.addAuditLog('AUCTION_COMPLETED', 'The auction has concluded successfully!', 'System');
+        this.announcementPhase = 'NONE';
+        this.announcementLotNumber = null;
+        this.currentResultId = null;
+        this.addAuditLog('AUCTION_COMPLETED', 'The auction has concluded!', 'Host');
         this.broadcastState({ type: 'AUCTION_COMPLETED', summary: this.getTeamSummary() });
+        return { success: true };
+    }
+    /**
+     * Bring all unsold players back into the auction queue
+     */
+    bringAllUnsoldBack(memberId) {
+        if (memberId !== this.hostId) {
+            return { success: false, message: 'Only the host can recall unsold players' };
+        }
+        const soldPlayerIds = new Set();
+        for (const squad of Object.values(this.teamSquads)) {
+            for (const p of squad) {
+                soldPlayerIds.add(p.id);
+            }
+        }
+        const queuedPlayerIds = new Set();
+        for (let i = this.currentLotIndex; i < this.lots.length; i++) {
+            const l = this.lots[i];
+            if (l && (l.status === 'PENDING' || l.status === 'IN_PROGRESS')) {
+                queuedPlayerIds.add(l.player.id);
+            }
+        }
+        const eligibleUnsoldPlayers = [];
+        const seenIds = new Set();
+        const checkAndAdd = (p) => {
+            if (!soldPlayerIds.has(p.id) && !queuedPlayerIds.has(p.id) && !seenIds.has(p.id)) {
+                seenIds.add(p.id);
+                eligibleUnsoldPlayers.push({
+                    ...p,
+                    auction_status: 'AVAILABLE'
+                });
+            }
+        };
+        for (const lot of this.history) {
+            if (lot.status === 'UNSOLD')
+                checkAndAdd(lot.player);
+        }
+        for (const lot of this.lots) {
+            if (lot.status === 'UNSOLD')
+                checkAndAdd(lot.player);
+        }
+        if (eligibleUnsoldPlayers.length === 0) {
+            return { success: false, message: 'No unsold players found to bring back.' };
+        }
+        const currentLotsCount = this.lots.length;
+        const newLots = eligibleUnsoldPlayers.map((player, idx) => ({
+            lotNumber: currentLotsCount + idx + 1,
+            totalLots: currentLotsCount + eligibleUnsoldPlayers.length,
+            player,
+            status: 'PENDING',
+            currentBid: 0,
+            currentBidder: null,
+            currentBidderName: null,
+            bids: []
+        }));
+        this.lots.push(...newLots);
+        this.lots.forEach(l => l.totalLots = this.lots.length);
+        this.addAuditLog('UNSOLD_PLAYERS_RECALLED', `Host brought back all ${newLots.length} unsold player(s) into the auction pool.`, 'Host');
+        this.addBidLog({
+            type: 'EVENT',
+            eventAction: 'UNSOLD_PLAYERS_RECALLED',
+            eventMessage: `Host brought back all ${newLots.length} unsold player(s) into the active auction pool.`
+        });
+        if (this.status === 'AUCTION' && (this.currentLotIndex >= currentLotsCount || !this.currentLot || this.currentLot.status !== 'IN_PROGRESS')) {
+            if (this.currentLotIndex >= currentLotsCount) {
+                this.currentLotIndex = currentLotsCount;
+            }
+            this.startCurrentLot();
+        }
+        else {
+            this.broadcastState();
+        }
+        return { success: true, count: newLots.length, recalledCount: newLots.length };
+    }
+    /**
+     * Random draw from unsold players pool
+     */
+    randomDrawUnsold(memberId, count, playerIds) {
+        if (memberId !== this.hostId) {
+            return { success: false, message: 'Only the host can draw unsold players' };
+        }
+        const soldPlayerIds = new Set();
+        for (const squad of Object.values(this.teamSquads)) {
+            for (const p of squad) {
+                soldPlayerIds.add(p.id);
+            }
+        }
+        const queuedPlayerIds = new Set();
+        for (let i = this.currentLotIndex; i < this.lots.length; i++) {
+            const l = this.lots[i];
+            if (l && (l.status === 'PENDING' || l.status === 'IN_PROGRESS')) {
+                queuedPlayerIds.add(l.player.id);
+            }
+        }
+        const eligibleUnsoldPlayers = [];
+        const seenIds = new Set();
+        const checkAndAdd = (p) => {
+            if (!soldPlayerIds.has(p.id) && !queuedPlayerIds.has(p.id) && !seenIds.has(p.id)) {
+                seenIds.add(p.id);
+                eligibleUnsoldPlayers.push({
+                    ...p,
+                    auction_status: 'AVAILABLE'
+                });
+            }
+        };
+        for (const lot of this.history) {
+            if (lot.status === 'UNSOLD')
+                checkAndAdd(lot.player);
+        }
+        for (const lot of this.lots) {
+            if (lot.status === 'UNSOLD')
+                checkAndAdd(lot.player);
+        }
+        if (eligibleUnsoldPlayers.length === 0) {
+            return { success: false, message: 'No unsold players available for random draw.' };
+        }
+        let selectedPlayers = [];
+        if (playerIds && playerIds.length > 0) {
+            const idSet = new Set(playerIds);
+            selectedPlayers = eligibleUnsoldPlayers.filter(p => idSet.has(p.id));
+        }
+        else {
+            const numToPick = Math.min(Math.max(1, count), eligibleUnsoldPlayers.length);
+            const shuffled = shuffleArray([...eligibleUnsoldPlayers]);
+            selectedPlayers = shuffled.slice(0, numToPick);
+        }
+        if (selectedPlayers.length === 0) {
+            return { success: false, message: 'No valid unsold players selected.' };
+        }
+        const currentLotsCount = this.lots.length;
+        const newLots = selectedPlayers.map((player, idx) => ({
+            lotNumber: currentLotsCount + idx + 1,
+            totalLots: currentLotsCount + selectedPlayers.length,
+            player,
+            status: 'PENDING',
+            currentBid: 0,
+            currentBidder: null,
+            currentBidderName: null,
+            bids: []
+        }));
+        this.lots.push(...newLots);
+        this.lots.forEach(l => l.totalLots = this.lots.length);
+        this.addAuditLog('UNSOLD_RANDOM_DRAW', `Host randomly recalled ${selectedPlayers.length} unsold player(s): ${selectedPlayers.map(p => p.name).join(', ')}`, 'Host');
+        this.addBidLog({
+            type: 'EVENT',
+            eventAction: 'UNSOLD_RANDOM_DRAW',
+            eventMessage: `Host randomly recalled ${selectedPlayers.length} unsold player(s) into the auction pool.`
+        });
+        if (this.status === 'AUCTION' && (this.currentLotIndex >= currentLotsCount || !this.currentLot || this.currentLot.status !== 'IN_PROGRESS')) {
+            if (this.currentLotIndex >= currentLotsCount) {
+                this.currentLotIndex = currentLotsCount;
+            }
+            this.startCurrentLot();
+        }
+        else {
+            this.broadcastState();
+        }
+        return { success: true, count: selectedPlayers.length, players: selectedPlayers, drawnLots: newLots };
+    }
+    /**
+     * Skip multiple upcoming players
+     */
+    skipMultipleLots(memberId, count) {
+        if (memberId !== this.hostId) {
+            return { success: false, message: 'Only the host can skip players' };
+        }
+        if (this.status !== 'AUCTION') {
+            return { success: false, message: 'Auction is not active' };
+        }
+        const validCount = Math.max(1, count);
+        const current = this.lots[this.currentLotIndex];
+        let startIndex = this.currentLotIndex;
+        if (current && current.status === 'IN_PROGRESS' && current.currentBid > 0) {
+            startIndex = this.currentLotIndex + 1;
+        }
+        if (startIndex >= this.lots.length) {
+            return { success: false, message: 'No upcoming players available to skip.' };
+        }
+        const endIndex = Math.min(this.lots.length, startIndex + validCount);
+        const skippedLots = [];
+        for (let i = startIndex; i < endIndex; i++) {
+            const lot = this.lots[i];
+            lot.status = 'SKIPPED';
+            lot.player.auction_status = 'SKIPPED';
+            this.history.unshift({ ...lot });
+            skippedLots.push(lot);
+        }
+        this.addAuditLog('MULTIPLE_PLAYERS_SKIPPED', `Host skipped ${skippedLots.length} player(s): ${skippedLots.map(l => l.player.name).join(', ')}`, 'Host');
+        this.addBidLog({
+            type: 'EVENT',
+            eventAction: 'MULTIPLE_PLAYERS_SKIPPED',
+            eventMessage: `Host skipped ${skippedLots.length} upcoming player lot(s).`
+        });
+        if (startIndex === this.currentLotIndex) {
+            this.clearAllTimers();
+            this.currentLotIndex = endIndex;
+            this.startCurrentLot();
+        }
+        else {
+            this.broadcastState();
+        }
+        return { success: true, skippedCount: skippedLots.length };
+    }
+    /**
+     * Kick participant from room
+     */
+    kickMember(hostMemberId, targetMemberId) {
+        if (hostMemberId !== this.hostId) {
+            return { success: false, message: 'Only the host can kick participants' };
+        }
+        if (targetMemberId === this.hostId) {
+            return { success: false, message: 'Host cannot kick themselves' };
+        }
+        const target = this.members.get(targetMemberId);
+        if (!target) {
+            return { success: false, message: 'Participant not found in room' };
+        }
+        this.kickedMemberIds.add(targetMemberId);
+        const targetNickname = target.nickname;
+        if (this.status === 'LOBBY' && target.teamId) {
+            target.teamId = null;
+        }
+        this.members.delete(targetMemberId);
+        this.addAuditLog('MEMBER_KICKED', `Host kicked ${targetNickname} from the room`, 'Host');
+        this.addBidLog({
+            type: 'EVENT',
+            eventAction: 'MEMBER_KICKED',
+            eventMessage: `Participant "${targetNickname}" was removed from the auction room by the host.`
+        });
+        this.broadcastState();
+        return { success: true, kickedMember: target };
     }
     reAuctionUnsold(memberId) {
         if (memberId !== this.hostId) {
@@ -1082,7 +1336,9 @@ export class GameRoom {
             poolSize: this.lots.length,
             totalSets: this.lots.length > 0 ? Math.max(...this.lots.map(l => l.player.set_order)) : 1,
             currentSetOrder: currentLot ? currentLot.player.set_order : 1,
-            currentSetName: currentLot ? currentLot.player.set_name : '₹2.00 Cr Batsmen'
+            currentSetName: currentLot ? currentLot.player.set_name : '₹2.00 Cr Batsmen',
+            kickedMemberIds: Array.from(this.kickedMemberIds),
+            lots: this.lots
         };
     }
     broadcastState(eventMsg) {
@@ -1107,6 +1363,7 @@ export class GameRoom {
             auditLog: this.auditLog,
             chatMessages: this.chatMessages,
             bidLog: this.bidLog,
+            kickedMemberIds: Array.from(this.kickedMemberIds),
             updatedAt: Date.now()
         };
     }
@@ -1126,6 +1383,7 @@ export class GameRoom {
         room.auditLog = data.auditLog || [];
         room.chatMessages = data.chatMessages || [];
         room.bidLog = data.bidLog || [];
+        room.kickedMemberIds = new Set(data.kickedMemberIds || []);
         room.members.clear();
         if (data.members) {
             for (const m of data.members) {

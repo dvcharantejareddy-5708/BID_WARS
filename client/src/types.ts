@@ -345,6 +345,8 @@ export interface RoomState {
   auditLog: AuditLogEntry[];
   chatMessages: ChatMessage[];
   bidLog: BidLogEntry[];
+  kickedMemberIds?: string[];
+  lots?: AuctionLot[];
   announcementPhase?: 'NONE' | 'ANNOUNCING';
   announcementLotNumber?: number;
   currentResultId?: string | null;
@@ -365,7 +367,12 @@ export type ClientMessage =
   | { type: 'START_AUCTION' }
   | { type: 'PLACE_BID'; amount?: number }
   | { type: 'SKIP_PLAYER' }
+  | { type: 'SKIP_MULTIPLE_PLAYERS'; count: number }
   | { type: 'DRAW_RANDOM_PLAYER'; category: PlayerCategory; basePriceInr: number }
+  | { type: 'BRING_ALL_UNSOLD_BACK' }
+  | { type: 'RANDOM_DRAW_UNSOLD'; count: number; playerIds?: string[] }
+  | { type: 'KICK_MEMBER'; targetMemberId: string }
+  | { type: 'UPDATE_TIMER'; timerDuration: number }
   | { type: 'SEND_CHAT_MESSAGE'; text: string }
   | { type: 'PAUSE_AUCTION' }
   | { type: 'RESUME_AUCTION' }
@@ -389,5 +396,6 @@ export type ServerMessage =
   | { type: 'AUCTION_PAUSED'; reason?: string }
   | { type: 'AUCTION_RESUMED'; deadlineTimestamp: number }
   | { type: 'AUCTION_COMPLETED'; summary: Record<IPLTeamId, TeamStats> }
+  | { type: 'KICKED'; message: string }
   | { type: 'ERROR'; message: string; code?: string }
   | { type: 'PONG' };

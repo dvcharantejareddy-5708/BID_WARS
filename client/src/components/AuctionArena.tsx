@@ -28,6 +28,7 @@ import {
   PlayerCategory 
 } from '../types.js';
 import { SkipPlayerModal } from './SkipPlayerModal.js';
+import { HostControlsModal } from './HostControlsModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
@@ -46,6 +47,12 @@ interface AuctionArenaProps {
   onRestartAuction: () => void;
   onEndAuction: () => void;
   onAdvanceLot?: (lotIndex?: number, resultId?: string) => void;
+  onBringAllUnsoldBack?: () => void;
+  onRandomDrawUnsold?: (count: number, playerIds?: string[]) => void;
+  onSkipMultiplePlayers?: (count: number) => void;
+  onKickMember?: (targetMemberId: string) => void;
+  onUpdateTimer?: (duration: number) => void;
+  onUpdateSettings?: (settings: any) => void;
 }
 
 export const AuctionArena: React.FC<AuctionArenaProps> = ({
@@ -57,9 +64,17 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   onPauseAuction,
   onResumeAuction,
   onRestartAuction,
-  onAdvanceLot
+  onEndAuction,
+  onAdvanceLot,
+  onBringAllUnsoldBack,
+  onRandomDrawUnsold,
+  onSkipMultiplePlayers,
+  onKickMember,
+  onUpdateTimer,
+  onUpdateSettings
 }) => {
   const [showSkipModal, setShowSkipModal] = useState(false);
+  const [showHostControlsModal, setShowHostControlsModal] = useState(false);
   const [showHostDraw, setShowHostDraw] = useState(false);
   const [showSquadList, setShowSquadList] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
@@ -126,12 +141,72 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
 
   if (!lot) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center animate-fadeIn font-body">
-        <div className="bg-[#12142A] border border-[#23274D] p-8 rounded-2xl shadow-xl">
-          <Trophy className="w-12 h-12 text-[#C8FF3D] mx-auto mb-3 animate-bounce" />
-          <h2 className="text-xl font-heading font-extrabold text-white mb-1 uppercase tracking-wide">Preparing Next Lot...</h2>
-          <p className="text-xs text-[#9E9EB8]">Loading verified player records into the arena.</p>
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-fadeIn font-body">
+        <div className="bg-[#12142A] border border-[#1E2246] p-8 sm:p-12 rounded-3xl shadow-2xl relative overflow-hidden">
+          <div className="w-16 h-16 rounded-3xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] mx-auto mb-5 shadow-[0_0_20px_rgba(200,255,61,0.2)]">
+            <Trophy className="w-8 h-8 stroke-[2.2]" />
+          </div>
+          <h2 className="text-2xl font-heading font-black text-white mb-2 uppercase tracking-wide">
+            Auction Queue Completed
+          </h2>
+          <p className="text-xs sm:text-sm text-[#8F9CAE] max-w-lg mx-auto leading-relaxed mb-6">
+            {isHost
+              ? 'All scheduled players in this pool have been auctioned! As the room host, you can bring all unsold players back, conduct a random draw for unsold players, or officially end the auction.'
+              : 'All scheduled players in this pool have been auctioned. Waiting for the room host to recall unsold players or finalize results...'}
+          </p>
+
+          {isHost ? (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => setShowHostControlsModal(true)}
+                className="py-3 px-6 rounded-2xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Host Controls</span>
+              </button>
+              {onBringAllUnsoldBack && (
+                <button
+                  onClick={onBringAllUnsoldBack}
+                  className="py-3 px-5 rounded-2xl bg-[#1E2246] hover:bg-[#282E5C] text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#1E2246] flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4 text-[#C8FF3D]" />
+                  <span>Bring All Unsold Back</span>
+                </button>
+              )}
+              <button
+                onClick={onEndAuction}
+                className="py-3 px-5 rounded-2xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(255,59,92,0.3)]"
+              >
+                End Auction Now
+              </button>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0A0B14] border border-[#1E2246] text-xs text-[#8F9CAE]">
+              <span className="w-2 h-2 rounded-full bg-[#FFC93D] animate-ping" />
+              <span>Awaiting host decision</span>
+            </div>
+          )}
         </div>
+
+        {isHost && (
+          <HostControlsModal
+            isOpen={showHostControlsModal}
+            onClose={() => setShowHostControlsModal(false)}
+            roomState={roomState}
+            myMemberId={myMemberId}
+            onPauseAuction={onPauseAuction}
+            onResumeAuction={onResumeAuction}
+            onRestartAuction={onRestartAuction}
+            onEndAuction={onEndAuction}
+            onBringAllUnsoldBack={onBringAllUnsoldBack || (() => {})}
+            onRandomDrawUnsold={onRandomDrawUnsold || (() => {})}
+            onSkipMultiplePlayers={onSkipMultiplePlayers || (() => {})}
+            onKickMember={onKickMember || (() => {})}
+            onUpdateTimer={onUpdateTimer || (() => {})}
+            onUpdateSettings={onUpdateSettings}
+            onDrawRandomPlayer={onDrawRandomPlayer}
+          />
+        )}
       </div>
     );
   }
@@ -407,6 +482,14 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
                 </span>
 
                 <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowHostControlsModal(true)}
+                    className="px-2.5 py-1 bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] rounded-lg font-heading font-black uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-[0_0_10px_rgba(200,255,61,0.2)]"
+                  >
+                    <Crown className="w-3 h-3 stroke-[2.5]" />
+                    <span>Host Controls</span>
+                  </button>
+
                   <button
                     onClick={() => setShowSkipModal(true)}
                     disabled={lot.status !== 'IN_PROGRESS' || Boolean(announcingLot)}
@@ -910,6 +993,27 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* 6. HOST CONTROLS & AUCTION MANAGEMENT MODAL */}
+      {isHost && (
+        <HostControlsModal
+          isOpen={showHostControlsModal}
+          onClose={() => setShowHostControlsModal(false)}
+          roomState={roomState}
+          myMemberId={myMemberId}
+          onPauseAuction={onPauseAuction}
+          onResumeAuction={onResumeAuction}
+          onRestartAuction={onRestartAuction}
+          onEndAuction={onEndAuction}
+          onBringAllUnsoldBack={onBringAllUnsoldBack || (() => {})}
+          onRandomDrawUnsold={onRandomDrawUnsold || (() => {})}
+          onSkipMultiplePlayers={onSkipMultiplePlayers || (() => {})}
+          onKickMember={onKickMember || (() => {})}
+          onUpdateTimer={onUpdateTimer || (() => {})}
+          onUpdateSettings={onUpdateSettings}
+          onDrawRandomPlayer={onDrawRandomPlayer}
+        />
       )}
     </div>
   );

@@ -109,6 +109,15 @@ export class RoomManager {
         return;
       }
 
+      // Check if participant was previously kicked
+      if (msg.sessionToken && room.kickedMemberIds.has(msg.sessionToken)) {
+        ws.send(JSON.stringify({
+          type: 'KICKED',
+          message: 'You have been removed from this auction room by the host.'
+        }));
+        return;
+      }
+
       // Check password authorization if private
       if (room.isPrivate) {
         const isHostReconnect = msg.sessionToken && msg.sessionToken === room.hostId;
@@ -241,11 +250,62 @@ export class RoomManager {
         break;
       }
       case 'END_AUCTION': {
-        if (conn.memberId !== room.hostId) {
-          this.sendError(ws, 'Only the host can end the auction');
+        const res = room.finishAuction(conn.memberId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Only the host can end the auction');
           return;
         }
-        room.finishAuction();
+        break;
+      }
+      case 'BRING_ALL_UNSOLD_BACK': {
+        const res = room.bringAllUnsoldBack(conn.memberId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to recall unsold players');
+        }
+        break;
+      }
+      case 'RANDOM_DRAW_UNSOLD': {
+        const res = room.randomDrawUnsold(conn.memberId, msg.count, msg.playerIds);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to draw unsold players');
+        }
+        break;
+      }
+      case 'SKIP_MULTIPLE_PLAYERS': {
+        const res = room.skipMultipleLots(conn.memberId, msg.count);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to skip players');
+        }
+        break;
+      }
+      case 'UPDATE_TIMER': {
+        const res = room.updateSettings(conn.memberId, { timerDuration: msg.timerDuration });
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to update timer');
+        }
+        break;
+      }
+      case 'KICK_MEMBER': {
+        const targetMemberId = msg.targetMemberId;
+        const res = room.kickMember(conn.memberId, targetMemberId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to remove participant');
+          break;
+        }
+
+        // Find target's WebSocket connection, send KICKED message, and terminate connection
+        for (const [clientWs, clientConn] of this.connections.entries()) {
+          if (clientConn.roomCode === room.roomCode && clientConn.memberId === targetMemberId) {
+            if (clientWs.readyState === WebSocket.OPEN) {
+              clientWs.send(JSON.stringify({
+                type: 'KICKED',
+                message: 'You have been removed from the auction room by the host.'
+              }));
+              clientWs.close();
+            }
+            this.connections.delete(clientWs);
+          }
+        }
         break;
       }
       case 'REAUCTION_UNSOLD': {
