@@ -507,6 +507,14 @@ export function App() {
     socketService.send({ type: 'UPDATE_SETTINGS', settings });
   };
 
+  const handleReAuctionSoldPlayer = (playerId: string) => {
+    socketService.send({ type: 'REAUCTION_SOLD_PLAYER', playerId });
+  };
+
+  const handleReAuctionParticularPlayer = (playerId: string) => {
+    socketService.send({ type: 'REAUCTION_PARTICULAR_PLAYER', playerId });
+  };
+
   const handleReAuctionUnsold = () => {
     socketService.send({ type: 'REAUCTION_UNSOLD' });
   };
@@ -640,6 +648,8 @@ export function App() {
                     onKickMember={handleKickMember}
                     onUpdateTimer={handleUpdateTimer}
                     onUpdateSettings={handleUpdateSettings}
+                    onReAuctionSoldPlayer={handleReAuctionSoldPlayer}
+                    onReAuctionParticularPlayer={handleReAuctionParticularPlayer}
                   />
                 )}
 
@@ -660,6 +670,9 @@ export function App() {
                 {activeTab === 'players' && (
                   <PlayersView
                     roomState={roomState}
+                    myMemberId={myMemberId}
+                    onReAuctionSoldPlayer={handleReAuctionSoldPlayer}
+                    onReAuctionParticularPlayer={handleReAuctionParticularPlayer}
                   />
                 )}
 

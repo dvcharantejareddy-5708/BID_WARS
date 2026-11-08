@@ -108,6 +108,74 @@ async function runHostControlsTests() {
   assert(drawRes.drawnLots?.length === 1, 'Exactly 1 lot drawn');
   assert(room.getState().poolSize === poolBeforeDraw + 1, 'Pool size increased by 1');
 
+  console.log('\n--- TEST GROUP 5B: Draw Particular Unsold Player by ID (Section 1C) ---');
+  // Mark another lot unsold to have an unsold player to target
+  (room as any).currentLotIndex++;
+  (room as any).startCurrentLot();
+  const targetedUnsoldPlayer = room.getState().currentLot!.player;
+  (room as any).finalizeCurrentLot();
+
+  // Non-host attempts to recall particular player -> must be rejected
+  const nonHostParticular = room.reAuctionParticularPlayer(p3.id, targetedUnsoldPlayer.id);
+  assert(!nonHostParticular.success, 'Non-host cannot recall particular unsold player');
+
+  // Host recalls particular unsold player
+  const hostParticular = room.reAuctionParticularPlayer(hostId, targetedUnsoldPlayer.id);
+  assert(hostParticular.success, `Host successfully recalled particular player: ${targetedUnsoldPlayer.name}`);
+  assert(hostParticular.lot?.player.id === targetedUnsoldPlayer.id, 'Recalled lot has matching player ID');
+  assert(hostParticular.lot?.status === 'PENDING', 'Recalled lot is set to PENDING');
+
+  // Duplicate recall of same player while already queued must be rejected
+  const duplicateParticular = room.reAuctionParticularPlayer(hostId, targetedUnsoldPlayer.id);
+  assert(!duplicateParticular.success, 'Duplicate recall of already queued player is rejected');
+
+  console.log('\n--- TEST GROUP 5C: Re-Auction Sold Player & Financial Refund Integrity (Section 2 & 3) ---');
+  // Advance to next lot and sell it to CSK for 5 Cr
+  (room as any).currentLotIndex++;
+  (room as any).startCurrentLot();
+  const playerToSell = room.getState().currentLot!.player;
+  const cskPurseBefore = room.getState().teamPurse['CSK'];
+  const sellPrice = 50000000; // 5 Cr
+
+  // CSK places bid and wins
+  room.placeBid(hostId, sellPrice);
+  (room as any).finalizeCurrentLot();
+
+  assert(room.getState().teamPurse['CSK'] === cskPurseBefore - sellPrice, 'CSK purse deducted by exactly 5 Cr');
+  const cskSquadAfterSale = room.getState().teamSquads['CSK'];
+  assert(cskSquadAfterSale.some(p => p.id === playerToSell.id), 'CSK squad contains purchased player');
+
+  // Non-host attempts to re-auction sold player -> must be rejected
+  const nonHostSoldReAuction = room.reAuctionSoldPlayer(p3.id, playerToSell.id);
+  assert(!nonHostSoldReAuction.success, 'Non-host cannot re-auction sold player');
+
+  // Host re-auctions the sold player
+  const poolBeforeSoldReAuction = room.getState().poolSize;
+  const soldReAuctionRes = room.reAuctionSoldPlayer(hostId, playerToSell.id);
+  assert(soldReAuctionRes.success, `Host successfully reversed sale and returned ${playerToSell.name} to auction`);
+  assert(room.getState().teamPurse['CSK'] === cskPurseBefore, 'CSK purse restored by exactly 5 Cr refund');
+  assert(!room.getState().teamSquads['CSK'].some(p => p.id === playerToSell.id), 'Player removed from CSK squad');
+  assert(room.getState().poolSize === poolBeforeSoldReAuction + 1, 'Pool size incremented with re-auctioned lot');
+
+  // Verify historical record is marked REVERSED rather than silently deleted
+  const reversedHistRecord = room.getState().history.find(h => h.player.id === playerToSell.id && h.status === 'REVERSED');
+  assert(reversedHistRecord !== undefined, 'Historical record preserved with status REVERSED');
+
+  // Now advance to the re-auctioned lot and sell to RCB for 8 Cr
+  // Advance current lot to the re-auctioned lot
+  (room as any).currentLotIndex++;
+  (room as any).startCurrentLot();
+  assert(room.getState().currentLot?.player.id === playerToSell.id, 'Re-auctioned player is active in the next round');
+
+  const rcbPurseBefore = room.getState().teamPurse['RCB'];
+  const newSellPrice = 80000000; // 8 Cr
+  room.placeBid(p3.id, newSellPrice); // RCB bids 8 Cr
+  (room as any).finalizeCurrentLot();
+
+  assert(room.getState().teamPurse['RCB'] === rcbPurseBefore - newSellPrice, 'RCB purse deducted by exactly 8 Cr');
+  assert(room.getState().teamSquads['RCB'].some(p => p.id === playerToSell.id), 'RCB squad now contains the re-sold player');
+  assert(!room.getState().teamSquads['CSK'].some(p => p.id === playerToSell.id), 'CSK squad remains unaffected (no duplicate player)');
+
   console.log('\n--- TEST GROUP 6: Kick Participant & Prevention of Re-joining ---');
   // Host cannot kick self
   const kickSelfRes = room.kickMember(hostId, hostId);

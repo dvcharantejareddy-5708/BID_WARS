@@ -53,6 +53,8 @@ interface AuctionArenaProps {
   onKickMember?: (targetMemberId: string) => void;
   onUpdateTimer?: (duration: number) => void;
   onUpdateSettings?: (settings: any) => void;
+  onReAuctionSoldPlayer?: (playerId: string) => void;
+  onReAuctionParticularPlayer?: (playerId: string) => void;
 }
 
 export const AuctionArena: React.FC<AuctionArenaProps> = ({
@@ -71,7 +73,9 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
   onSkipMultiplePlayers,
   onKickMember,
   onUpdateTimer,
-  onUpdateSettings
+  onUpdateSettings,
+  onReAuctionSoldPlayer,
+  onReAuctionParticularPlayer
 }) => {
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showHostControlsModal, setShowHostControlsModal] = useState(false);
@@ -205,6 +209,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
             onUpdateTimer={onUpdateTimer || (() => {})}
             onUpdateSettings={onUpdateSettings}
             onDrawRandomPlayer={onDrawRandomPlayer}
+            onReAuctionParticularPlayer={onReAuctionParticularPlayer}
           />
         )}
       </div>
@@ -1013,6 +1018,7 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
           onUpdateTimer={onUpdateTimer || (() => {})}
           onUpdateSettings={onUpdateSettings}
           onDrawRandomPlayer={onDrawRandomPlayer}
+          onReAuctionParticularPlayer={onReAuctionParticularPlayer}
         />
       )}
     </div>

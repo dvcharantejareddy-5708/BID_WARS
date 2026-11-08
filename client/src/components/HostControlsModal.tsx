@@ -14,9 +14,12 @@ import {
   Dice5, 
   Sparkles, 
   Coins, 
-  ArrowRight,
   ShieldAlert,
-  Shuffle
+  Search,
+  UserPlus,
+  Sliders,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 import { RoomState, IPLTeamId, Player, PlayerCategory, IPL_FRANCHISES, AuctionLot } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
@@ -32,6 +35,7 @@ interface HostControlsModalProps {
   onEndAuction: () => void;
   onBringAllUnsoldBack: () => void;
   onRandomDrawUnsold: (count: number, playerIds?: string[]) => void;
+  onReAuctionParticularPlayer?: (playerId: string) => void;
   onSkipMultiplePlayers: (count: number) => void;
   onKickMember: (targetMemberId: string) => void;
   onUpdateTimer: (duration: number) => void;
@@ -39,7 +43,7 @@ interface HostControlsModalProps {
   onDrawRandomPlayer?: (category: PlayerCategory, basePriceInr: number) => void;
 }
 
-type TabType = 'auction' | 'players' | 'room' | 'settings';
+type TabType = 'auction' | 'players' | 'room';
 
 export const HostControlsModal: React.FC<HostControlsModalProps> = ({
   isOpen,
@@ -52,13 +56,19 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
   onEndAuction,
   onBringAllUnsoldBack,
   onRandomDrawUnsold,
+  onReAuctionParticularPlayer,
   onSkipMultiplePlayers,
   onKickMember,
   onUpdateTimer,
   onUpdateSettings,
   onDrawRandomPlayer
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('auction');
+  const [activeTab, setActiveTab] = useState<TabType>('players');
+  const [reAuctionSubMode, setReAuctionSubMode] = useState<'all' | 'random' | 'particular'>('particular');
+  
+  // Particular player search query
+  const [particularSearch, setParticularSearch] = useState('');
+
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     description: string;
@@ -78,10 +88,6 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
     String(roomState.settings.timerDuration || 10)
   );
 
-  // Category & Price Draw State
-  const [drawCategory, setDrawCategory] = useState<PlayerCategory>('Batsmen');
-  const [drawPrice, setDrawPrice] = useState<number>(20000000);
-
   // Feedback banner
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -90,7 +96,9 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
     setTimeout(() => setFeedbackMsg(null), 4000);
   };
 
-  // Compute eligible unsold players
+  const isTopHost = myMemberId ? roomState.hostId === myMemberId : false;
+
+  // Compute eligible unsold players strictly from authoritative state
   const eligibleUnsoldPlayers = useMemo(() => {
     const soldPlayerIds = new Set<string>();
     for (const squad of Object.values(roomState.teamSquads || {})) {
@@ -131,6 +139,17 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
     return eligible;
   }, [roomState]);
 
+  // Filtered particular unsold list
+  const filteredParticularUnsold = useMemo(() => {
+    if (!particularSearch.trim()) return eligibleUnsoldPlayers;
+    const query = particularSearch.toLowerCase().trim();
+    return eligibleUnsoldPlayers.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query) ||
+      p.nationality.toLowerCase().includes(query)
+    );
+  }, [eligibleUnsoldPlayers, particularSearch]);
+
   // Compute upcoming lots for Skip Multiple preview
   const upcomingLotsToSkip = useMemo(() => {
     if (!roomState.lots) return [];
@@ -144,6 +163,29 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
   }, [roomState, skipCount]);
 
   if (!isOpen) return null;
+
+  // Strict Top Host security gate on UI level
+  if (!isTopHost) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0B14]/85 backdrop-blur-md animate-fadeIn font-body">
+        <div className="bg-[#12142A] max-w-md w-full rounded-3xl p-6 border border-[#FF3B5C]/30 shadow-2xl text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#0A0B14] text-[#FF3B5C] border border-[#FF3B5C]/30 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <h3 className="font-heading font-black text-base uppercase text-white">Access Denied</h3>
+          <p className="text-xs text-[#8F9CAE] leading-relaxed">
+            Only the top host (the original room creator) has administrative privileges to access auction management controls.
+          </p>
+          <button
+            onClick={onClose}
+            className="py-2.5 px-6 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-white text-xs font-heading font-bold uppercase"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const isAuctionActive = roomState.status === 'AUCTION';
   const isAuctionPaused = roomState.status === 'PAUSED';
@@ -184,7 +226,7 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
         break;
       case 'recall_unsold':
         onBringAllUnsoldBack();
-        showFeedback(`Recalled all eligible unsold players!`);
+        showFeedback(`Recalled all eligible unsold players into the active queue!`);
         break;
       case 'kick':
         if (confirmDialog.payload?.memberId) {
@@ -222,13 +264,13 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-heading font-black text-lg sm:text-xl uppercase tracking-tight text-white">
-                  Auction Management
+                  Host Controls
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-heading font-extrabold uppercase bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30">
-                  Host Controls
+                  Top Host
                 </span>
               </div>
-              <p className="text-xs text-[#8F9CAE]">Full server-authoritative controls for room {roomState.roomCode}</p>
+              <p className="text-xs text-[#8F9CAE]">Authoritative room controls for room {roomState.roomCode}</p>
             </div>
           </div>
           <button
@@ -251,29 +293,17 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-[#1E2246] bg-[#0E1022] px-3 sm:px-6 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setActiveTab('auction')}
-            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all shrink-0 flex items-center gap-2 ${
-              activeTab === 'auction'
-                ? 'border-[#C8FF3D] text-[#C8FF3D] bg-[#C8FF3D]/5'
-                : 'border-transparent text-[#8F9CAE] hover:text-white'
-            }`}
-          >
-            <Play className="w-3.5 h-3.5" />
-            <span>Auction Control</span>
-          </button>
-
+        {/* 3 Main Navigation Tabs per Requirement 5 */}
+        <div className="flex items-center border-b border-[#1E2246] bg-[#0E1022] px-3 sm:px-6">
           <button
             onClick={() => setActiveTab('players')}
-            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all shrink-0 flex items-center gap-2 ${
+            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'players'
                 ? 'border-[#C8FF3D] text-[#C8FF3D] bg-[#C8FF3D]/5'
                 : 'border-transparent text-[#8F9CAE] hover:text-white'
             }`}
           >
-            <Shuffle className="w-3.5 h-3.5" />
+            <Layers className="w-3.5 h-3.5" />
             <span>Player Management</span>
             {eligibleUnsoldPlayers.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-[#FFC93D] text-[#0A0B14] font-mono text-[10px] font-black flex items-center justify-center">
@@ -283,289 +313,312 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('auction')}
+            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'auction'
+                ? 'border-[#C8FF3D] text-[#C8FF3D] bg-[#C8FF3D]/5'
+                : 'border-transparent text-[#8F9CAE] hover:text-white'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Auction Management</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('room')}
-            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all shrink-0 flex items-center gap-2 ${
+            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'room'
                 ? 'border-[#C8FF3D] text-[#C8FF3D] bg-[#C8FF3D]/5'
                 : 'border-transparent text-[#8F9CAE] hover:text-white'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Participants</span>
+            <span>Room Management</span>
             <span className="w-5 h-5 rounded-full bg-[#1E2246] text-[#8F9CAE] font-mono text-[10px] font-bold flex items-center justify-center">
               {Object.keys(roomState.members || {}).length}
             </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`py-3.5 px-4 font-heading text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all shrink-0 flex items-center gap-2 ${
-              activeTab === 'settings'
-                ? 'border-[#C8FF3D] text-[#C8FF3D] bg-[#C8FF3D]/5'
-                : 'border-transparent text-[#8F9CAE] hover:text-white'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Auction Settings</span>
           </button>
         </div>
 
         {/* Tab Content Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
           
-          {/* TAB 1: AUCTION CONTROL */}
-          {activeTab === 'auction' && (
-            <div className="space-y-6">
-              {/* Pause & Resume Auction */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
-                      <span>Live Flow State</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                        isAuctionActive ? 'bg-[#C8FF3D]/15 text-[#C8FF3D]' : 'bg-[#FFC93D]/15 text-[#FFC93D]'
-                      }`}>
-                        {roomState.status}
-                      </span>
-                    </h3>
-                    <p className="text-xs text-[#8F9CAE] mt-1">
-                      Temporarily freeze bidding clocks across all participant devices without resetting current bids.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {isAuctionActive && (
-                      <button
-                        onClick={onPauseAuction}
-                        className="py-2.5 px-5 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#FFC93D] font-heading font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border border-[#FFC93D]/30 shadow-[0_0_12px_rgba(255,201,61,0.15)]"
-                      >
-                        <Pause className="w-4 h-4" />
-                        <span>Pause Auction</span>
-                      </button>
-                    )}
-
-                    {isAuctionPaused && (
-                      <button
-                        onClick={onResumeAuction}
-                        className="py-2.5 px-5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(200,255,61,0.3)]"
-                      >
-                        <Play className="w-4 h-4 fill-current" />
-                        <span>Resume Auction</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* End Auction Section (Feature 3) */}
-              <div className="bg-[#0A0B14] border border-[#FF3B5C]/30 rounded-2xl p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF3B5C]/5 rounded-full blur-2xl pointer-events-none" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 text-[#FF3B5C]">
-                      <ShieldAlert className="w-4 h-4" />
-                      <h3 className="font-heading font-black text-sm uppercase tracking-wider">
-                        End Auction Officially
-                      </h3>
-                    </div>
-                    <p className="text-xs text-[#8F9CAE] mt-1 max-w-lg leading-relaxed">
-                      Conclude the live auction and lock all franchises. Calculating final squad scores, purse standings, and navigating all connected participants to the final Auction Results view.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setConfirmDialog({
-                      title: 'End Live Auction?',
-                      description: 'Are you sure you want to officially end the auction? All squad purchases and purse balances will be finalized. All participants will transition to the Final Results view.',
-                      actionType: 'end'
-                    })}
-                    className="py-2.5 px-5 rounded-xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(255,59,92,0.3)] shrink-0"
-                  >
-                    End Auction Now
-                  </button>
-                </div>
-              </div>
-
-              {/* Restart Lobby */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
-                      Reset Auction to Lobby
-                    </h3>
-                    <p className="text-xs text-[#8F9CAE] mt-1">
-                      Resets all squad purchases, restores original ₹120.00 Cr purse balances, and returns all participants to the team selection lobby.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setConfirmDialog({
-                      title: 'Reset to Lobby?',
-                      description: 'Warning: This will clear all squads, refund purses to starting limits, and reset player lots back to the beginning. Proceed?',
-                      actionType: 'restart'
-                    })}
-                    className="py-2.5 px-5 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#8F9CAE] hover:text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#1E2246] flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Reset to Lobby</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: PLAYER MANAGEMENT (Features 1, 2, 7) */}
+          {/* SECTION 1: PLAYER MANAGEMENT (Requirements 1, 2, 5) */}
           {activeTab === 'players' && (
             <div className="space-y-6">
               
-              {/* FEATURE 1: Bring All Unsold Players Back */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 relative overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+              {/* RE-AUCTION PLAYERS (Section 1) */}
+              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2246] pb-3">
+                  <div>
+                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
                       <RotateCcw className="w-4 h-4 text-[#C8FF3D]" />
-                      <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
-                        Bring All Unsold Players Back
-                      </h3>
-                      <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30">
-                        {eligibleUnsoldPlayers.length} Eligible
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#8F9CAE] leading-relaxed max-w-lg">
-                      Restores all players previously marked UNSOLD into the active auction queue. Original base prices, player attributes, and details are strictly preserved. Sold players are untouched.
+                      <span>Re-Auction Players</span>
+                    </h3>
+                    <p className="text-xs text-[#8F9CAE] mt-0.5">
+                      Recall players who went unsold back into the live auction pool at any point.
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setConfirmDialog({
-                      title: 'Bring All Unsold Players Back?',
-                      description: `Are you sure you want to recall all ${eligibleUnsoldPlayers.length} unsold player(s) to the auction queue? Their base prices will be preserved.`,
-                      actionType: 'recall_unsold'
-                    })}
-                    disabled={eligibleUnsoldPlayers.length === 0}
-                    className={`py-2.5 px-5 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all shrink-0 ${
-                      eligibleUnsoldPlayers.length > 0
-                        ? 'bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] shadow-[0_0_15px_rgba(200,255,61,0.25)]'
-                        : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed border border-[#1E2246]'
-                    }`}
-                  >
-                    Bring All Unsold Back
-                  </button>
-                </div>
-              </div>
-
-              {/* FEATURE 2: Custom Random Draw for Unsold Players */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Dice5 className="w-4 h-4 text-[#FFC93D]" />
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
-                      Random Draw: Unsold Players
-                    </h3>
+                  {/* 3 Sub-Modes Selector: Particular, Random Draw, All Unsold */}
+                  <div className="flex items-center gap-1 bg-[#12142A] p-1 rounded-xl border border-[#1E2246]">
+                    <button
+                      onClick={() => setReAuctionSubMode('particular')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold uppercase transition-all ${
+                        reAuctionSubMode === 'particular'
+                          ? 'bg-[#C8FF3D] text-[#0A0B14]'
+                          : 'text-[#8F9CAE] hover:text-white'
+                      }`}
+                    >
+                      Particular Player
+                    </button>
+                    <button
+                      onClick={() => setReAuctionSubMode('random')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold uppercase transition-all ${
+                        reAuctionSubMode === 'random'
+                          ? 'bg-[#FFC93D] text-[#0A0B14]'
+                          : 'text-[#8F9CAE] hover:text-white'
+                      }`}
+                    >
+                      Random Draw
+                    </button>
+                    <button
+                      onClick={() => setReAuctionSubMode('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-heading font-bold uppercase transition-all ${
+                        reAuctionSubMode === 'all'
+                          ? 'bg-[#7C5CFF] text-white'
+                          : 'text-[#8F9CAE] hover:text-white'
+                      }`}
+                    >
+                      Bring All Back
+                    </button>
                   </div>
-                  <span className="text-xs font-mono text-[#8F9CAE]">
-                    {eligibleUnsoldPlayers.length} Unsold Available
-                  </span>
                 </div>
 
-                <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                  Choose how many unsold players to draw. Preview the selected players, re-draw if unsatisfied, and confirm to add only the selected players into the queue.
-                </p>
+                {/* SUBMODE 1C: DRAW PARTICULAR PLAYER */}
+                {reAuctionSubMode === 'particular' && (
+                  <div className="space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between text-xs text-[#8F9CAE]">
+                      <span>Select any specific unsold player to queue them up for the next slot:</span>
+                      <span className="font-mono text-[#C8FF3D]">{eligibleUnsoldPlayers.length} eligible</span>
+                    </div>
 
-                {/* Draw Quantity Selector */}
-                {!drawnPreviewPlayers && (
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <span className="text-xs font-heading font-bold uppercase text-[#8F9CAE]">Quantity:</span>
-                    {[1, 2, 3, 5].map(cnt => (
-                      <button
-                        key={cnt}
-                        onClick={() => setDrawCount(cnt)}
-                        disabled={eligibleUnsoldPlayers.length === 0}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-mono font-bold transition-all border ${
-                          drawCount === cnt
-                            ? 'bg-[#FFC93D] text-[#0A0B14] border-[#FFC93D]'
-                            : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
-                        }`}
-                      >
-                        {cnt} Player{cnt > 1 ? 's' : ''}
-                      </button>
-                    ))}
-                    <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-[#8F9CAE] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
-                        type="number"
-                        min="1"
-                        max={Math.max(1, eligibleUnsoldPlayers.length)}
-                        value={drawCount}
-                        onChange={(e) => setDrawCount(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-16 py-1.5 px-2 rounded-lg bg-[#12142A] border border-[#1E2246] text-center font-mono text-xs text-white focus:outline-none focus:border-[#FFC93D]"
+                        type="text"
+                        placeholder="Search unsold players by name, category, or nationality..."
+                        value={particularSearch}
+                        onChange={(e) => setParticularSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#12142A] border border-[#1E2246] text-xs text-white placeholder-[#8F9CAE] focus:outline-none focus:border-[#C8FF3D]"
                       />
                     </div>
 
-                    <button
-                      onClick={handleGenerateDrawPreview}
-                      disabled={eligibleUnsoldPlayers.length === 0}
-                      className={`ml-auto py-2 px-4 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
-                        eligibleUnsoldPlayers.length > 0
-                          ? 'bg-[#FFC93D] hover:bg-[#E5B535] text-[#0A0B14] shadow-[0_0_15px_rgba(255,201,61,0.2)]'
-                          : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed'
-                      }`}
-                    >
-                      <Dice5 className="w-3.5 h-3.5" />
-                      <span>Draw Players</span>
-                    </button>
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                      {filteredParticularUnsold.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-[#8F9CAE] bg-[#12142A] rounded-xl border border-[#1E2246]">
+                          {particularSearch ? 'No unsold players match your search filter.' : 'No players currently marked UNSOLD.'}
+                        </div>
+                      ) : (
+                        filteredParticularUnsold.map(p => (
+                          <div 
+                            key={p.id} 
+                            className="bg-[#12142A] border border-[#1E2246] rounded-xl p-3 flex items-center justify-between gap-3 hover:border-[#282E5C] transition-all"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#1E2246] flex items-center justify-center shrink-0 overflow-hidden">
+                                {p.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  <span className="font-heading font-black text-[10px] text-[#C8FF3D]">{p.name.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-heading font-bold text-xs text-white uppercase truncate block">
+                                  {p.name}
+                                </span>
+                                <span className="text-[10px] text-[#8F9CAE] flex items-center gap-1.5">
+                                  <span className="text-[#C8FF3D] font-medium">{p.category}</span>
+                                  <span>•</span>
+                                  <span>{p.is_overseas ? `✈️ ${p.nationality}` : `🇮🇳 ${p.nationality}`}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-xs font-mono font-bold text-[#FFC93D]">
+                                {p.base_price_display}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  if (onReAuctionParticularPlayer) {
+                                    onReAuctionParticularPlayer(p.id);
+                                    showFeedback(`${p.name} queued for the next auction round!`);
+                                  }
+                                }}
+                                className="py-1.5 px-3 rounded-lg bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-[11px] uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Add to Auction</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* Drawn Players Preview Cards */}
-                {drawnPreviewPlayers && (
-                  <div className="bg-[#12142A] border border-[#FFC93D]/30 rounded-xl p-4 space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-[#1E2246] pb-2">
-                      <span className="text-xs font-heading font-black uppercase text-[#FFC93D] flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Preview: {drawnPreviewPlayers.length} Drawn Player(s)</span>
-                      </span>
-                      <button
-                        onClick={handleGenerateDrawPreview}
-                        className="text-[11px] font-heading font-bold uppercase text-[#8F9CAE] hover:text-white flex items-center gap-1"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Re-Draw</span>
-                      </button>
-                    </div>
+                {/* SUBMODE 1B: RANDOM DRAW */}
+                {reAuctionSubMode === 'random' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <p className="text-xs text-[#8F9CAE] leading-relaxed">
+                      Choose how many unsold players to draw. Preview the selected players, re-draw if unsatisfied, and confirm to add only the selected players into the upcoming queue.
+                    </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                      {drawnPreviewPlayers.map(p => (
-                        <div key={p.id} className="bg-[#0A0B14] border border-[#1E2246] rounded-lg p-2.5 flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-heading font-black text-white uppercase">{p.name}</p>
-                            <p className="text-[10px] text-[#8F9CAE]">{p.category} • {p.nationality}</p>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-[#C8FF3D]">
-                            ₹{(p.base_price_inr / 10000000).toFixed(2)} Cr
-                          </span>
+                    {!drawnPreviewPlayers ? (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-xs font-heading font-bold uppercase text-[#8F9CAE]">Quantity:</span>
+                        {[1, 2, 3, 5].map(cnt => (
+                          <button
+                            key={cnt}
+                            onClick={() => setDrawCount(cnt)}
+                            disabled={eligibleUnsoldPlayers.length === 0}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-mono font-bold transition-all border ${
+                              drawCount === cnt
+                                ? 'bg-[#FFC93D] text-[#0A0B14] border-[#FFC93D]'
+                                : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
+                            }`}
+                          >
+                            {cnt} Player{cnt > 1 ? 's' : ''}
+                          </button>
+                        ))}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max={Math.max(1, eligibleUnsoldPlayers.length)}
+                            value={drawCount}
+                            onChange={(e) => setDrawCount(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 py-1.5 px-2 rounded-lg bg-[#12142A] border border-[#1E2246] text-center font-mono text-xs text-white focus:outline-none focus:border-[#FFC93D]"
+                          />
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1E2246]">
+                        <button
+                          onClick={handleGenerateDrawPreview}
+                          disabled={eligibleUnsoldPlayers.length === 0}
+                          className={`ml-auto py-2 px-4 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                            eligibleUnsoldPlayers.length > 0
+                              ? 'bg-[#FFC93D] hover:bg-[#E5B535] text-[#0A0B14] shadow-[0_0_15px_rgba(255,201,61,0.2)]'
+                              : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed'
+                          }`}
+                        >
+                          <Dice5 className="w-3.5 h-3.5" />
+                          <span>Draw Players</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-[#12142A] border border-[#FFC93D]/30 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#1E2246] pb-2">
+                          <span className="text-xs font-heading font-black uppercase text-[#FFC93D] flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Preview: {drawnPreviewPlayers.length} Drawn Player(s)</span>
+                          </span>
+                          <button
+                            onClick={handleGenerateDrawPreview}
+                            className="text-[11px] font-heading font-bold uppercase text-[#8F9CAE] hover:text-white flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Re-Draw</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                          {drawnPreviewPlayers.map(p => (
+                            <div key={p.id} className="bg-[#0A0B14] border border-[#1E2246] rounded-lg p-2.5 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-heading font-black text-white uppercase">{p.name}</p>
+                                <p className="text-[10px] text-[#8F9CAE]">{p.category} • {p.nationality}</p>
+                              </div>
+                              <span className="text-xs font-mono font-bold text-[#C8FF3D]">
+                                ₹{(p.base_price_inr / 10000000).toFixed(2)} Cr
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1E2246]">
+                          <button
+                            onClick={() => setDrawnPreviewPlayers(null)}
+                            className="py-1.5 px-3 rounded-lg bg-[#0A0B14] border border-[#1E2246] text-xs font-heading font-bold text-[#8F9CAE] hover:text-white uppercase"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleConfirmDrawUnsold}
+                            className="py-1.5 px-4 rounded-lg bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider shadow-[0_0_12px_rgba(200,255,61,0.2)]"
+                          >
+                            Confirm & Add to Queue
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SUBMODE 1A: BRING ALL UNSOLD BACK */}
+                {reAuctionSubMode === 'all' && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <p className="text-xs text-[#8F9CAE] leading-relaxed">
+                      Restores all players previously marked UNSOLD into the active auction queue. Original base prices and player attributes are preserved.
+                    </p>
+
+                    <div className="flex items-center justify-between bg-[#12142A] p-4 rounded-xl border border-[#1E2246]">
+                      <div>
+                        <span className="text-xs font-heading font-extrabold text-white block uppercase">
+                          Eligible Unsold Pool: {eligibleUnsoldPlayers.length} Player(s)
+                        </span>
+                        <span className="text-[11px] text-[#8F9CAE]">
+                          No duplicate entries will be created. Sold players will not be touched.
+                        </span>
+                      </div>
+
                       <button
-                        onClick={() => setDrawnPreviewPlayers(null)}
-                        className="py-1.5 px-3 rounded-lg bg-[#0A0B14] border border-[#1E2246] text-xs font-heading font-bold text-[#8F9CAE] hover:text-white uppercase"
+                        onClick={() => setConfirmDialog({
+                          title: 'Bring All Unsold Players Back?',
+                          description: `Are you sure you want to recall all ${eligibleUnsoldPlayers.length} unsold player(s) to the auction queue? Their base prices will be preserved.`,
+                          actionType: 'recall_unsold'
+                        })}
+                        disabled={eligibleUnsoldPlayers.length === 0}
+                        className={`py-2.5 px-5 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all shrink-0 ${
+                          eligibleUnsoldPlayers.length > 0
+                            ? 'bg-[#7C5CFF] hover:bg-[#6846EB] text-white shadow-[0_0_15px_rgba(124,92,255,0.3)]'
+                            : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed border border-[#1E2246]'
+                        }`}
                       >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmDrawUnsold}
-                        className="py-1.5 px-4 rounded-lg bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider shadow-[0_0_12px_rgba(200,255,61,0.2)]"
-                      >
-                        Confirm & Add to Queue
+                        Bring All Unsold Back
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* FEATURE 7: Skip Multiple Players */}
+              {/* RE-AUCTION SOLD PLAYERS SHORTCUT NOTICE (Section 2) */}
+              <div className="bg-[#0A0B14] border border-[#FF3B5C]/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[#FF3B5C]">
+                    <RotateCcw className="w-4 h-4" />
+                    <h4 className="font-heading font-black text-xs uppercase tracking-wider">
+                      Re-Auction Sold Players
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-[#8F9CAE] leading-relaxed">
+                    To re-auction players who have already been sold, visit the <strong className="text-white">Players</strong> tab and switch to the <strong className="text-[#C8FF3D]">Sold Players</strong> table. Clicking "Re-Auction" will reverse the sale, refund the buyer's purse, and return the player to the auction ring.
+                  </p>
+                </div>
+              </div>
+
+              {/* SKIP MULTIPLE PLAYERS (Section 5) */}
               <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -578,10 +631,6 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                     Upcoming in pool: {Math.max(0, (roomState.lots?.length || 0) - roomState.currentLotIndex)}
                   </span>
                 </div>
-
-                <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                  Skip upcoming lots in batch. Preview the upcoming player lots before confirming. Active player rounds with placed bids will finish first.
-                </p>
 
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs font-heading font-bold uppercase text-[#8F9CAE]">Skip Count:</span>
@@ -635,70 +684,200 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                 )}
               </div>
 
-              {/* SECTION 16: Custom Category & Price Draw */}
-              {onDrawRandomPlayer && (
-                <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-3">
-                  <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-[#C8FF3D]" />
-                    <span>Draw Specific Category & Price Bracket</span>
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="text-[11px] font-heading font-bold uppercase text-[#8F9CAE] block mb-1">
-                        Category
-                      </label>
-                      <select
-                        value={drawCategory}
-                        onChange={(e) => setDrawCategory(e.target.value as PlayerCategory)}
-                        className="w-full py-2 px-3 rounded-xl bg-[#12142A] border border-[#1E2246] text-white text-xs font-medium focus:outline-none focus:border-[#C8FF3D]"
-                      >
-                        <option value="Batsmen">Batsmen</option>
-                        <option value="Bowlers">Bowlers</option>
-                        <option value="All-rounders">All-rounders</option>
-                        <option value="Wicket-keepers">Wicket-keepers</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-heading font-bold uppercase text-[#8F9CAE] block mb-1">
-                        Base Price Bracket
-                      </label>
-                      <select
-                        value={drawPrice}
-                        onChange={(e) => setDrawPrice(Number(e.target.value))}
-                        className="w-full py-2 px-3 rounded-xl bg-[#12142A] border border-[#1E2246] text-white text-xs font-mono focus:outline-none focus:border-[#C8FF3D]"
-                      >
-                        <option value={20000000}>₹2.00 Cr</option>
-                        <option value={15000000}>₹1.50 Cr</option>
-                        <option value={10000000}>₹1.00 Cr</option>
-                        <option value={5000000}>₹50 Lakh</option>
-                        <option value={2000000}>₹20 Lakh</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={() => onDrawRandomPlayer(drawCategory, drawPrice)}
-                      className="py-2 px-4 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#C8FF3D] border border-[#C8FF3D]/30 text-xs font-heading font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
-                    >
-                      <Dice5 className="w-3.5 h-3.5" />
-                      <span>Draw Next Matching Lot</span>
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* TAB 3: ROOM & PARTICIPANTS (Feature 6: Kick Out Players) */}
+          {/* SECTION 2: AUCTION MANAGEMENT (Requirement 5) */}
+          {activeTab === 'auction' && (
+            <div className="space-y-6">
+              
+              {/* Timer Settings */}
+              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#C8FF3D]" />
+                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
+                      Bid Round Countdown Timer
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-[#C8FF3D]">
+                    Current: {roomState.settings.timerDuration}s
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {timerPresets.map(duration => (
+                    <button
+                      key={duration}
+                      onClick={() => {
+                        onUpdateTimer(duration);
+                        setCustomTimerInput(String(duration));
+                        showFeedback(`Round timer updated to ${duration} seconds.`);
+                      }}
+                      className={`py-2 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border ${
+                        roomState.settings.timerDuration === duration
+                          ? 'bg-[#C8FF3D] text-[#0A0B14] border-[#C8FF3D] shadow-[0_0_12px_rgba(200,255,61,0.2)]'
+                          : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
+                      }`}
+                    >
+                      {duration}s
+                    </button>
+                  ))}
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <input
+                      type="number"
+                      min="3"
+                      max="60"
+                      value={customTimerInput}
+                      onChange={(e) => setCustomTimerInput(e.target.value)}
+                      placeholder="Sec"
+                      className="w-16 py-1.5 px-2 rounded-xl bg-[#12142A] border border-[#1E2246] text-center font-mono text-xs text-white focus:outline-none focus:border-[#C8FF3D]"
+                    />
+                    <button
+                      onClick={() => {
+                        const val = parseInt(customTimerInput, 10);
+                        if (val >= 3 && val <= 60) {
+                          onUpdateTimer(val);
+                          showFeedback(`Custom round timer set to ${val}s.`);
+                        } else {
+                          showFeedback('Duration must be between 3 and 60 seconds.', 'error');
+                        }
+                      }}
+                      className="py-1.5 px-3 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#C8FF3D] border border-[#C8FF3D]/30 text-xs font-heading font-black uppercase tracking-wider"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Minimum Bid Increment */}
+              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-[#FFC93D]" />
+                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
+                      Minimum Bid Increment
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-[#FFC93D]">
+                    Current: ₹{(roomState.settings.minBidIncrement / 100000).toFixed(0)} Lakh
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {incrementPresets.map(preset => (
+                    <button
+                      key={preset.value}
+                      onClick={() => {
+                        if (onUpdateSettings) {
+                          onUpdateSettings({ minBidIncrement: preset.value });
+                          showFeedback(`Min bid increment updated to ${preset.label}.`);
+                        }
+                      }}
+                      className={`py-2 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border ${
+                        roomState.settings.minBidIncrement === preset.value
+                          ? 'bg-[#FFC93D] text-[#0A0B14] border-[#FFC93D] shadow-[0_0_12px_rgba(255,201,61,0.2)]'
+                          : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Flow State: Pause, Resume, Reset */}
+              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
+                    <span>Live Auction Flow</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                      isAuctionActive ? 'bg-[#C8FF3D]/15 text-[#C8FF3D]' : 'bg-[#FFC93D]/15 text-[#FFC93D]'
+                    }`}>
+                      {roomState.status}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-[#8F9CAE] mt-1">
+                    Freeze or resume clocks without corrupting active bids.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isAuctionActive && (
+                    <button
+                      onClick={onPauseAuction}
+                      className="py-2.5 px-4 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#FFC93D] font-heading font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#FFC93D]/30"
+                    >
+                      <Pause className="w-3.5 h-3.5" />
+                      <span>Pause</span>
+                    </button>
+                  )}
+
+                  {isAuctionPaused && (
+                    <button
+                      onClick={onResumeAuction}
+                      className="py-2.5 px-4 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(200,255,61,0.25)]"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Resume</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setConfirmDialog({
+                      title: 'Reset to Lobby?',
+                      description: 'Warning: This will clear all squad purchases, refund team purses, and reset player lots back to the beginning. Proceed?',
+                      actionType: 'restart'
+                    })}
+                    className="py-2.5 px-4 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#8F9CAE] hover:text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#1E2246] flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Lobby</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* End Auction (Section 5) */}
+              <div className="bg-[#0A0B14] border border-[#FF3B5C]/30 rounded-2xl p-5 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#FF3B5C]">
+                      <ShieldAlert className="w-4 h-4" />
+                      <h3 className="font-heading font-black text-sm uppercase tracking-wider">
+                        End Auction Officially
+                      </h3>
+                    </div>
+                    <p className="text-xs text-[#8F9CAE] mt-1 max-w-lg leading-relaxed">
+                      Conclude the live auction and lock all squads. Calculating final standings, purse reserves, and navigating all participants to the final Results view.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setConfirmDialog({
+                      title: 'End Live Auction?',
+                      description: 'Are you sure you want to officially end the auction? Squad purchases and purse balances will be finalized.',
+                      actionType: 'end'
+                    })}
+                    className="py-2.5 px-5 rounded-xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(255,59,92,0.3)] shrink-0"
+                  >
+                    End Auction Now
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* SECTION 3: ROOM MANAGEMENT (Requirement 5) */}
           {activeTab === 'room' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-[#1E2246]">
                 <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
                   Active Room Members ({Object.keys(roomState.members || {}).length})
                 </h3>
-                <span className="text-xs text-[#8F9CAE]">Host has exclusive participant removal privileges</span>
+                <span className="text-xs text-[#8F9CAE]">Top host exclusive participant removal</span>
               </div>
 
               <div className="space-y-2">
@@ -730,7 +909,7 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                             </span>
                             {isHost && (
                               <span className="px-2 py-0.5 rounded text-[10px] font-heading font-black uppercase bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30">
-                                Host
+                                Top Host
                               </span>
                             )}
                             {isSelf && (
@@ -754,7 +933,6 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Kick Button (Feature 6) */}
                       {!isHost && !isSelf && (
                         <button
                           onClick={() => setConfirmDialog({
@@ -776,126 +954,13 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 4: AUCTION SETTINGS (Features 4 & 5) */}
-          {activeTab === 'settings' && (
-            <div className="space-y-6">
-              
-              {/* FEATURE 4: Auction Timer Settings */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#C8FF3D]" />
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
-                      Bid Round Countdown Timer
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-[#C8FF3D]">
-                    Current: {roomState.settings.timerDuration}s
-                  </span>
-                </div>
-
-                <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                  Adjust countdown duration per bid round. Changes apply safely from the next round or bid without corrupting ongoing bidding.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {timerPresets.map(duration => (
-                    <button
-                      key={duration}
-                      onClick={() => {
-                        onUpdateTimer(duration);
-                        setCustomTimerInput(String(duration));
-                        showFeedback(`Round timer updated to ${duration} seconds.`);
-                      }}
-                      className={`py-2 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border ${
-                        roomState.settings.timerDuration === duration
-                          ? 'bg-[#C8FF3D] text-[#0A0B14] border-[#C8FF3D] shadow-[0_0_12px_rgba(200,255,61,0.2)]'
-                          : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
-                      }`}
-                    >
-                      {duration}s
-                    </button>
-                  ))}
-
-                  {/* Custom input */}
-                  <div className="flex items-center gap-2 ml-auto">
-                    <input
-                      type="number"
-                      min="3"
-                      max="60"
-                      value={customTimerInput}
-                      onChange={(e) => setCustomTimerInput(e.target.value)}
-                      placeholder="Sec"
-                      className="w-16 py-1.5 px-2 rounded-xl bg-[#12142A] border border-[#1E2246] text-center font-mono text-xs text-white focus:outline-none focus:border-[#C8FF3D]"
-                    />
-                    <button
-                      onClick={() => {
-                        const val = parseInt(customTimerInput, 10);
-                        if (val >= 3 && val <= 60) {
-                          onUpdateTimer(val);
-                          showFeedback(`Custom round timer set to ${val}s.`);
-                        } else {
-                          showFeedback('Duration must be between 3 and 60 seconds.', 'error');
-                        }
-                      }}
-                      className="py-1.5 px-3 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-[#C8FF3D] border border-[#C8FF3D]/30 text-xs font-heading font-black uppercase tracking-wider"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* FEATURE 5: Minimum Bid Increment */}
-              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Coins className="w-4 h-4 text-[#FFC93D]" />
-                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
-                      Minimum Bid Increment
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-[#FFC93D]">
-                    Current: ₹{(roomState.settings.minBidIncrement / 100000).toFixed(0)} Lakh
-                  </span>
-                </div>
-
-                <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                  Controls the step value when participants press the Quick Bid (+Increment) button.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {incrementPresets.map(preset => (
-                    <button
-                      key={preset.value}
-                      onClick={() => {
-                        if (onUpdateSettings) {
-                          onUpdateSettings({ minBidIncrement: preset.value });
-                          showFeedback(`Min bid increment updated to ${preset.label}.`);
-                        }
-                      }}
-                      className={`py-2 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border ${
-                        roomState.settings.minBidIncrement === preset.value
-                          ? 'bg-[#FFC93D] text-[#0A0B14] border-[#FFC93D] shadow-[0_0_12px_rgba(255,201,61,0.2)]'
-                          : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          )}
-
         </div>
 
         {/* Footer */}
         <div className="p-4 sm:p-5 border-t border-[#1E2246] bg-[#101226] flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-[#8F9CAE]">
             <Crown className="w-3.5 h-3.5 text-[#C8FF3D]" />
-            <span>Room Host Session</span>
+            <span>Top Host Session Active</span>
           </div>
           <button
             onClick={onClose}

@@ -271,6 +271,20 @@ export class RoomManager {
         }
         break;
       }
+      case 'REAUCTION_PARTICULAR_PLAYER': {
+        const res = room.reAuctionParticularPlayer(conn.memberId, msg.playerId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to re-auction unsold player');
+        }
+        break;
+      }
+      case 'REAUCTION_SOLD_PLAYER': {
+        const res = room.reAuctionSoldPlayer(conn.memberId, msg.playerId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to re-auction sold player');
+        }
+        break;
+      }
       case 'SKIP_MULTIPLE_PLAYERS': {
         const res = room.skipMultipleLots(conn.memberId, msg.count);
         if (!res.success) {

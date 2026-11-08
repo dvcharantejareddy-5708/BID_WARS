@@ -1094,8 +1094,8 @@ export class GameRoom {
   }
 
   public finishAuction(memberId?: string): { success: boolean; message?: string } {
-    if (memberId && memberId !== this.hostId) {
-      return { success: false, message: 'Only the host can end the auction' };
+    if (!memberId || memberId !== this.hostId) {
+      return { success: false, message: 'Only the top host can end the auction' };
     }
     this.clearAllTimers();
     this.status = 'COMPLETED';
@@ -1111,9 +1111,36 @@ export class GameRoom {
   /**
    * Bring all unsold players back into the auction queue
    */
+  /**
+   * Safe atomic lot insertion helper that preserves the currently active bidding lot
+   */
+  private insertLotsIntoQueue(newLots: AuctionLot[], wasAtEnd: boolean) {
+    if (wasAtEnd) {
+      const startIndex = this.lots.length;
+      this.lots.push(...newLots);
+      this.lots.forEach((l, idx) => {
+        l.lotNumber = idx + 1;
+        l.totalLots = this.lots.length;
+      });
+      this.currentLotIndex = startIndex;
+      this.startCurrentLot();
+    } else {
+      // Insert right after current active lot so they are auctioned NEXT!
+      this.lots.splice(this.currentLotIndex + 1, 0, ...newLots);
+      this.lots.forEach((l, idx) => {
+        l.lotNumber = idx + 1;
+        l.totalLots = this.lots.length;
+      });
+      this.broadcastState();
+    }
+  }
+
+  /**
+   * Bring all unsold players back into the auction queue
+   */
   public bringAllUnsoldBack(memberId: string): { success: boolean; message?: string; count?: number; recalledCount?: number } {
     if (memberId !== this.hostId) {
-      return { success: false, message: 'Only the host can recall unsold players' };
+      return { success: false, message: 'Only the top host can recall unsold players' };
     }
 
     const soldPlayerIds = new Set<string>();
@@ -1167,8 +1194,8 @@ export class GameRoom {
       bids: []
     }));
 
-    this.lots.push(...newLots);
-    this.lots.forEach(l => l.totalLots = this.lots.length);
+    const wasAtEnd = this.currentLotIndex >= this.lots.length;
+    this.insertLotsIntoQueue(newLots, wasAtEnd);
 
     this.addAuditLog(
       'UNSOLD_PLAYERS_RECALLED',
@@ -1180,15 +1207,6 @@ export class GameRoom {
       eventAction: 'UNSOLD_PLAYERS_RECALLED',
       eventMessage: `Host brought back all ${newLots.length} unsold player(s) into the active auction pool.`
     });
-
-    if (this.status === 'AUCTION' && (this.currentLotIndex >= currentLotsCount || !this.currentLot || this.currentLot.status !== 'IN_PROGRESS')) {
-      if (this.currentLotIndex >= currentLotsCount) {
-        this.currentLotIndex = currentLotsCount;
-      }
-      this.startCurrentLot();
-    } else {
-      this.broadcastState();
-    }
 
     return { success: true, count: newLots.length, recalledCount: newLots.length };
   }
@@ -1202,7 +1220,7 @@ export class GameRoom {
     playerIds?: string[]
   ): { success: boolean; message?: string; count?: number; players?: Player[]; drawnLots?: AuctionLot[] } {
     if (memberId !== this.hostId) {
-      return { success: false, message: 'Only the host can draw unsold players' };
+      return { success: false, message: 'Only the top host can draw unsold players' };
     }
 
     const soldPlayerIds = new Set<string>();
@@ -1270,8 +1288,8 @@ export class GameRoom {
       bids: []
     }));
 
-    this.lots.push(...newLots);
-    this.lots.forEach(l => l.totalLots = this.lots.length);
+    const wasAtEnd = this.currentLotIndex >= this.lots.length;
+    this.insertLotsIntoQueue(newLots, wasAtEnd);
 
     this.addAuditLog(
       'UNSOLD_RANDOM_DRAW',
@@ -1284,16 +1302,224 @@ export class GameRoom {
       eventMessage: `Host randomly recalled ${selectedPlayers.length} unsold player(s) into the auction pool.`
     });
 
-    if (this.status === 'AUCTION' && (this.currentLotIndex >= currentLotsCount || !this.currentLot || this.currentLot.status !== 'IN_PROGRESS')) {
-      if (this.currentLotIndex >= currentLotsCount) {
-        this.currentLotIndex = currentLotsCount;
-      }
-      this.startCurrentLot();
-    } else {
-      this.broadcastState();
+    return { success: true, count: selectedPlayers.length, players: selectedPlayers, drawnLots: newLots };
+  }
+
+  /**
+   * Re-auction a particular individual UNSOLD player (Section 1C)
+   */
+  public reAuctionParticularPlayer(
+    memberId: string, 
+    playerId: string
+  ): { success: boolean; message?: string; lot?: AuctionLot } {
+    if (memberId !== this.hostId) {
+      return { success: false, message: 'Only the top host can recall players' };
+    }
+    if (this.status !== 'AUCTION' && this.status !== 'PAUSED') {
+      return { success: false, message: 'Auction must be active or paused to recall players' };
     }
 
-    return { success: true, count: selectedPlayers.length, players: selectedPlayers, drawnLots: newLots };
+    // Check if player is currently active in the auction ring
+    const currentActiveLot = this.lots[this.currentLotIndex];
+    if (currentActiveLot && currentActiveLot.player.id === playerId && currentActiveLot.status === 'IN_PROGRESS') {
+      return { success: false, message: 'This player is currently being auctioned in the arena.' };
+    }
+
+    // Check if already queued in upcoming lots
+    const alreadyQueued = this.lots.slice(this.currentLotIndex).some(
+      l => l.player.id === playerId && (l.status === 'PENDING' || l.status === 'IN_PROGRESS')
+    );
+    if (alreadyQueued) {
+      return { success: false, message: 'This player is already in the auction queue.' };
+    }
+
+    // Check if sold to any squad
+    const isSold = Object.values(this.teamSquads).some(squad => squad.some(p => p.id === playerId));
+    if (isSold) {
+      return { success: false, message: 'This player is already sold. Use Re-Auction in Sold Players to reverse their sale.' };
+    }
+
+    // Find the player from unsold records (history or lots)
+    let targetPlayer: Player | null = null;
+    for (const lot of this.history) {
+      if (lot.player.id === playerId && lot.status === 'UNSOLD') {
+        targetPlayer = lot.player;
+        break;
+      }
+    }
+    if (!targetPlayer) {
+      for (const lot of this.lots) {
+        if (lot.player.id === playerId && lot.status === 'UNSOLD') {
+          targetPlayer = lot.player;
+          break;
+        }
+      }
+    }
+
+    if (!targetPlayer) {
+      return { success: false, message: 'Player record not found among unsold players.' };
+    }
+
+    const freshPlayer: Player = {
+      ...targetPlayer,
+      auction_status: 'AVAILABLE'
+    };
+
+    const newLot: AuctionLot = {
+      lotNumber: this.lots.length + 1,
+      totalLots: this.lots.length + 1,
+      player: freshPlayer,
+      status: 'PENDING',
+      currentBid: 0,
+      currentBidder: null,
+      currentBidderName: null,
+      bids: []
+    };
+
+    const wasAtEnd = this.currentLotIndex >= this.lots.length;
+    this.insertLotsIntoQueue([newLot], wasAtEnd);
+
+    this.addAuditLog(
+      'UNSOLD_PLAYER_RECALLED',
+      `Host returned unsold player ${freshPlayer.name} (${freshPlayer.category}, Base: ${freshPlayer.base_price_display}) to the auction queue.`,
+      'Host'
+    );
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'UNSOLD_PLAYER_RECALLED',
+      playerName: freshPlayer.name,
+      amount: freshPlayer.base_price_inr,
+      eventMessage: `Host returned unsold player ${freshPlayer.name} to the auction queue.`
+    });
+
+    return { success: true, message: `${freshPlayer.name} has been added to the auction queue!`, lot: newLot };
+  }
+
+  /**
+   * Re-auction a SOLD player with atomic refund and squad removal (Section 2 & 3)
+   */
+  public reAuctionSoldPlayer(
+    memberId: string, 
+    playerId: string
+  ): { success: boolean; message?: string; refundedTeam?: IPLTeamId; refundAmount?: number; lot?: AuctionLot } {
+    if (memberId !== this.hostId) {
+      return { success: false, message: 'Only the top host can re-auction sold players' };
+    }
+    if (this.status !== 'AUCTION' && this.status !== 'PAUSED') {
+      return { success: false, message: 'Auction must be active or paused to re-auction sold players' };
+    }
+
+    if (this.isProcessingBid) {
+      return { success: false, message: 'A bid transaction is currently being processed. Please retry.' };
+    }
+
+    // Check if player is currently active in the auction ring
+    const currentActiveLot = this.lots[this.currentLotIndex];
+    if (currentActiveLot && currentActiveLot.player.id === playerId && currentActiveLot.status === 'IN_PROGRESS') {
+      return { success: false, message: 'This player is currently being auctioned in the arena.' };
+    }
+
+    // Check if already queued in upcoming lots
+    const alreadyQueued = this.lots.slice(this.currentLotIndex).some(
+      l => l.player.id === playerId && (l.status === 'PENDING' || l.status === 'IN_PROGRESS')
+    );
+    if (alreadyQueued) {
+      return { success: false, message: 'This player is already in the upcoming auction queue.' };
+    }
+
+    // Find original buying team and player from squad
+    let originalTeamId: IPLTeamId | null = null;
+    let originalPlayer: Player | null = null;
+
+    for (const [tId, squad] of Object.entries(this.teamSquads)) {
+      const p = squad.find(player => player.id === playerId);
+      if (p) {
+        originalTeamId = tId as IPLTeamId;
+        originalPlayer = p;
+        break;
+      }
+    }
+
+    if (!originalTeamId || !originalPlayer) {
+      return { success: false, message: 'Player is not currently in any team squad.' };
+    }
+
+    // Determine exact previous sold price to refund
+    let refundAmount = originalPlayer.sold_price_inr;
+    if (!refundAmount || refundAmount <= 0) {
+      const hist = this.history.find(h => h.player.id === playerId && h.winningTeam === originalTeamId && h.status === 'SOLD');
+      refundAmount = hist?.soldPrice || originalPlayer.base_price_inr;
+    }
+
+    // 1. Refund exact purchase price to buying team's purse (never exceeding starting purse limit)
+    const prevPurse = this.teamPurse[originalTeamId] || 0;
+    this.teamPurse[originalTeamId] = Math.min(
+      this.settings.startingPurse,
+      prevPurse + refundAmount
+    );
+
+    // 2. Remove player from team squad
+    this.teamSquads[originalTeamId] = this.teamSquads[originalTeamId].filter(p => p.id !== playerId);
+
+    // 3. Mark previous historical sale record as REVERSED (preserve historical record, never silently delete)
+    for (const histLot of this.history) {
+      if (histLot.player.id === playerId && histLot.winningTeam === originalTeamId && histLot.status === 'SOLD') {
+        histLot.status = 'REVERSED';
+        histLot.reversed = true;
+        histLot.reversedAt = Date.now();
+        histLot.originalSoldPrice = refundAmount;
+        histLot.originalWinningTeam = originalTeamId;
+        break;
+      }
+    }
+
+    // 4. Reset player metadata
+    const freshPlayer: Player = {
+      ...originalPlayer,
+      auction_status: 'AVAILABLE',
+      sold_price_inr: undefined,
+      team_id: undefined
+    };
+
+    // 5. Create new auction lot
+    const newLot: AuctionLot = {
+      lotNumber: this.lots.length + 1,
+      totalLots: this.lots.length + 1,
+      player: freshPlayer,
+      status: 'PENDING',
+      currentBid: 0,
+      currentBidder: null,
+      currentBidderName: null,
+      bids: []
+    };
+
+    // 6. Insert into queue
+    const wasAtEnd = this.currentLotIndex >= this.lots.length;
+    this.insertLotsIntoQueue([newLot], wasAtEnd);
+
+    // 7. Audit log & Bid log
+    this.addAuditLog(
+      'SALE_REVERSED',
+      `Sale reversed: ${freshPlayer.name} removed from ${IPL_FRANCHISES[originalTeamId].name} (${originalTeamId}). ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`,
+      'Host'
+    );
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'SALE_REVERSED',
+      playerName: freshPlayer.name,
+      teamId: originalTeamId,
+      teamName: IPL_FRANCHISES[originalTeamId].name,
+      amount: refundAmount,
+      eventMessage: `SALE REVERSED: ${freshPlayer.name} removed from ${IPL_FRANCHISES[originalTeamId].name} and returned to auction pool. ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`
+    });
+
+    return { 
+      success: true, 
+      message: `Reversed sale of ${freshPlayer.name}: ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded to ${IPL_FRANCHISES[originalTeamId].name}.`,
+      refundedTeam: originalTeamId,
+      refundAmount,
+      lot: newLot 
+    };
   }
 
   /**

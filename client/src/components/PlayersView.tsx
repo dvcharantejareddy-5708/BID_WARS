@@ -1,20 +1,40 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plane, Award, XCircle, Clock } from 'lucide-react';
-import { RoomState, Player, IPL_FRANCHISES } from '../types.js';
+import { Search, Plane, Award, XCircle, Clock, RotateCcw, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
+import { RoomState, Player, IPL_FRANCHISES, IPLTeamId } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
 import playersData2026 from '../data/players2026.json';
 import playersData2025 from '../data/players2025.json';
 
 interface PlayersViewProps {
   roomState: RoomState;
+  myMemberId?: string | null;
+  onReAuctionSoldPlayer?: (playerId: string) => void;
+  onReAuctionParticularPlayer?: (playerId: string) => void;
 }
 
-export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
+export const PlayersView: React.FC<PlayersViewProps> = ({ 
+  roomState, 
+  myMemberId, 
+  onReAuctionSoldPlayer, 
+  onReAuctionParticularPlayer 
+}) => {
   const [activeGroup, setActiveGroup] = useState<'SOLD' | 'UNSOLD' | 'REMAINING'>('REMAINING');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [nationalityFilter, setNationalityFilter] = useState<'ALL' | 'INDIAN' | 'OVERSEAS'>('ALL');
   const [priceFilter, setPriceFilter] = useState<string>('ALL');
+
+  // Confirmation dialog state
+  const [confirmSoldReAuction, setConfirmSoldReAuction] = useState<{
+    player: Player;
+    winningTeam: string;
+    soldPrice: number;
+  } | null>(null);
+
+  const [confirmUnsoldRecall, setConfirmUnsoldRecall] = useState<Player | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const isTopHost = myMemberId ? roomState.hostId === myMemberId : false;
 
   const season = roomState.settings.season || '2026';
   const allMasterPlayers: Player[] = (season === '2025' ? playersData2025 : playersData2026) as any;
@@ -248,7 +268,8 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Base Price</th>
                       <th className="pb-3.5 text-center">FINAL SOLD AMOUNT</th>
-                      <th className="pb-3.5 pr-3 text-right">WINNING FRANCHISE</th>
+                      <th className="pb-3.5 text-center">WINNING FRANCHISE</th>
+                      <th className="pb-3.5 pr-3 text-right">ACTION</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#23274D]">
@@ -294,7 +315,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                               ₹{(soldPrice / 10000000).toFixed(2)} Cr
                             </span>
                           </td>
-                          <td className="py-3.5 pr-3 text-right">
+                          <td className="py-3.5 text-center">
                             {franchise ? (
                               <div className="inline-flex items-center gap-2">
                                 <TeamLogo teamId={winningTeam} className="w-6 h-6 shrink-0 drop-shadow-xs" />
@@ -304,6 +325,20 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                               </div>
                             ) : (
                               <span className="text-white font-heading font-bold uppercase">{winningTeam}</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 pr-3 text-right">
+                            {isTopHost ? (
+                              <button
+                                onClick={() => setConfirmSoldReAuction({ player: p, winningTeam, soldPrice })}
+                                className="px-2.5 py-1 rounded-lg bg-[#FF3B5C]/15 hover:bg-[#FF3B5C] text-[#FF3B5C] hover:text-white border border-[#FF3B5C]/30 text-[11px] font-heading font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 shadow-sm"
+                                title="Re-auction this player (refund buying team and return to queue)"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Re-Auction</span>
+                              </button>
+                            ) : (
+                              <span className="text-[#8F9CAE] text-[11px] font-mono">Sold</span>
                             )}
                           </td>
                         </tr>
@@ -342,7 +377,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Nationality</th>
                       <th className="pb-3.5">Base Price</th>
-                      <th className="pb-3.5 pr-3 text-right">Status</th>
+                      <th className="pb-3.5 pr-3 text-right">ACTION</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#23274D]">
@@ -379,9 +414,20 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
                           {p.base_price_display}
                         </td>
                         <td className="py-3.5 pr-3 text-right">
-                          <span className="bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 px-3 py-1 rounded-full text-[10px] font-heading font-extrabold uppercase">
-                            UNSOLD
-                          </span>
+                          {isTopHost ? (
+                            <button
+                              onClick={() => setConfirmUnsoldRecall(p)}
+                              className="px-2.5 py-1 rounded-lg bg-[#C8FF3D]/15 hover:bg-[#C8FF3D] text-[#C8FF3D] hover:text-[#0A0B14] border border-[#C8FF3D]/30 text-[11px] font-heading font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 shadow-sm"
+                              title="Return this unsold player to the auction queue"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>Add to Auction</span>
+                            </button>
+                          ) : (
+                            <span className="bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 px-3 py-1 rounded-full text-[10px] font-heading font-extrabold uppercase">
+                              UNSOLD
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -480,6 +526,159 @@ export const PlayersView: React.FC<PlayersViewProps> = ({ roomState }) => {
           </div>
         )}
       </div>
+
+      {/* ACTION FEEDBACK TOAST */}
+      {actionFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#12142A] border border-[#C8FF3D] text-[#C8FF3D] px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-fadeIn font-heading text-xs font-black uppercase tracking-wider">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{actionFeedback}</span>
+        </div>
+      )}
+
+      {/* CONFIRMATION DIALOG: RE-AUCTION SOLD PLAYER */}
+      {confirmSoldReAuction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0B14]/85 backdrop-blur-md animate-fadeIn font-body">
+          <div className="bg-[#12142A] max-w-lg w-full rounded-3xl p-6 sm:p-8 border border-[#FF3B5C]/40 shadow-2xl relative text-white space-y-5">
+            <button
+              onClick={() => setConfirmSoldReAuction(null)}
+              className="absolute top-5 right-5 text-[#8F9CAE] hover:text-white transition-colors p-1.5 rounded-xl hover:bg-[#181B38]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#0A0B14] text-[#FF3B5C] flex items-center justify-center border border-[#FF3B5C]/30 shadow-[0_0_15px_rgba(255,59,92,0.2)]">
+                <RotateCcw className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <h3 className="font-heading font-black uppercase tracking-tight text-lg text-white">
+                  Re-Auction Sold Player
+                </h3>
+                <p className="text-xs text-[#8F9CAE]">Top Host Transaction Reversal</p>
+              </div>
+            </div>
+
+            <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#1E2246]">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Player:</span>
+                <span className="text-white font-heading font-black text-sm uppercase">
+                  {confirmSoldReAuction.player.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-[#1E2246]">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Original Buyer:</span>
+                <div className="inline-flex items-center gap-1.5">
+                  <TeamLogo teamId={confirmSoldReAuction.winningTeam} className="w-5 h-5" />
+                  <span className="text-white font-heading font-bold uppercase">
+                    {(IPL_FRANCHISES as any)[confirmSoldReAuction.winningTeam]?.name || confirmSoldReAuction.winningTeam}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-[#1E2246]">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Refund Amount:</span>
+                <span className="text-[#C8FF3D] font-mono font-black text-sm">
+                  ₹{(confirmSoldReAuction.soldPrice / 10000000).toFixed(2)} Cr
+                </span>
+              </div>
+              <p className="text-[#8F9CAE] text-[11px] leading-relaxed pt-1">
+                ⚠️ Executing this action will immediately refund exactly ₹{(confirmSoldReAuction.soldPrice / 10000000).toFixed(2)} Cr back into {(IPL_FRANCHISES as any)[confirmSoldReAuction.winningTeam]?.name}'s purse, remove {confirmSoldReAuction.player.name} from their active squad, and return them into the auction queue to be auctioned again in the next round.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmSoldReAuction(null)}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#0A0B14] hover:bg-[#181B38] text-[#8F9CAE] hover:text-white text-xs font-heading font-bold uppercase tracking-wider transition-all border border-[#1E2246]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (onReAuctionSoldPlayer) {
+                    onReAuctionSoldPlayer(confirmSoldReAuction.player.id);
+                    setActionFeedback(`Re-auction initiated: ₹${(confirmSoldReAuction.soldPrice / 10000000).toFixed(2)} Cr refunded to ${(IPL_FRANCHISES as any)[confirmSoldReAuction.winningTeam]?.name}`);
+                    setTimeout(() => setActionFeedback(null), 4000);
+                  }
+                  setConfirmSoldReAuction(null);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white text-xs font-heading font-black uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(255,59,92,0.3)] flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Confirm & Refund</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION DIALOG: RE-AUCTION PARTICULAR UNSOLD PLAYER */}
+      {confirmUnsoldRecall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0B14]/85 backdrop-blur-md animate-fadeIn font-body">
+          <div className="bg-[#12142A] max-w-md w-full rounded-3xl p-6 sm:p-8 border border-[#C8FF3D]/40 shadow-2xl relative text-white space-y-5">
+            <button
+              onClick={() => setConfirmUnsoldRecall(null)}
+              className="absolute top-5 right-5 text-[#8F9CAE] hover:text-white transition-colors p-1.5 rounded-xl hover:bg-[#181B38]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#0A0B14] text-[#C8FF3D] flex items-center justify-center border border-[#C8FF3D]/30 shadow-[0_0_15px_rgba(200,255,61,0.2)]">
+                <RotateCcw className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <h3 className="font-heading font-black uppercase tracking-tight text-lg text-white">
+                  Add Unsold Player
+                </h3>
+                <p className="text-xs text-[#8F9CAE]">Queue Player for Next Round</p>
+              </div>
+            </div>
+
+            <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Player:</span>
+                <span className="text-white font-heading font-black text-sm uppercase">
+                  {confirmUnsoldRecall.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Category:</span>
+                <span className="text-[#7C5CFF] font-medium">{confirmUnsoldRecall.category}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Base Price:</span>
+                <span className="text-[#C8FF3D] font-mono font-bold">{confirmUnsoldRecall.base_price_display}</span>
+              </div>
+              <p className="text-[#8F9CAE] text-[11px] leading-relaxed pt-2 border-t border-[#1E2246]">
+                This will queue {confirmUnsoldRecall.name} to be auctioned in the very next round with their official base price preserved.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setConfirmUnsoldRecall(null)}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#0A0B14] hover:bg-[#181B38] text-[#8F9CAE] hover:text-white text-xs font-heading font-bold uppercase tracking-wider transition-all border border-[#1E2246]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (onReAuctionParticularPlayer) {
+                    onReAuctionParticularPlayer(confirmUnsoldRecall.id);
+                    setActionFeedback(`${confirmUnsoldRecall.name} queued for next auction round!`);
+                    setTimeout(() => setActionFeedback(null), 4000);
+                  }
+                  setConfirmUnsoldRecall(null);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.25)] flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Confirm & Queue</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

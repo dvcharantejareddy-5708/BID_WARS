@@ -254,7 +254,7 @@ export interface BidRecord {
   isBot: boolean;
 }
 
-export type LotStatus = 'PENDING' | 'IN_PROGRESS' | 'SOLD' | 'UNSOLD' | 'SKIPPED';
+export type LotStatus = 'PENDING' | 'IN_PROGRESS' | 'SOLD' | 'UNSOLD' | 'SKIPPED' | 'REVERSED';
 
 export interface AuctionLot {
   lotNumber: number;
@@ -270,6 +270,10 @@ export interface AuctionLot {
   winningTeamName?: string;
   winningBidderName?: string;
   resultId?: string;
+  reversed?: boolean;
+  reversedAt?: number;
+  originalSoldPrice?: number;
+  originalWinningTeam?: IPLTeamId;
 }
 
 export interface AuditLogEntry {
@@ -371,6 +375,8 @@ export type ClientMessage =
   | { type: 'DRAW_RANDOM_PLAYER'; category: PlayerCategory; basePriceInr: number }
   | { type: 'BRING_ALL_UNSOLD_BACK' }
   | { type: 'RANDOM_DRAW_UNSOLD'; count: number; playerIds?: string[] }
+  | { type: 'REAUCTION_PARTICULAR_PLAYER'; playerId: string }
+  | { type: 'REAUCTION_SOLD_PLAYER'; playerId: string }
   | { type: 'KICK_MEMBER'; targetMemberId: string }
   | { type: 'UPDATE_TIMER'; timerDuration: number }
   | { type: 'SEND_CHAT_MESSAGE'; text: string }
