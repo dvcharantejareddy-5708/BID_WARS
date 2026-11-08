@@ -11,7 +11,7 @@ interface LiveChatPanelProps {
   onSendMessage: (text: string) => void;
 }
 
-export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
+export const LiveChatPanel = React.memo<LiveChatPanelProps>(({
   isOpen,
   onClose,
   messages,
@@ -137,4 +137,6 @@ export const LiveChatPanel: React.FC<LiveChatPanelProps> = ({
       </form>
     </div>
   );
-};
+});
+
+LiveChatPanel.displayName = 'LiveChatPanel';

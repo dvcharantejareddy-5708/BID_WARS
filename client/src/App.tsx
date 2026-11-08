@@ -19,7 +19,8 @@ import {
   IPLTeamId, 
   RoomSettings, 
   BotStrategy,
-  PlayerCategory 
+  PlayerCategory,
+  ChatMessage 
 } from './types.js';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
   // Live Chat State
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -79,6 +81,7 @@ export function App() {
           chatMessages: msg.state.chatMessages || [],
           bidLog: msg.state.bidLog || []
         });
+        setChatMessages(msg.state.chatMessages || []);
         const currentMemberId = msg.myMemberId || myMemberId;
         if (msg.myMemberId) {
           setMyMemberId(msg.myMemberId);
@@ -103,13 +106,10 @@ export function App() {
         break;
       }
       case 'CHAT_MESSAGE': {
-        setRoomState(prev => {
-          if (!prev) return prev;
-          const existing = prev.chatMessages || [];
-          return {
-            ...prev,
-            chatMessages: [...existing, msg.message]
-          };
+        // High-performance isolated chat state: prevents re-rendering AuctionArena or full page on chat
+        setChatMessages(prev => {
+          if (prev.some(m => m.id === msg.message.id)) return prev;
+          return [...prev, msg.message];
         });
         setIsChatOpen(open => {
           if (!open) {
@@ -131,14 +131,16 @@ export function App() {
         break;
       }
       case 'TIMER_TICK': {
+        // High-performance: do not re-render entire page on sub-second server ticks
+        // Only update if deadline timestamp has drifted significantly (> 1000ms)
         setRoomState(prev => {
           if (!prev) return prev;
-          if (prev.remainingSeconds === msg.remainingSeconds && prev.deadlineTimestamp === msg.deadlineTimestamp) {
+          const drift = Math.abs((prev.deadlineTimestamp || 0) - msg.deadlineTimestamp);
+          if (drift < 1000) {
             return prev;
           }
           return {
             ...prev,
-            remainingSeconds: msg.remainingSeconds,
             deadlineTimestamp: msg.deadlineTimestamp
           };
         });
@@ -700,7 +702,7 @@ export function App() {
             <LiveChatPanel
               isOpen={isChatOpen}
               onClose={() => setIsChatOpen(false)}
-              messages={roomState.chatMessages || []}
+              messages={chatMessages}
               myMemberId={myMemberId}
               onSendMessage={handleSendChatMessage}
             />

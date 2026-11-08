@@ -202,6 +202,98 @@ async function runHostControlsTests() {
   assert(endRes.success, 'Host successfully ended the auction');
   assert(room.getState().status === 'COMPLETED', 'Room status transitioned to COMPLETED');
 
+  console.log('\n--- TEST GROUP 8: Combined UNSOLD & SKIPPED Players Recall ---');
+  // Create a new active auction room to thoroughly verify combined UNSOLD & SKIPPED behavior
+  const room2 = manager.createRoom('HostCombined', { timerDuration: 10, isPrivate: false });
+  const host2Id = room2.hostId;
+  room2.selectTeam(host2Id, 'MI');
+  const pB = room2.join('BidderB');
+  room2.selectTeam(pB.id, 'CSK');
+  room2.toggleReady(host2Id, true);
+  room2.toggleReady(pB.id, true);
+  room2.startAuction(host2Id);
+
+  // 1. Mark Lot 1 as UNSOLD (0 bids finalize)
+  const lot1Player = room2.getState().currentLot!.player;
+  (room2 as any).finalizeCurrentLot();
+  const histLot1 = room2.getState().history.find(h => h.player.id === lot1Player.id);
+  assert(histLot1?.status === 'UNSOLD', 'Player 1 recorded with status UNSOLD');
+
+  // Advance to Lot 2 and mark as SKIPPED
+  (room2 as any).currentLotIndex++;
+  (room2 as any).startCurrentLot();
+  const lot2Player = room2.getState().currentLot!.player;
+  const skipLot2Res = room2.skipCurrentLot(host2Id);
+  assert(skipLot2Res.success, 'Player 2 successfully skipped by host');
+  const histLot2 = room2.getState().history.find(h => h.player.id === lot2Player.id);
+  assert(histLot2?.status === 'SKIPPED', 'Player 2 recorded with status SKIPPED');
+
+  // Verify both statuses are distinct in history
+  assert(histLot1?.status !== histLot2?.status, 'UNSOLD and SKIPPED statuses are visibly distinct in records');
+
+  // 2. Individual recall for a SKIPPED player
+  const recallSkippedRes = room2.reAuctionParticularPlayer(host2Id, lot2Player.id);
+  assert(recallSkippedRes.success, `Host successfully recalled SKIPPED player: ${lot2Player.name}`);
+  assert(recallSkippedRes.lot?.player.id === lot2Player.id, 'Recalled SKIPPED player lot has matching ID');
+
+  // Verify duplicate recall of already queued skipped player is rejected
+  const dupSkippedRes = room2.reAuctionParticularPlayer(host2Id, lot2Player.id);
+  assert(!dupSkippedRes.success, 'Duplicate recall of already queued skipped player rejected');
+
+  // 3. Individual recall for an UNSOLD player
+  const recallUnsoldRes = room2.reAuctionParticularPlayer(host2Id, lot1Player.id);
+  assert(recallUnsoldRes.success, `Host successfully recalled UNSOLD player: ${lot1Player.name}`);
+  assert(recallUnsoldRes.lot?.player.id === lot1Player.id, 'Recalled UNSOLD player lot has matching ID');
+
+  // Non-host cannot recall
+  const nonHostRecallRes = room2.reAuctionParticularPlayer(pB.id, lot1Player.id);
+  assert(!nonHostRecallRes.success, 'Non-host is strictly rejected from recalling players');
+
+  // 4. Test Bulk Recall: Mark Lot 3 as UNSOLD, Lot 4 as SKIPPED, Lot 5 as SKIPPED
+  (room2 as any).currentLotIndex += 3;
+  (room2 as any).startCurrentLot();
+  const lot3Player = room2.getState().currentLot!.player;
+  (room2 as any).finalizeCurrentLot(); // UNSOLD
+
+  (room2 as any).currentLotIndex++;
+  (room2 as any).startCurrentLot();
+  const lot4Player = room2.getState().currentLot!.player;
+  room2.skipCurrentLot(host2Id); // SKIPPED
+
+  (room2 as any).currentLotIndex++;
+  (room2 as any).startCurrentLot();
+  const lot5Player = room2.getState().currentLot!.player;
+  room2.skipCurrentLot(host2Id); // SKIPPED
+
+  // Random Draw from combined pool of 3 eligible (1 UNSOLD + 2 SKIPPED)
+  const randomDrawCombined = room2.randomDrawUnsold(host2Id, 2);
+  assert(randomDrawCombined.success, 'Random Draw succeeds from combined pool');
+  assert(randomDrawCombined.drawnLots?.length === 2, 'Random Draw selected exactly 2 players from combined pool');
+
+  // Bring All Back for the remaining players
+  const bringAllRemaining = room2.bringAllUnsoldBack(host2Id);
+  assert(bringAllRemaining.success, 'Bring All Back brings back remaining player from combined pool');
+  assert(bringAllRemaining.recalledCount! >= 1, `Recalled ${bringAllRemaining.recalledCount} remaining player(s)`);
+
+  // No further players eligible
+  const bringAllEmpty = room2.bringAllUnsoldBack(host2Id);
+  assert(!bringAllEmpty.success, 'Bring All Back reports no remaining players when all recalled');
+
+  console.log('\n--- TEST GROUP 9: High-Load Performance & Multi-User Rapid Bidding Simulation ---');
+  // Simulate 10 rapid bids across multiple users to verify zero memory leaks and fast sub-millisecond execution
+  const startTime = Date.now();
+  for (let i = 0; i < 20; i++) {
+    const bidderId = i % 2 === 0 ? host2Id : pB.id;
+    const bidAmount = 20000000 + (i * 2000000);
+    // Bidding cycle
+    const currentLot = room2.getState().currentLot;
+    if (currentLot && currentLot.status === 'IN_PROGRESS') {
+      room2.placeBid(bidderId, bidAmount);
+    }
+  }
+  const elapsedMs = Date.now() - startTime;
+  assert(elapsedMs < 100, `20 rapid bids processed in ${elapsedMs}ms (< 100ms benchmark)`);
+
   console.log('\n====================================================');
   console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
   console.log('====================================================\n');

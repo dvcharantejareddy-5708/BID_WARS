@@ -45,7 +45,7 @@ interface HostControlsModalProps {
 
 type TabType = 'auction' | 'players' | 'room';
 
-export const HostControlsModal: React.FC<HostControlsModalProps> = ({
+export const HostControlsModal = React.memo<HostControlsModalProps>(({
   isOpen,
   onClose,
   roomState,
@@ -76,9 +76,9 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
     payload?: any;
   } | null>(null);
 
-  // Random Draw Unsold State
+  // Random Draw Unsold & Skipped State
   const [drawCount, setDrawCount] = useState<number>(1);
-  const [drawnPreviewPlayers, setDrawnPreviewPlayers] = useState<Player[] | null>(null);
+  const [drawnPreviewPlayers, setDrawnPreviewPlayers] = useState<Array<{ player: Player; status: 'UNSOLD' | 'SKIPPED' }> | null>(null);
 
   // Skip Multiple State
   const [skipCount, setSkipCount] = useState<number>(2);
@@ -98,8 +98,8 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
 
   const isTopHost = myMemberId ? roomState.hostId === myMemberId : false;
 
-  // Compute eligible unsold players strictly from authoritative state
-  const eligibleUnsoldPlayers = useMemo(() => {
+  // Compute eligible unsold and skipped players strictly from authoritative state
+  const eligibleUnsoldAndSkippedPlayers = useMemo(() => {
     const soldPlayerIds = new Set<string>();
     for (const squad of Object.values(roomState.teamSquads || {})) {
       for (const p of squad) {
@@ -117,38 +117,45 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
       }
     }
 
-    const eligible: Player[] = [];
-    const seenIds = new Set<string>();
-
-    const checkAndAdd = (p: Player) => {
-      if (!soldPlayerIds.has(p.id) && !queuedPlayerIds.has(p.id) && !seenIds.has(p.id)) {
-        seenIds.add(p.id);
-        eligible.push(p);
-      }
-    };
+    const map = new Map<string, { player: Player; status: 'UNSOLD' | 'SKIPPED' }>();
 
     for (const lot of roomState.history || []) {
-      if (lot.status === 'UNSOLD') checkAndAdd(lot.player);
-    }
-    if (roomState.lots) {
-      for (const lot of roomState.lots) {
-        if (lot.status === 'UNSOLD') checkAndAdd(lot.player);
+      if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED') {
+        if (!soldPlayerIds.has(lot.player.id) && !queuedPlayerIds.has(lot.player.id)) {
+          map.set(lot.player.id, {
+            player: lot.player,
+            status: lot.status
+          });
+        }
       }
     }
 
-    return eligible;
+    if (roomState.lots) {
+      for (const lot of roomState.lots) {
+        if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED') {
+          if (!soldPlayerIds.has(lot.player.id) && !queuedPlayerIds.has(lot.player.id)) {
+            map.set(lot.player.id, {
+              player: lot.player,
+              status: lot.status
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values());
   }, [roomState]);
 
-  // Filtered particular unsold list
+  // Filtered particular unsold & skipped list
   const filteredParticularUnsold = useMemo(() => {
-    if (!particularSearch.trim()) return eligibleUnsoldPlayers;
+    if (!particularSearch.trim()) return eligibleUnsoldAndSkippedPlayers;
     const query = particularSearch.toLowerCase().trim();
-    return eligibleUnsoldPlayers.filter(p => 
+    return eligibleUnsoldAndSkippedPlayers.filter(({ player: p }) => 
       p.name.toLowerCase().includes(query) ||
       p.category.toLowerCase().includes(query) ||
       p.nationality.toLowerCase().includes(query)
     );
-  }, [eligibleUnsoldPlayers, particularSearch]);
+  }, [eligibleUnsoldAndSkippedPlayers, particularSearch]);
 
   // Compute upcoming lots for Skip Multiple preview
   const upcomingLotsToSkip = useMemo(() => {
@@ -190,23 +197,23 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
   const isAuctionActive = roomState.status === 'AUCTION';
   const isAuctionPaused = roomState.status === 'PAUSED';
 
-  // Handler for random draw unsold preview
+  // Handler for random draw unsold & skipped preview
   const handleGenerateDrawPreview = () => {
-    if (eligibleUnsoldPlayers.length === 0) {
-      showFeedback('No unsold players available to draw.', 'error');
+    if (eligibleUnsoldAndSkippedPlayers.length === 0) {
+      showFeedback('No unsold or skipped players available to draw.', 'error');
       return;
     }
-    const count = Math.min(drawCount, eligibleUnsoldPlayers.length);
-    const shuffled = [...eligibleUnsoldPlayers].sort(() => Math.random() - 0.5);
+    const count = Math.min(drawCount, eligibleUnsoldAndSkippedPlayers.length);
+    const shuffled = [...eligibleUnsoldAndSkippedPlayers].sort(() => Math.random() - 0.5);
     setDrawnPreviewPlayers(shuffled.slice(0, count));
   };
 
   const handleConfirmDrawUnsold = () => {
     if (!drawnPreviewPlayers || drawnPreviewPlayers.length === 0) return;
-    const playerIds = drawnPreviewPlayers.map(p => p.id);
+    const playerIds = drawnPreviewPlayers.map(item => item.player.id);
     onRandomDrawUnsold(playerIds.length, playerIds);
     setDrawnPreviewPlayers(null);
-    showFeedback(`Successfully added ${playerIds.length} unsold player(s) back into the auction queue!`);
+    showFeedback(`Successfully added ${playerIds.length} unsold & skipped player(s) back into the auction queue!`);
   };
 
   // Execution of confirmed action
@@ -305,9 +312,9 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Player Management</span>
-            {eligibleUnsoldPlayers.length > 0 && (
+            {eligibleUnsoldAndSkippedPlayers.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-[#FFC93D] text-[#0A0B14] font-mono text-[10px] font-black flex items-center justify-center">
-                {eligibleUnsoldPlayers.length}
+                {eligibleUnsoldAndSkippedPlayers.length}
               </span>
             )}
           </button>
@@ -343,20 +350,20 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
         {/* Tab Content Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
           
-          {/* SECTION 1: PLAYER MANAGEMENT (Requirements 1, 2, 5) */}
+          {/* SECTION 1: PLAYER MANAGEMENT */}
           {activeTab === 'players' && (
             <div className="space-y-6">
               
-              {/* RE-AUCTION PLAYERS (Section 1) */}
+              {/* UNSOLD & SKIPPED PLAYERS */}
               <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2246] pb-3">
                   <div>
                     <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
                       <RotateCcw className="w-4 h-4 text-[#C8FF3D]" />
-                      <span>Re-Auction Players</span>
+                      <span>UNSOLD & SKIPPED PLAYERS</span>
                     </h3>
                     <p className="text-xs text-[#8F9CAE] mt-0.5">
-                      Recall players who went unsold back into the live auction pool at any point.
+                      Recall players who went unsold or were skipped back into the live auction pool at any point.
                     </p>
                   </div>
 
@@ -399,15 +406,15 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                 {reAuctionSubMode === 'particular' && (
                   <div className="space-y-3 animate-fadeIn">
                     <div className="flex items-center justify-between text-xs text-[#8F9CAE]">
-                      <span>Select any specific unsold player to queue them up for the next slot:</span>
-                      <span className="font-mono text-[#C8FF3D]">{eligibleUnsoldPlayers.length} eligible</span>
+                      <span>Select any unsold or skipped player to queue them up for the next slot:</span>
+                      <span className="font-mono text-[#C8FF3D]">{eligibleUnsoldAndSkippedPlayers.length} eligible</span>
                     </div>
 
                     <div className="relative">
                       <Search className="w-4 h-4 text-[#8F9CAE] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
-                        placeholder="Search unsold players by name, category, or nationality..."
+                        placeholder="Search unsold & skipped players by name, category, or nationality..."
                         value={particularSearch}
                         onChange={(e) => setParticularSearch(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#12142A] border border-[#1E2246] text-xs text-white placeholder-[#8F9CAE] focus:outline-none focus:border-[#C8FF3D]"
@@ -417,53 +424,71 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                     <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                       {filteredParticularUnsold.length === 0 ? (
                         <div className="py-8 text-center text-xs text-[#8F9CAE] bg-[#12142A] rounded-xl border border-[#1E2246]">
-                          {particularSearch ? 'No unsold players match your search filter.' : 'No players currently marked UNSOLD.'}
+                          {particularSearch ? 'No players match your search filter.' : 'No players currently marked UNSOLD or SKIPPED.'}
                         </div>
                       ) : (
-                        filteredParticularUnsold.map(p => (
-                          <div 
-                            key={p.id} 
-                            className="bg-[#12142A] border border-[#1E2246] rounded-xl p-3 flex items-center justify-between gap-3 hover:border-[#282E5C] transition-all"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#1E2246] flex items-center justify-center shrink-0 overflow-hidden">
-                                {p.image_url ? (
-                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
-                                ) : (
-                                  <span className="font-heading font-black text-[10px] text-[#C8FF3D]">{p.name.slice(0, 2)}</span>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-heading font-bold text-xs text-white uppercase truncate block">
-                                  {p.name}
-                                </span>
-                                <span className="text-[10px] text-[#8F9CAE] flex items-center gap-1.5">
-                                  <span className="text-[#C8FF3D] font-medium">{p.category}</span>
-                                  <span>•</span>
-                                  <span>{p.is_overseas ? `✈️ ${p.nationality}` : `🇮🇳 ${p.nationality}`}</span>
-                                </span>
-                              </div>
-                            </div>
+                        filteredParticularUnsold.map(entry => {
+                          const { player: p, status } = entry;
+                          const isSkipped = status === 'SKIPPED';
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="text-xs font-mono font-bold text-[#FFC93D]">
-                                {p.base_price_display}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  if (onReAuctionParticularPlayer) {
-                                    onReAuctionParticularPlayer(p.id);
-                                    showFeedback(`${p.name} queued for the next auction round!`);
-                                  }
-                                }}
-                                className="py-1.5 px-3 rounded-lg bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-[11px] uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm"
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                                <span>Add to Auction</span>
-                              </button>
+                          return (
+                            <div 
+                              key={p.id} 
+                              className="bg-[#12142A] border border-[#1E2246] rounded-xl p-3 flex items-center justify-between gap-3 hover:border-[#282E5C] transition-all"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#1E2246] flex items-center justify-center shrink-0 overflow-hidden">
+                                  {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                                  ) : (
+                                    <span className={`font-heading font-black text-[10px] ${isSkipped ? 'text-[#FFC93D]' : 'text-[#C8FF3D]'}`}>
+                                      {p.name.slice(0, 2)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-heading font-bold text-xs text-white uppercase truncate block">
+                                      {p.name}
+                                    </span>
+                                    {isSkipped ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[9px] font-heading font-black uppercase bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30 shrink-0">
+                                        SKIPPED
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full text-[9px] font-heading font-black uppercase bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 shrink-0">
+                                        UNSOLD
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-[#8F9CAE] flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[#C8FF3D] font-medium">{p.category}</span>
+                                    <span>•</span>
+                                    <span>{p.is_overseas ? `✈️ ${p.nationality}` : `🇮🇳 ${p.nationality}`}</span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span className="text-xs font-mono font-bold text-[#FFC93D]">
+                                  {p.base_price_display}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    if (onReAuctionParticularPlayer) {
+                                      onReAuctionParticularPlayer(p.id);
+                                      showFeedback(`${p.name} (${status}) brought back to auction!`);
+                                    }
+                                  }}
+                                  className="py-1.5 px-3 rounded-lg bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-[11px] uppercase tracking-wider transition-all flex items-center gap-1 shadow-sm"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  <span>Bring Back to Auction</span>
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -473,7 +498,7 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                 {reAuctionSubMode === 'random' && (
                   <div className="space-y-4 animate-fadeIn">
                     <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                      Choose how many unsold players to draw. Preview the selected players, re-draw if unsatisfied, and confirm to add only the selected players into the upcoming queue.
+                      Choose how many unsold & skipped players to draw. Preview the selected players, re-draw if unsatisfied, and confirm to add only the selected players into the upcoming queue.
                     </p>
 
                     {!drawnPreviewPlayers ? (
@@ -483,7 +508,7 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                           <button
                             key={cnt}
                             onClick={() => setDrawCount(cnt)}
-                            disabled={eligibleUnsoldPlayers.length === 0}
+                            disabled={eligibleUnsoldAndSkippedPlayers.length === 0}
                             className={`py-1.5 px-3 rounded-lg text-xs font-mono font-bold transition-all border ${
                               drawCount === cnt
                                 ? 'bg-[#FFC93D] text-[#0A0B14] border-[#FFC93D]'
@@ -497,7 +522,7 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                           <input
                             type="number"
                             min="1"
-                            max={Math.max(1, eligibleUnsoldPlayers.length)}
+                            max={Math.max(1, eligibleUnsoldAndSkippedPlayers.length)}
                             value={drawCount}
                             onChange={(e) => setDrawCount(Math.max(1, parseInt(e.target.value) || 1))}
                             className="w-16 py-1.5 px-2 rounded-lg bg-[#12142A] border border-[#1E2246] text-center font-mono text-xs text-white focus:outline-none focus:border-[#FFC93D]"
@@ -506,9 +531,9 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
 
                         <button
                           onClick={handleGenerateDrawPreview}
-                          disabled={eligibleUnsoldPlayers.length === 0}
+                          disabled={eligibleUnsoldAndSkippedPlayers.length === 0}
                           className={`ml-auto py-2 px-4 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
-                            eligibleUnsoldPlayers.length > 0
+                            eligibleUnsoldAndSkippedPlayers.length > 0
                               ? 'bg-[#FFC93D] hover:bg-[#E5B535] text-[#0A0B14] shadow-[0_0_15px_rgba(255,201,61,0.2)]'
                               : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed'
                           }`}
@@ -534,17 +559,31 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                          {drawnPreviewPlayers.map(p => (
-                            <div key={p.id} className="bg-[#0A0B14] border border-[#1E2246] rounded-lg p-2.5 flex items-center justify-between">
-                              <div>
-                                <p className="text-xs font-heading font-black text-white uppercase">{p.name}</p>
-                                <p className="text-[10px] text-[#8F9CAE]">{p.category} • {p.nationality}</p>
+                          {drawnPreviewPlayers.map(entry => {
+                            const { player: p, status } = entry;
+                            const isSkipped = status === 'SKIPPED';
+
+                            return (
+                              <div key={p.id} className="bg-[#0A0B14] border border-[#1E2246] rounded-lg p-2.5 flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-heading font-black text-white uppercase">{p.name}</p>
+                                    <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-heading font-black uppercase ${
+                                      isSkipped
+                                        ? 'bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30'
+                                        : 'bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30'
+                                    }`}>
+                                      {status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-[#8F9CAE]">{p.category} • {p.nationality}</p>
+                                </div>
+                                <span className="text-xs font-mono font-bold text-[#C8FF3D]">
+                                  ₹{(p.base_price_inr / 10000000).toFixed(2)} Cr
+                                </span>
                               </div>
-                              <span className="text-xs font-mono font-bold text-[#C8FF3D]">
-                                ₹{(p.base_price_inr / 10000000).toFixed(2)} Cr
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1E2246]">
@@ -566,17 +605,17 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
                   </div>
                 )}
 
-                {/* SUBMODE 1A: BRING ALL UNSOLD BACK */}
+                {/* SUBMODE 1A: BRING ALL UNSOLD & SKIPPED BACK */}
                 {reAuctionSubMode === 'all' && (
                   <div className="space-y-4 animate-fadeIn">
                     <p className="text-xs text-[#8F9CAE] leading-relaxed">
-                      Restores all players previously marked UNSOLD into the active auction queue. Original base prices and player attributes are preserved.
+                      Restores all players previously marked UNSOLD or SKIPPED into the active auction queue. Original base prices and player attributes are preserved.
                     </p>
 
                     <div className="flex items-center justify-between bg-[#12142A] p-4 rounded-xl border border-[#1E2246]">
                       <div>
                         <span className="text-xs font-heading font-extrabold text-white block uppercase">
-                          Eligible Unsold Pool: {eligibleUnsoldPlayers.length} Player(s)
+                          Eligible Pool: {eligibleUnsoldAndSkippedPlayers.length} Player(s)
                         </span>
                         <span className="text-[11px] text-[#8F9CAE]">
                           No duplicate entries will be created. Sold players will not be touched.
@@ -585,18 +624,18 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
 
                       <button
                         onClick={() => setConfirmDialog({
-                          title: 'Bring All Unsold Players Back?',
-                          description: `Are you sure you want to recall all ${eligibleUnsoldPlayers.length} unsold player(s) to the auction queue? Their base prices will be preserved.`,
+                          title: 'Bring All Unsold & Skipped Players Back?',
+                          description: `Are you sure you want to recall all ${eligibleUnsoldAndSkippedPlayers.length} unsold and skipped player(s) to the auction queue? Their base prices will be preserved.`,
                           actionType: 'recall_unsold'
                         })}
-                        disabled={eligibleUnsoldPlayers.length === 0}
+                        disabled={eligibleUnsoldAndSkippedPlayers.length === 0}
                         className={`py-2.5 px-5 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all shrink-0 ${
-                          eligibleUnsoldPlayers.length > 0
+                          eligibleUnsoldAndSkippedPlayers.length > 0
                             ? 'bg-[#7C5CFF] hover:bg-[#6846EB] text-white shadow-[0_0_15px_rgba(124,92,255,0.3)]'
                             : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed border border-[#1E2246]'
                         }`}
                       >
-                        Bring All Unsold Back
+                        Bring All Back
                       </button>
                     </div>
                   </div>
@@ -1012,4 +1051,6 @@ export const HostControlsModal: React.FC<HostControlsModalProps> = ({
 
     </div>
   );
-};
+});
+
+HostControlsModal.displayName = 'HostControlsModal';

@@ -8,7 +8,7 @@ interface HammerClockBadgeProps {
   lotStatus: string;
 }
 
-export const HammerClockBadge: React.FC<HammerClockBadgeProps> = ({
+export const HammerClockBadge = React.memo<HammerClockBadgeProps>(({
   deadlineTimestamp = 0,
   roomStatus,
   lotStatus
@@ -20,7 +20,7 @@ export const HammerClockBadge: React.FC<HammerClockBadgeProps> = ({
     if (roomStatus !== 'AUCTION' || lotStatus !== 'IN_PROGRESS') {
       return;
     }
-    const interval = setInterval(() => setNow(Date.now()), 100);
+    const interval = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(interval);
   }, [roomStatus, lotStatus, effectiveDeadline]);
 
@@ -56,7 +56,9 @@ export const HammerClockBadge: React.FC<HammerClockBadgeProps> = ({
       )}
     </div>
   );
-};
+});
+
+HammerClockBadge.displayName = 'HammerClockBadge';
 
 interface HammerClockPanelProps {
   deadlineTimestamp?: number | null;
@@ -65,7 +67,7 @@ interface HammerClockPanelProps {
   lotStatus: string;
 }
 
-export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
+export const HammerClockPanel = React.memo<HammerClockPanelProps>(({
   deadlineTimestamp = 0,
   totalDurationSec = 10,
   roomStatus,
@@ -79,7 +81,7 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
     if (roomStatus !== 'AUCTION' || lotStatus !== 'IN_PROGRESS') {
       return;
     }
-    const interval = setInterval(() => setNow(Date.now()), 100);
+    const interval = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(interval);
   }, [roomStatus, lotStatus, effectiveDeadline]);
 
@@ -150,4 +152,6 @@ export const HammerClockPanel: React.FC<HammerClockPanelProps> = ({
       </div>
     </>
   );
-};
+});
+
+HammerClockPanel.displayName = 'HammerClockPanel';

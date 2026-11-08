@@ -57,7 +57,7 @@ interface AuctionArenaProps {
   onReAuctionParticularPlayer?: (playerId: string) => void;
 }
 
-export const AuctionArena: React.FC<AuctionArenaProps> = ({
+export const AuctionArena = React.memo<AuctionArenaProps>(({
   roomState,
   myMemberId,
   onPlaceBid,
@@ -1023,4 +1023,6 @@ export const AuctionArena: React.FC<AuctionArenaProps> = ({
       )}
     </div>
   );
-};
+});
+
+AuctionArena.displayName = 'AuctionArena';

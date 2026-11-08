@@ -58,6 +58,8 @@ export interface SerializedRoomData {
 class StorageService {
   private saveTimeout: NodeJS.Timeout | null = null;
   private pendingRooms: Map<string, SerializedRoomData> = new Map();
+  private roomsCache: Map<string, SerializedRoomData> = new Map();
+  private isLoaded: boolean = false;
 
   constructor() {
     this.init();
@@ -78,15 +80,17 @@ class StorageService {
    * Load a single persisted room by roomCode
    */
   public async loadRoom(roomCode: string): Promise<SerializedRoomData | undefined> {
-    const all = await this.loadAllRooms();
-    return all.find(r => r.roomCode.toUpperCase() === roomCode.toUpperCase());
+    if (!this.isLoaded) {
+      await this.loadAllRooms();
+    }
+    return this.roomsCache.get(roomCode.toUpperCase());
   }
 
   /**
    * Load all persisted rooms from durable disk storage and/or Supabase
    */
   public async loadAllRooms(): Promise<SerializedRoomData[]> {
-    const roomsMap = new Map<string, SerializedRoomData>();
+    this.roomsCache.clear();
 
     // 1. Try reading from local durable file store
     try {
@@ -95,9 +99,9 @@ class StorageService {
         if (raw.trim()) {
           const list: SerializedRoomData[] = JSON.parse(raw);
           for (const r of list) {
-            if (r.roomCode) roomsMap.set(r.roomCode, r);
+            if (r.roomCode) this.roomsCache.set(r.roomCode.toUpperCase(), r);
           }
-          console.log(`[Storage] Loaded ${roomsMap.size} persisted rooms from disk`);
+          console.log(`[Storage] Loaded ${this.roomsCache.size} persisted rooms from disk`);
         }
       }
     } catch (err) {
@@ -116,9 +120,10 @@ class StorageService {
           for (const row of data) {
             const parsed = typeof row.state_json === 'string' ? JSON.parse(row.state_json) : row.state_json;
             if (parsed && parsed.roomCode) {
-              const diskRoom = roomsMap.get(parsed.roomCode);
+              const code = parsed.roomCode.toUpperCase();
+              const diskRoom = this.roomsCache.get(code);
               if (!diskRoom || (parsed.updatedAt || 0) > (diskRoom.updatedAt || 0)) {
-                roomsMap.set(parsed.roomCode, parsed);
+                this.roomsCache.set(code, parsed);
               }
             }
           }
@@ -129,17 +134,20 @@ class StorageService {
       }
     }
 
-    return Array.from(roomsMap.values());
+    this.isLoaded = true;
+    return Array.from(this.roomsCache.values());
   }
 
   /**
    * Schedule room state persistence (debounced by 300ms to handle rapid bids)
    */
   public saveRoom(room: SerializedRoomData) {
-    this.pendingRooms.set(room.roomCode, {
+    const updated = {
       ...room,
       updatedAt: Date.now()
-    });
+    };
+    this.pendingRooms.set(room.roomCode, updated);
+    this.roomsCache.set(room.roomCode.toUpperCase(), updated);
 
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
@@ -155,6 +163,7 @@ class StorageService {
    */
   public deleteRoom(roomCode: string) {
     this.pendingRooms.delete(roomCode);
+    this.roomsCache.delete(roomCode.toUpperCase());
     this.flushToDisk(roomCode);
   }
 
@@ -163,35 +172,21 @@ class StorageService {
    */
   public flushToDisk(deletedRoomCode?: string) {
     try {
-      let existing: SerializedRoomData[] = [];
-      if (fs.existsSync(storageFilePath)) {
-        try {
-          const raw = fs.readFileSync(storageFilePath, 'utf-8');
-          if (raw.trim()) existing = JSON.parse(raw);
-        } catch {}
-      }
-
-      const map = new Map<string, SerializedRoomData>();
-      for (const r of existing) {
-        map.set(r.roomCode, r);
-      }
-
       if (deletedRoomCode) {
-        map.delete(deletedRoomCode);
+        this.roomsCache.delete(deletedRoomCode.toUpperCase());
       }
 
-      for (const [code, r] of this.pendingRooms.entries()) {
-        map.set(code, r);
-      }
-
-      const list = Array.from(map.values());
+      const list = Array.from(this.roomsCache.values());
       const tempPath = `${storageFilePath}.tmp`;
-      fs.writeFileSync(tempPath, JSON.stringify(list, null, 2), 'utf-8');
+      // High-performance compact write without multi-megabyte whitespace formatting
+      fs.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
       fs.renameSync(tempPath, storageFilePath);
 
-      // Async sync to Supabase if configured
+      // Async sync to Supabase if configured for only pending items
       if (supabase && this.pendingRooms.size > 0) {
         const toSync = Array.from(this.pendingRooms.values());
+        this.pendingRooms.clear();
+
         for (const item of toSync) {
           Promise.resolve(
             supabase
@@ -203,6 +198,8 @@ class StorageService {
               })
           ).catch(() => {});
         }
+      } else {
+        this.pendingRooms.clear();
       }
     } catch (err) {
       console.error('[Storage] Error flushing room state to disk:', err);

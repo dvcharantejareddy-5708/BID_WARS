@@ -12,7 +12,12 @@ interface PlayersViewProps {
   onReAuctionParticularPlayer?: (playerId: string) => void;
 }
 
-export const PlayersView: React.FC<PlayersViewProps> = ({ 
+export interface UnsoldOrSkippedEntry {
+  player: Player;
+  status: 'UNSOLD' | 'SKIPPED';
+}
+
+export const PlayersView = React.memo<PlayersViewProps>(({ 
   roomState, 
   myMemberId, 
   onReAuctionSoldPlayer, 
@@ -31,7 +36,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
     soldPrice: number;
   } | null>(null);
 
-  const [confirmUnsoldRecall, setConfirmUnsoldRecall] = useState<Player | null>(null);
+  const [confirmUnsoldRecall, setConfirmUnsoldRecall] = useState<UnsoldOrSkippedEntry | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const isTopHost = myMemberId ? roomState.hostId === myMemberId : false;
@@ -70,22 +75,52 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
 
     const sold = Array.from(soldPlayerMap.values());
 
-    // Collect latest unsold players
-    const unsoldPlayerIds = new Set<string>();
-    for (const lot of roomState.history) {
-      if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED') {
-        if (!soldPlayerMap.has(lot.player.id)) {
-          unsoldPlayerIds.add(lot.player.id);
+    // Check currently queued upcoming lots to exclude from recall
+    const queuedIds = new Set<string>();
+    if (roomState.lots) {
+      for (let i = roomState.currentLotIndex; i < roomState.lots.length; i++) {
+        const l = roomState.lots[i];
+        if (l && (l.status === 'PENDING' || l.status === 'IN_PROGRESS')) {
+          queuedIds.add(l.player.id);
         }
       }
     }
-    const unsold = allMasterPlayers.filter(p => unsoldPlayerIds.has(p.id));
 
-    // Remaining: Not sold, not unsold, not currently on auction
+    // Collect latest unsold and skipped players together
+    const unsoldPlayerMap = new Map<string, UnsoldOrSkippedEntry>();
+    for (const lot of roomState.history) {
+      if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED') {
+        if (!soldPlayerMap.has(lot.player.id) && !queuedIds.has(lot.player.id)) {
+          unsoldPlayerMap.set(lot.player.id, {
+            player: lot.player,
+            status: lot.status
+          });
+        }
+      }
+    }
+
+    if (roomState.lots) {
+      for (const lot of roomState.lots) {
+        if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED') {
+          if (!soldPlayerMap.has(lot.player.id) && !queuedIds.has(lot.player.id)) {
+            unsoldPlayerMap.set(lot.player.id, {
+              player: lot.player,
+              status: lot.status
+            });
+          }
+        }
+      }
+    }
+
+    const unsold = Array.from(unsoldPlayerMap.values());
+    const unsoldIds = new Set(unsoldPlayerMap.keys());
+
+    // Remaining: Not sold, not unsold/skipped, not currently on auction or queued
     const currentLotPlayerId = roomState.currentLot?.player.id;
     const remaining = allMasterPlayers.filter(p => 
       !soldPlayerMap.has(p.id) && 
-      !unsoldPlayerIds.has(p.id) && 
+      !unsoldIds.has(p.id) && 
+      !queuedIds.has(p.id) &&
       p.id !== currentLotPlayerId
     );
 
@@ -94,7 +129,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
       unsoldList: unsold,
       remainingList: remaining
     };
-  }, [roomState.history, roomState.teamSquads, roomState.currentLot, allMasterPlayers]);
+  }, [roomState.history, roomState.teamSquads, roomState.currentLot, roomState.lots, roomState.currentLotIndex, allMasterPlayers]);
 
   // Filter items based on user criteria
   const filteredSold = useMemo(() => {
@@ -109,7 +144,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
   }, [soldList, search, roleFilter, nationalityFilter, priceFilter]);
 
   const filteredUnsold = useMemo(() => {
-    return unsoldList.filter(p => {
+    return unsoldList.filter(({ player: p }) => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (roleFilter !== 'ALL' && p.category !== roleFilter) return false;
       if (nationalityFilter === 'INDIAN' && p.is_overseas) return false;
@@ -160,7 +195,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
           }`}
         >
           <XCircle className="w-4 h-4 stroke-[2.5]" />
-          <span>Unsold Players</span>
+          <span>Unsold & Skipped</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-number font-black ${
             activeGroup === 'UNSOLD' ? 'bg-[#0A0B14] text-[#FF3B5C]' : 'bg-[#0A0B14] text-[#9E9EB8]'
           }`}>
@@ -351,21 +386,21 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
           </div>
         )}
 
-        {/* GROUP 2: UNSOLD PLAYERS */}
+        {/* GROUP 2: UNSOLD & SKIPPED PLAYERS */}
         {activeGroup === 'UNSOLD' && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-heading font-black uppercase tracking-wider text-[#FF3B5C] flex items-center gap-2">
                 <XCircle className="w-4 h-4 stroke-[2.5]" />
-                <span>Unsold Players ({filteredUnsold.length})</span>
+                <span>Unsold & Skipped Players ({filteredUnsold.length})</span>
               </h2>
-              <span className="text-[11px] text-[#9E9EB8]">Eligible for host re-auction round</span>
+              <span className="text-[11px] text-[#9E9EB8]">Eligible for host recall and re-auction</span>
             </div>
 
             {filteredUnsold.length === 0 ? (
               <div className="py-12 text-center text-[#9E9EB8]">
-                <p className="text-sm font-heading font-extrabold uppercase text-white">No unsold players in this session</p>
-                <p className="text-xs text-[#62658A] mt-1">Players who receive no bids will appear here.</p>
+                <p className="text-sm font-heading font-extrabold uppercase text-white">No unsold or skipped players in this session</p>
+                <p className="text-xs text-[#62658A] mt-1">Players who receive no bids or are skipped will appear here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -377,60 +412,79 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Nationality</th>
                       <th className="pb-3.5">Base Price</th>
+                      <th className="pb-3.5 text-center">Status</th>
                       <th className="pb-3.5 pr-3 text-right">ACTION</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#23274D]">
-                    {filteredUnsold.map((p, idx) => (
-                      <tr key={p.id} className="hover:bg-[#181B38]/50 transition-colors">
-                        <td className="py-3.5 pl-3 font-number text-[#9E9EB8]">{idx + 1}</td>
-                        <td className="py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
-                              {p.image_url ? (
-                                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
-                              ) : (
-                                <span className="font-heading font-black text-[10px] text-[#FF3B5C]">{p.name.slice(0, 2)}</span>
-                              )}
+                    {filteredUnsold.map((entry, idx) => {
+                      const { player: p, status } = entry;
+                      const isSkipped = status === 'SKIPPED';
+
+                      return (
+                        <tr key={p.id} className="hover:bg-[#181B38]/50 transition-colors">
+                          <td className="py-3.5 pl-3 font-number text-[#9E9EB8]">{idx + 1}</td>
+                          <td className="py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
+                                {p.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  <span className={`font-heading font-black text-[10px] ${isSkipped ? 'text-[#FFC93D]' : 'text-[#FF3B5C]'}`}>
+                                    {p.name.slice(0, 2)}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="font-heading font-bold uppercase text-white">{p.name}</span>
                             </div>
-                            <span className="font-heading font-bold uppercase text-white">{p.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 text-[#9E9EB8]">
-                          <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold uppercase text-[#7C5CFF]">
-                            {p.category}
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-[#9E9EB8]">
-                          {p.is_overseas ? (
-                            <span className="text-[#7C5CFF] flex items-center gap-1 font-semibold">
-                              <Plane className="w-2.5 h-2.5" /> {p.nationality}
+                          </td>
+                          <td className="py-3.5 text-[#9E9EB8]">
+                            <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold uppercase text-[#7C5CFF]">
+                              {p.category}
                             </span>
-                          ) : (
-                            <span>🇮🇳 {p.nationality}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 font-number text-white">
-                          {p.base_price_display}
-                        </td>
-                        <td className="py-3.5 pr-3 text-right">
-                          {isTopHost ? (
-                            <button
-                              onClick={() => setConfirmUnsoldRecall(p)}
-                              className="px-2.5 py-1 rounded-lg bg-[#C8FF3D]/15 hover:bg-[#C8FF3D] text-[#C8FF3D] hover:text-[#0A0B14] border border-[#C8FF3D]/30 text-[11px] font-heading font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 shadow-sm"
-                              title="Return this unsold player to the auction queue"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              <span>Add to Auction</span>
-                            </button>
-                          ) : (
-                            <span className="bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 px-3 py-1 rounded-full text-[10px] font-heading font-extrabold uppercase">
-                              UNSOLD
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3.5 text-[#9E9EB8]">
+                            {p.is_overseas ? (
+                              <span className="text-[#7C5CFF] flex items-center gap-1 font-semibold">
+                                <Plane className="w-2.5 h-2.5" /> {p.nationality}
+                              </span>
+                            ) : (
+                              <span>🇮🇳 {p.nationality}</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 font-number text-white">
+                            {p.base_price_display}
+                          </td>
+                          <td className="py-3.5 text-center">
+                            {isSkipped ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-black uppercase bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30 shadow-xs">
+                                SKIPPED
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-heading font-black uppercase bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 shadow-xs">
+                                UNSOLD
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 pr-3 text-right">
+                            {isTopHost ? (
+                              <button
+                                onClick={() => setConfirmUnsoldRecall(entry)}
+                                className="px-2.5 py-1 rounded-lg bg-[#C8FF3D]/15 hover:bg-[#C8FF3D] text-[#C8FF3D] hover:text-[#0A0B14] border border-[#C8FF3D]/30 text-[11px] font-heading font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 shadow-sm"
+                                title="Return this player to the auction queue"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Bring Back to Auction</span>
+                              </button>
+                            ) : (
+                              <span className="text-[#8F9CAE] text-[11px] font-mono">
+                                Available for Host Recall
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -611,7 +665,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
         </div>
       )}
 
-      {/* CONFIRMATION DIALOG: RE-AUCTION PARTICULAR UNSOLD PLAYER */}
+      {/* CONFIRMATION DIALOG: BRING BACK UNSOLD OR SKIPPED PLAYER */}
       {confirmUnsoldRecall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0B14]/85 backdrop-blur-md animate-fadeIn font-body">
           <div className="bg-[#12142A] max-w-md w-full rounded-3xl p-6 sm:p-8 border border-[#C8FF3D]/40 shadow-2xl relative text-white space-y-5">
@@ -628,7 +682,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
               </div>
               <div>
                 <h3 className="font-heading font-black uppercase tracking-tight text-lg text-white">
-                  Add Unsold Player
+                  Bring Back to Auction
                 </h3>
                 <p className="text-xs text-[#8F9CAE]">Queue Player for Next Round</p>
               </div>
@@ -638,19 +692,29 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Player:</span>
                 <span className="text-white font-heading font-black text-sm uppercase">
-                  {confirmUnsoldRecall.name}
+                  {confirmUnsoldRecall.player.name}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Current Status:</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-heading font-extrabold uppercase ${
+                  confirmUnsoldRecall.status === 'UNSOLD'
+                    ? 'bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30'
+                    : 'bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30'
+                }`}>
+                  {confirmUnsoldRecall.status}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Category:</span>
-                <span className="text-[#7C5CFF] font-medium">{confirmUnsoldRecall.category}</span>
+                <span className="text-[#7C5CFF] font-medium">{confirmUnsoldRecall.player.category}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#8F9CAE] font-heading font-extrabold uppercase">Base Price:</span>
-                <span className="text-[#C8FF3D] font-mono font-bold">{confirmUnsoldRecall.base_price_display}</span>
+                <span className="text-[#C8FF3D] font-mono font-bold">{confirmUnsoldRecall.player.base_price_display}</span>
               </div>
               <p className="text-[#8F9CAE] text-[11px] leading-relaxed pt-2 border-t border-[#1E2246]">
-                This will queue {confirmUnsoldRecall.name} to be auctioned in the very next round with their official base price preserved.
+                This will queue {confirmUnsoldRecall.player.name} ({confirmUnsoldRecall.status}) to be auctioned in the very next round with their official base price preserved.
               </p>
             </div>
 
@@ -664,8 +728,8 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
               <button
                 onClick={() => {
                   if (onReAuctionParticularPlayer) {
-                    onReAuctionParticularPlayer(confirmUnsoldRecall.id);
-                    setActionFeedback(`${confirmUnsoldRecall.name} queued for next auction round!`);
+                    onReAuctionParticularPlayer(confirmUnsoldRecall.player.id);
+                    setActionFeedback(`${confirmUnsoldRecall.player.name} queued for next auction round!`);
                     setTimeout(() => setActionFeedback(null), 4000);
                   }
                   setConfirmUnsoldRecall(null);
@@ -673,7 +737,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 className="flex-1 py-3 px-4 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.25)] flex items-center justify-center gap-1.5"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span>Confirm & Queue</span>
+                <span>Bring Back to Auction</span>
               </button>
             </div>
           </div>
@@ -681,4 +745,6 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
       )}
     </div>
   );
-};
+});
+
+PlayersView.displayName = 'PlayersView';

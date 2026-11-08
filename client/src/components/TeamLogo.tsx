@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IPLTeamId, resolveTeamFranchise } from '../types.js';
 
 interface TeamLogoProps {
@@ -8,17 +8,14 @@ interface TeamLogoProps {
   alt?: string;
 }
 
-export const TeamLogo: React.FC<TeamLogoProps> = ({
+export const TeamLogo = React.memo<TeamLogoProps>(({
   teamId,
   className = 'w-9 h-9',
   imgClassName = '',
   alt
 }) => {
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [teamId]);
+  const [errorTeamId, setErrorTeamId] = useState<string | null>(null);
+  const hasError = Boolean(teamId && errorTeamId === teamId);
 
   const franchise = resolveTeamFranchise(teamId);
 
@@ -59,11 +56,13 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({
       <img
         src={franchise.logoUrl}
         alt={alt || `${franchise.name} Logo`}
-        onError={() => setHasError(true)}
+        onError={() => setErrorTeamId(teamId || '')}
         className={`w-full h-full object-contain filter drop-shadow transition-transform duration-200 ${imgClassName}`}
         loading="lazy"
       />
     </div>
   );
-};
+});
+
+TeamLogo.displayName = 'TeamLogo';
 

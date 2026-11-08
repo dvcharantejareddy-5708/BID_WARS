@@ -11,7 +11,7 @@ interface FullScreenGavelModalProps {
   onComplete: (resultId?: string) => void;
 }
 
-export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
+export const FullScreenGavelModal = React.memo<FullScreenGavelModalProps>(({
   lot,
   myTeamId,
   onComplete
@@ -324,4 +324,6 @@ export const FullScreenGavelModal: React.FC<FullScreenGavelModalProps> = ({
       </div>
     </div>
   );
-};
+});
+
+FullScreenGavelModal.displayName = 'FullScreenGavelModal';

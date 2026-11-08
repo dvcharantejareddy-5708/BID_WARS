@@ -1014,15 +1014,15 @@ export class GameRoom {
             }
         };
         for (const lot of this.history) {
-            if (lot.status === 'UNSOLD')
+            if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')
                 checkAndAdd(lot.player);
         }
         for (const lot of this.lots) {
-            if (lot.status === 'UNSOLD')
+            if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')
                 checkAndAdd(lot.player);
         }
         if (eligibleUnsoldPlayers.length === 0) {
-            return { success: false, message: 'No unsold players found to bring back.' };
+            return { success: false, message: 'No unsold or skipped players found to bring back.' };
         }
         const currentLotsCount = this.lots.length;
         const newLots = eligibleUnsoldPlayers.map((player, idx) => ({
@@ -1037,11 +1037,11 @@ export class GameRoom {
         }));
         const wasAtEnd = this.currentLotIndex >= this.lots.length;
         this.insertLotsIntoQueue(newLots, wasAtEnd);
-        this.addAuditLog('UNSOLD_PLAYERS_RECALLED', `Host brought back all ${newLots.length} unsold player(s) into the auction pool.`, 'Host');
+        this.addAuditLog('UNSOLD_PLAYERS_RECALLED', `Host brought back all ${newLots.length} unsold & skipped player(s) into the auction pool.`, 'Host');
         this.addBidLog({
             type: 'EVENT',
             eventAction: 'UNSOLD_PLAYERS_RECALLED',
-            eventMessage: `Host brought back all ${newLots.length} unsold player(s) into the active auction pool.`
+            eventMessage: `Host brought back all ${newLots.length} unsold & skipped player(s) into the active auction pool.`
         });
         return { success: true, count: newLots.length, recalledCount: newLots.length };
     }
@@ -1077,15 +1077,15 @@ export class GameRoom {
             }
         };
         for (const lot of this.history) {
-            if (lot.status === 'UNSOLD')
+            if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')
                 checkAndAdd(lot.player);
         }
         for (const lot of this.lots) {
-            if (lot.status === 'UNSOLD')
+            if (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')
                 checkAndAdd(lot.player);
         }
         if (eligibleUnsoldPlayers.length === 0) {
-            return { success: false, message: 'No unsold players available for random draw.' };
+            return { success: false, message: 'No unsold or skipped players available for random draw.' };
         }
         let selectedPlayers = [];
         if (playerIds && playerIds.length > 0) {
@@ -1098,7 +1098,7 @@ export class GameRoom {
             selectedPlayers = shuffled.slice(0, numToPick);
         }
         if (selectedPlayers.length === 0) {
-            return { success: false, message: 'No valid unsold players selected.' };
+            return { success: false, message: 'No valid unsold or skipped players selected.' };
         }
         const currentLotsCount = this.lots.length;
         const newLots = selectedPlayers.map((player, idx) => ({
@@ -1113,11 +1113,11 @@ export class GameRoom {
         }));
         const wasAtEnd = this.currentLotIndex >= this.lots.length;
         this.insertLotsIntoQueue(newLots, wasAtEnd);
-        this.addAuditLog('UNSOLD_RANDOM_DRAW', `Host randomly recalled ${selectedPlayers.length} unsold player(s): ${selectedPlayers.map(p => p.name).join(', ')}`, 'Host');
+        this.addAuditLog('UNSOLD_RANDOM_DRAW', `Host randomly recalled ${selectedPlayers.length} unsold & skipped player(s): ${selectedPlayers.map(p => p.name).join(', ')}`, 'Host');
         this.addBidLog({
             type: 'EVENT',
             eventAction: 'UNSOLD_RANDOM_DRAW',
-            eventMessage: `Host randomly recalled ${selectedPlayers.length} unsold player(s) into the auction pool.`
+            eventMessage: `Host randomly recalled ${selectedPlayers.length} unsold & skipped player(s) into the auction pool.`
         });
         return { success: true, count: selectedPlayers.length, players: selectedPlayers, drawnLots: newLots };
     }
@@ -1146,24 +1146,24 @@ export class GameRoom {
         if (isSold) {
             return { success: false, message: 'This player is already sold. Use Re-Auction in Sold Players to reverse their sale.' };
         }
-        // Find the player from unsold records (history or lots)
+        // Find the player from unsold or skipped records (history or lots)
         let targetPlayer = null;
         for (const lot of this.history) {
-            if (lot.player.id === playerId && lot.status === 'UNSOLD') {
+            if (lot.player.id === playerId && (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')) {
                 targetPlayer = lot.player;
                 break;
             }
         }
         if (!targetPlayer) {
             for (const lot of this.lots) {
-                if (lot.player.id === playerId && lot.status === 'UNSOLD') {
+                if (lot.player.id === playerId && (lot.status === 'UNSOLD' || lot.status === 'SKIPPED')) {
                     targetPlayer = lot.player;
                     break;
                 }
             }
         }
         if (!targetPlayer) {
-            return { success: false, message: 'Player record not found among unsold players.' };
+            return { success: false, message: 'Player record not found among unsold or skipped players.' };
         }
         const freshPlayer = {
             ...targetPlayer,
@@ -1181,13 +1181,13 @@ export class GameRoom {
         };
         const wasAtEnd = this.currentLotIndex >= this.lots.length;
         this.insertLotsIntoQueue([newLot], wasAtEnd);
-        this.addAuditLog('UNSOLD_PLAYER_RECALLED', `Host returned unsold player ${freshPlayer.name} (${freshPlayer.category}, Base: ${freshPlayer.base_price_display}) to the auction queue.`, 'Host');
+        this.addAuditLog('UNSOLD_PLAYER_RECALLED', `Host returned player ${freshPlayer.name} (${freshPlayer.category}, Base: ${freshPlayer.base_price_display}) to the auction queue.`, 'Host');
         this.addBidLog({
             type: 'EVENT',
             eventAction: 'UNSOLD_PLAYER_RECALLED',
             playerName: freshPlayer.name,
             amount: freshPlayer.base_price_inr,
-            eventMessage: `Host returned unsold player ${freshPlayer.name} to the auction queue.`
+            eventMessage: `Host returned player ${freshPlayer.name} to the auction queue.`
         });
         return { success: true, message: `${freshPlayer.name} has been added to the auction queue!`, lot: newLot };
     }

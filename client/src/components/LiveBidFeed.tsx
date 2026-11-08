@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Radio } from 'lucide-react';
 import { AuctionLot, IPL_FRANCHISES, RoomSettings } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
@@ -8,7 +8,7 @@ interface LiveBidFeedProps {
   roomSettings?: RoomSettings;
 }
 
-export const LiveBidFeed: React.FC<LiveBidFeedProps> = ({
+export const LiveBidFeed = React.memo<LiveBidFeedProps>(({
   lot,
   roomSettings
 }) => {
@@ -33,11 +33,13 @@ export const LiveBidFeed: React.FC<LiveBidFeedProps> = ({
     return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  // Ensure reverse chronological order: latest/highest bid first
-  const bids = lot.bids || [];
-  const sortedBids = [...bids].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0) || b.amount - a.amount);
-  const highestBid = sortedBids[0];
+  // Ensure reverse chronological order: latest/highest bid first, memoized to prevent re-sorting on every render
+  const sortedBids = useMemo(() => {
+    const bids = lot.bids || [];
+    return [...bids].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0) || b.amount - a.amount);
+  }, [lot.bids]);
 
+  const bidsCount = lot.bids?.length || 0;
   const basePriceDisplay = formatFullAmount(lot.player.base_price_inr);
 
   return (
@@ -51,13 +53,13 @@ export const LiveBidFeed: React.FC<LiveBidFeedProps> = ({
           </h3>
         </div>
         <span className="text-[11px] font-mono font-bold text-[#C8FF3D] bg-[#181A36] px-2.5 py-0.5 rounded-full border border-[#23274D] tracking-wider">
-          {bids.length} {bids.length === 1 ? 'BID' : 'BIDS'}
+          {bidsCount} {bidsCount === 1 ? 'BID' : 'BIDS'}
         </span>
       </div>
 
       {/* Feed list matching Section 05 table */}
       <div className="flex-1 overflow-y-auto pr-1 pt-2 space-y-1.5 custom-scrollbar">
-        {bids.length === 0 ? (
+        {sortedBids.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8 text-[#8A92B2] space-y-2">
             <Radio className="w-8 h-8 text-[#23274D] animate-pulse" />
             <p className="text-xs font-semibold text-[#F4F6FA]">No bids placed yet</p>
@@ -73,7 +75,7 @@ export const LiveBidFeed: React.FC<LiveBidFeedProps> = ({
 
             return (
               <div
-                key={`${bid.timestamp}-${bid.teamId}-${bid.amount}`}
+                key={bid.bidId || `${bid.timestamp}-${bid.teamId}-${bid.amount}`}
                 className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
                   isHighest
                     ? 'bg-[#181A36] border-[#C8FF3D] shadow-lime-glow-sm'
@@ -109,4 +111,6 @@ export const LiveBidFeed: React.FC<LiveBidFeedProps> = ({
       </div>
     </div>
   );
-};
+});
+
+LiveBidFeed.displayName = 'LiveBidFeed';
