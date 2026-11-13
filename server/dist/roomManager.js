@@ -303,6 +303,40 @@ export class RoomManager {
                 room.advanceLot(msg.lotIndex, msg.resultId);
                 break;
             }
+            case 'CREATE_TRADE_REQUEST': {
+                const res = room.createTradeRequest(conn.memberId, {
+                    targetTeamId: msg.toTeamId,
+                    type: msg.tradeType,
+                    offeredPlayerId: msg.offeredPlayerId,
+                    requestedPlayerId: msg.requestedPlayerId,
+                    moneyAmount: msg.moneyAmount
+                });
+                if (!res.success) {
+                    this.sendError(ws, res.message || 'Failed to create trade request');
+                }
+                break;
+            }
+            case 'RESPOND_TRADE_REQUEST': {
+                const res = room.respondTradeRequest(conn.memberId, msg.tradeId, msg.action, msg.rejectionReason);
+                if (!res.success) {
+                    this.sendError(ws, res.message || 'Failed to respond to trade request');
+                }
+                break;
+            }
+            case 'CANCEL_TRADE_REQUEST': {
+                const res = room.cancelTradeRequest(conn.memberId, msg.tradeId, msg.reason);
+                if (!res.success) {
+                    this.sendError(ws, res.message || 'Failed to cancel trade request');
+                }
+                break;
+            }
+            case 'UPDATE_TRADE_TIMER': {
+                const res = room.updateTradeTimer(conn.memberId, msg.tradeTimerDuration);
+                if (!res.success) {
+                    this.sendError(ws, res.message || 'Failed to update trade timer');
+                }
+                break;
+            }
             case 'LEAVE_ROOM': {
                 this.connections.delete(ws);
                 room.removeMember(conn.memberId);

@@ -13,7 +13,10 @@ import {
   TeamStats,
   PlayerCategory,
   ChatMessage,
-  BidLogEntry
+  BidLogEntry,
+  TradeRequest,
+  TradeType,
+  TradeStatus
 } from './types.js';
 import { buildAuctionLots, shuffleArray } from './playerService.js';
 import { evaluateBotBid } from './botEngine.js';
@@ -43,10 +46,15 @@ export class GameRoom {
   public reAuctionRound: boolean = false;
   public isClosed: boolean = false;
   public kickedMemberIds: Set<string> = new Set();
+  public activeTrade: TradeRequest | null = null;
+  public tradeHistory: TradeRequest[] = [];
+  public pausedByTrade: boolean = false;
 
   private timerInterval: NodeJS.Timeout | null = null;
   private botTimeouts: NodeJS.Timeout[] = [];
   private lotTransitionTimeout: NodeJS.Timeout | null = null;
+  private tradeTimeout: NodeJS.Timeout | null = null;
+  private wasAuctionActiveBeforeTrade: boolean = false;
   private broadcastCallback: (state: RoomState, eventMsg?: any) => void;
   private isProcessingBid: boolean = false;
   private pauseRemainingMs: number | null = null;
@@ -85,7 +93,8 @@ export class GameRoom {
       minBidIncrement: initialSettings.minBidIncrement || 2000000, // 20 Lakh
       playMode: initialSettings.playMode || 'friends_only',
       botCount: initialSettings.botCount || 0,
-      allowDuplicateTeams: initialSettings.allowDuplicateTeams || false
+      allowDuplicateTeams: initialSettings.allowDuplicateTeams || false,
+      tradeTimerDuration: initialSettings.tradeTimerDuration || 45
     };
 
     // Initialize 10 franchise purses and squads
@@ -567,6 +576,10 @@ export class GameRoom {
   ): { success: boolean; message?: string; bid?: BidRecord } {
     if (this.status !== 'AUCTION') {
       return { success: false, message: 'Auction is not currently active' };
+    }
+
+    if (this.activeTrade || this.pausedByTrade) {
+      return { success: false, message: 'Auction is currently paused for an active trade review.' };
     }
 
     const member = this.members.get(memberId);
@@ -1672,6 +1685,425 @@ export class GameRoom {
     return { success: true };
   }
 
+  /**
+   * LIVE PLAYER TRADING SYSTEM
+   */
+  public createTradeRequest(
+    memberId: string, 
+    payload: {
+      targetTeamId: IPLTeamId;
+      type: TradeType;
+      offeredPlayerId: string;
+      requestedPlayerId?: string;
+      moneyAmount?: number;
+    }
+  ): { success: boolean; message?: string; trade?: TradeRequest } {
+    const sender = this.members.get(memberId);
+    if (!sender) return { success: false, message: 'Participant not found in room.' };
+    if (!sender.teamId) return { success: false, message: 'You must represent a franchise to initiate a trade.' };
+    const fromTeamId = sender.teamId;
+
+    if (fromTeamId === payload.targetTeamId) {
+      return { success: false, message: 'Cannot initiate a trade with your own franchise.' };
+    }
+
+    if (this.activeTrade) {
+      return { success: false, message: 'A trade proposal is already pending review. Please wait for it to resolve.' };
+    }
+
+    // Check sender squad contains offered player
+    const fromSquad = this.teamSquads[fromTeamId] || [];
+    const offeredPlayer = fromSquad.find(p => p.id === payload.offeredPlayerId);
+    if (!offeredPlayer) {
+      return { success: false, message: 'The offered player was not found in your squad.' };
+    }
+
+    // Check if offered player is currently being bid on in the active lot
+    const currentLot = this.lots[this.currentLotIndex];
+    if (currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === offeredPlayer.id) {
+      return { success: false, message: 'Cannot trade a player currently being auctioned in the live arena.' };
+    }
+
+    // Find manager for target franchise
+    const toMember = Array.from(this.members.values()).find(m => m.teamId === payload.targetTeamId);
+    const toSquad = this.teamSquads[payload.targetTeamId] || [];
+
+    let requestedPlayer: Player | undefined = undefined;
+    let moneyAmount: number | undefined = undefined;
+
+    if (payload.type === 'PLAYER_FOR_PLAYER') {
+      if (!payload.requestedPlayerId) {
+        return { success: false, message: 'You must specify which player you want in exchange.' };
+      }
+      requestedPlayer = toSquad.find(p => p.id === payload.requestedPlayerId);
+      if (!requestedPlayer) {
+        return { success: false, message: 'The requested player is not in the target franchise squad.' };
+      }
+      if (currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === requestedPlayer.id) {
+        return { success: false, message: 'Cannot trade for a player currently being auctioned in the live arena.' };
+      }
+
+      // Check overseas limits (max 8)
+      const senderOverseas = fromSquad.filter(p => p.is_overseas && p.id !== offeredPlayer.id).length + (requestedPlayer!.is_overseas ? 1 : 0);
+      if (senderOverseas > 8) {
+        return { success: false, message: 'This trade would exceed your overseas limit (maximum 8 overseas players allowed).' };
+      }
+
+      const targetOverseas = toSquad.filter(p => p.is_overseas && p.id !== requestedPlayer!.id).length + (offeredPlayer.is_overseas ? 1 : 0);
+      if (targetOverseas > 8) {
+        return { success: false, message: 'This trade would cause the recipient franchise to exceed the 8 overseas player limit.' };
+      }
+    } else if (payload.type === 'PLAYER_FOR_MONEY') {
+      const amount = payload.moneyAmount || 0;
+      if (amount <= 0) {
+        return { success: false, message: 'Trade amount must be greater than ₹0.' };
+      }
+      moneyAmount = amount;
+
+      const targetPurse = this.teamPurse[payload.targetTeamId] || 0;
+      if (targetPurse < amount) {
+        return { 
+          success: false, 
+          message: `Target franchise has insufficient purse (₹${(targetPurse / 10000000).toFixed(2)} Cr) to pay ₹${(amount / 10000000).toFixed(2)} Cr.` 
+        };
+      }
+
+      if (toSquad.length >= this.settings.maxSquad) {
+        return { success: false, message: `Target franchise has already reached the maximum squad limit of ${this.settings.maxSquad} players.` };
+      }
+
+      if (offeredPlayer.is_overseas) {
+        const targetOverseas = toSquad.filter(p => p.is_overseas).length;
+        if (targetOverseas >= 8) {
+          return { success: false, message: 'Target franchise already has 8 overseas players and cannot accept another overseas player.' };
+        }
+      }
+    } else {
+      return { success: false, message: 'Invalid trade type.' };
+    }
+
+    const duration = this.settings.tradeTimerDuration || 45;
+    const now = Date.now();
+    const tradeId = `trade_${now}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const trade: TradeRequest = {
+      id: tradeId,
+      type: payload.type,
+      status: 'PENDING',
+      fromTeamId,
+      fromMemberId: sender.id,
+      fromMemberName: sender.nickname,
+      toTeamId: payload.targetTeamId,
+      toMemberId: toMember ? toMember.id : '',
+      toMemberName: toMember ? toMember.nickname : IPL_FRANCHISES[payload.targetTeamId].name,
+      offeredPlayer: { ...offeredPlayer },
+      requestedPlayer: requestedPlayer ? { ...requestedPlayer } : undefined,
+      moneyAmount,
+      createdAt: now,
+      expiresAt: now + (duration * 1000)
+    };
+
+    this.activeTrade = trade;
+
+    // AUTOMATIC AUCTION PAUSE ON TRADE PROPOSAL
+    if (this.status === 'AUCTION') {
+      if (this.deadlineTimestamp) {
+        this.pauseRemainingMs = Math.max(0, this.deadlineTimestamp - Date.now());
+      } else {
+        this.pauseRemainingMs = this.settings.timerDuration * 1000;
+      }
+      this.status = 'PAUSED';
+      this.pausedByTrade = true;
+      this.wasAuctionActiveBeforeTrade = true;
+      this.clearAllTimers();
+    } else {
+      this.pausedByTrade = true;
+      this.wasAuctionActiveBeforeTrade = false;
+    }
+
+    if (this.tradeTimeout) clearTimeout(this.tradeTimeout);
+    this.tradeTimeout = setTimeout(() => {
+      this.expireTradeRequest(trade.id);
+    }, duration * 1000);
+
+    const tradeDesc = trade.type === 'PLAYER_FOR_PLAYER'
+      ? `${sender.nickname} (${fromTeamId}) proposed trading ${trade.offeredPlayer.name} for ${trade.requestedPlayer?.name} with ${trade.toMemberName} (${trade.toTeamId})`
+      : `${sender.nickname} (${fromTeamId}) proposed selling ${trade.offeredPlayer.name} to ${trade.toMemberName} (${trade.toTeamId}) for ₹${((trade.moneyAmount || 0) / 10000000).toFixed(2)} Cr`;
+
+    this.addAuditLog('TRADE_PROPOSED', tradeDesc, sender.nickname);
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'TRADE_PROPOSED',
+      playerName: trade.offeredPlayer.name,
+      teamId: fromTeamId,
+      teamName: IPL_FRANCHISES[fromTeamId].name,
+      amount: trade.moneyAmount || trade.offeredPlayer.sold_price_inr || trade.offeredPlayer.base_price_inr,
+      eventMessage: `TRADE PROPOSED: ${tradeDesc} (Auction paused for review)`
+    });
+
+    this.broadcastState({ type: 'TRADE_UPDATE', trade, eventAction: 'PROPOSED' });
+    return { success: true, trade };
+  }
+
+  public respondTradeRequest(
+    memberId: string, 
+    tradeId: string, 
+    action: 'ACCEPT' | 'REJECT', 
+    rejectionReason?: string
+  ): { success: boolean; message?: string; trade?: TradeRequest } {
+    if (!this.activeTrade || this.activeTrade.id !== tradeId || this.activeTrade.status !== 'PENDING') {
+      return { success: false, message: 'Trade request not found or is no longer active.' };
+    }
+
+    const responder = this.members.get(memberId);
+    if (!responder) return { success: false, message: 'Member not found.' };
+
+    const isTargetTeam = responder.teamId === this.activeTrade.toTeamId;
+    const isHost = memberId === this.hostId;
+    if (!isTargetTeam && !isHost) {
+      return { success: false, message: 'Only the recipient franchise manager or top host can respond to this trade.' };
+    }
+
+    if (this.tradeTimeout) {
+      clearTimeout(this.tradeTimeout);
+      this.tradeTimeout = null;
+    }
+
+    if (action === 'REJECT') {
+      this.activeTrade.status = 'REJECTED';
+      this.activeTrade.resolvedAt = Date.now();
+      this.activeTrade.resolvedBy = responder.nickname;
+      this.activeTrade.rejectionReason = rejectionReason || 'Rejected by recipient franchise';
+
+      this.tradeHistory.unshift({ ...this.activeTrade });
+      const resolved = { ...this.activeTrade };
+      this.activeTrade = null;
+
+      this.addAuditLog('TRADE_REJECTED', `Trade rejected by ${responder.nickname}: ${resolved.rejectionReason}`, responder.nickname);
+      this.addBidLog({
+        type: 'EVENT',
+        eventAction: 'TRADE_REJECTED',
+        playerName: resolved.offeredPlayer.name,
+        teamId: resolved.toTeamId,
+        teamName: IPL_FRANCHISES[resolved.toTeamId].name,
+        eventMessage: `TRADE REJECTED: ${resolved.toMemberName} rejected trade proposal from ${resolved.fromMemberName}.`
+      });
+
+      this.resumeAuctionFromTrade('Trade proposal rejected.');
+      this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'REJECTED' });
+      return { success: true, trade: resolved };
+    }
+
+    // ACTION === 'ACCEPT'
+    const fromTeamId = this.activeTrade.fromTeamId;
+    const toTeamId = this.activeTrade.toTeamId;
+    const fromSquad = this.teamSquads[fromTeamId] || [];
+    const toSquad = this.teamSquads[toTeamId] || [];
+
+    const pOffered = fromSquad.find(p => p.id === this.activeTrade!.offeredPlayer.id);
+    if (!pOffered) {
+      this.activeTrade.status = 'REJECTED';
+      this.activeTrade.rejectionReason = 'Offered player is no longer in offering team squad';
+      this.tradeHistory.unshift({ ...this.activeTrade });
+      const resolved = { ...this.activeTrade };
+      this.activeTrade = null;
+      this.resumeAuctionFromTrade('Trade cancelled due to invalid squad state.');
+      this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'REJECTED' });
+      return { success: false, message: 'Offered player is no longer in offering team squad.' };
+    }
+
+    if (this.activeTrade.type === 'PLAYER_FOR_PLAYER') {
+      const pRequested = toSquad.find(p => p.id === this.activeTrade!.requestedPlayer?.id);
+      if (!pRequested) {
+        this.activeTrade.status = 'REJECTED';
+        this.activeTrade.rejectionReason = 'Requested player is no longer in recipient team squad';
+        this.tradeHistory.unshift({ ...this.activeTrade });
+        const resolved = { ...this.activeTrade };
+        this.activeTrade = null;
+        this.resumeAuctionFromTrade('Trade cancelled due to invalid squad state.');
+        this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'REJECTED' });
+        return { success: false, message: 'Requested player is no longer in recipient team squad.' };
+      }
+
+      // Re-verify overseas limits
+      const fromOverseas = fromSquad.filter(p => p.is_overseas && p.id !== pOffered.id).length + (pRequested.is_overseas ? 1 : 0);
+      if (fromOverseas > 8) {
+        return { success: false, message: 'Trade cannot be completed: violates overseas limit of 8 for offering team.' };
+      }
+      const toOverseas = toSquad.filter(p => p.is_overseas && p.id !== pRequested.id).length + (pOffered.is_overseas ? 1 : 0);
+      if (toOverseas > 8) {
+        return { success: false, message: 'Trade cannot be completed: violates overseas limit of 8 for receiving team.' };
+      }
+
+      // ATOMIC SWAP
+      this.teamSquads[fromTeamId] = fromSquad.filter(p => p.id !== pOffered.id);
+      this.teamSquads[toTeamId] = toSquad.filter(p => p.id !== pRequested.id);
+
+      const updatedOffered: Player = { ...pOffered, team_id: toTeamId };
+      const updatedRequested: Player = { ...pRequested, team_id: fromTeamId };
+
+      this.teamSquads[toTeamId].push(updatedOffered);
+      this.teamSquads[fromTeamId].push(updatedRequested);
+
+    } else if (this.activeTrade.type === 'PLAYER_FOR_MONEY') {
+      const cost = this.activeTrade.moneyAmount || 0;
+      const targetPurse = this.teamPurse[toTeamId] || 0;
+      if (targetPurse < cost) {
+        return { success: false, message: 'Recipient team has insufficient purse balance to execute this trade.' };
+      }
+      if (toSquad.length >= this.settings.maxSquad) {
+        return { success: false, message: 'Recipient team has reached maximum squad size of 25.' };
+      }
+      if (pOffered.is_overseas && toSquad.filter(p => p.is_overseas).length >= 8) {
+        return { success: false, message: 'Recipient team has reached the 8 overseas player limit.' };
+      }
+
+      // ATOMIC TRANSFER & PURSE EXCHANGE
+      this.teamSquads[fromTeamId] = fromSquad.filter(p => p.id !== pOffered.id);
+      const updatedOffered: Player = { ...pOffered, team_id: toTeamId, sold_price_inr: cost };
+      this.teamSquads[toTeamId].push(updatedOffered);
+
+      this.teamPurse[toTeamId] -= cost;
+      this.teamPurse[fromTeamId] += cost;
+    }
+
+    this.activeTrade.status = 'ACCEPTED';
+    this.activeTrade.resolvedAt = Date.now();
+    this.activeTrade.resolvedBy = responder.nickname;
+    this.tradeHistory.unshift({ ...this.activeTrade });
+    const resolved = { ...this.activeTrade };
+    this.activeTrade = null;
+
+    const desc = resolved.type === 'PLAYER_FOR_PLAYER'
+      ? `TRADE COMPLETED: ${resolved.offeredPlayer.name} transferred to ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) in exchange for ${resolved.requestedPlayer?.name} to ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}).`
+      : `TRADE COMPLETED: ${resolved.offeredPlayer.name} purchased by ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) from ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}) for ₹${((resolved.moneyAmount || 0) / 10000000).toFixed(2)} Cr.`;
+
+    this.addAuditLog('TRADE_ACCEPTED', desc, responder.nickname);
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'TRADE_ACCEPTED',
+      playerName: resolved.offeredPlayer.name,
+      teamId: toTeamId,
+      teamName: IPL_FRANCHISES[toTeamId].name,
+      amount: resolved.moneyAmount,
+      eventMessage: desc
+    });
+
+    this.resumeAuctionFromTrade('Trade completed successfully.');
+    this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'ACCEPTED' });
+    return { success: true, trade: resolved };
+  }
+
+  public cancelTradeRequest(
+    memberId: string, 
+    tradeId: string, 
+    reason?: string
+  ): { success: boolean; message?: string; trade?: TradeRequest } {
+    if (!this.activeTrade || this.activeTrade.id !== tradeId || this.activeTrade.status !== 'PENDING') {
+      return { success: false, message: 'Trade request not found or is no longer active.' };
+    }
+
+    const caller = this.members.get(memberId);
+    if (!caller) return { success: false, message: 'Participant not found.' };
+
+    const isSender = this.activeTrade.fromMemberId === memberId || caller.teamId === this.activeTrade.fromTeamId;
+    const isHost = memberId === this.hostId;
+    if (!isSender && !isHost) {
+      return { success: false, message: 'Only the trade initiator or top host can cancel this request.' };
+    }
+
+    if (this.tradeTimeout) {
+      clearTimeout(this.tradeTimeout);
+      this.tradeTimeout = null;
+    }
+
+    this.activeTrade.status = 'CANCELLED';
+    this.activeTrade.resolvedAt = Date.now();
+    this.activeTrade.resolvedBy = caller.nickname;
+    this.activeTrade.rejectionReason = reason || (isHost ? 'Cancelled by Top Host' : 'Cancelled by initiator');
+
+    this.tradeHistory.unshift({ ...this.activeTrade });
+    const resolved = { ...this.activeTrade };
+    this.activeTrade = null;
+
+    this.addAuditLog('TRADE_CANCELLED', `Trade cancelled by ${caller.nickname}`, caller.nickname);
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'TRADE_CANCELLED',
+      playerName: resolved.offeredPlayer.name,
+      teamId: resolved.fromTeamId,
+      teamName: IPL_FRANCHISES[resolved.fromTeamId].name,
+      eventMessage: `TRADE CANCELLED: Trade for ${resolved.offeredPlayer.name} was cancelled by ${caller.nickname}.`
+    });
+
+    this.resumeAuctionFromTrade('Trade request was cancelled.');
+    this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'CANCELLED' });
+    return { success: true, trade: resolved };
+  }
+
+  public expireTradeRequest(tradeId: string) {
+    if (!this.activeTrade || this.activeTrade.id !== tradeId || this.activeTrade.status !== 'PENDING') {
+      return;
+    }
+
+    this.tradeTimeout = null;
+    this.activeTrade.status = 'EXPIRED';
+    this.activeTrade.resolvedAt = Date.now();
+    this.activeTrade.resolvedBy = 'System';
+    this.activeTrade.rejectionReason = 'Trade decision timer expired';
+
+    this.tradeHistory.unshift({ ...this.activeTrade });
+    const resolved = { ...this.activeTrade };
+    this.activeTrade = null;
+
+    this.addAuditLog('TRADE_EXPIRED', `Trade expired due to decision timer`, 'System');
+    this.addBidLog({
+      type: 'EVENT',
+      eventAction: 'TRADE_EXPIRED',
+      playerName: resolved.offeredPlayer.name,
+      teamId: resolved.fromTeamId,
+      teamName: IPL_FRANCHISES[resolved.fromTeamId].name,
+      eventMessage: `TRADE EXPIRED: Decision timer ran out for trade between ${resolved.fromMemberName} and ${resolved.toMemberName}.`
+    });
+
+    this.resumeAuctionFromTrade('Trade decision timer expired.');
+    this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'EXPIRED' });
+  }
+
+  public resumeAuctionFromTrade(reason: string) {
+    this.pausedByTrade = false;
+    if (this.wasAuctionActiveBeforeTrade && this.status === 'PAUSED') {
+      this.wasAuctionActiveBeforeTrade = false;
+      this.status = 'AUCTION';
+      const remainingMs = this.pauseRemainingMs && this.pauseRemainingMs > 0
+        ? this.pauseRemainingMs
+        : (this.settings.timerDuration * 1000);
+      this.deadlineTimestamp = Date.now() + remainingMs;
+      this.pauseRemainingMs = null;
+      this.startCountdownLoop();
+      this.triggerBotBidding();
+      this.addAuditLog('AUCTION_RESUMED', `Auction resumed: ${reason}`, 'System');
+      this.addBidLog({
+        type: 'EVENT',
+        eventAction: 'AUCTION_RESUMED',
+        eventMessage: `AUCTION RESUMED: Bidding is live again (${Math.ceil(remainingMs / 1000)}s remaining on current lot).`
+      });
+    } else {
+      this.wasAuctionActiveBeforeTrade = false;
+    }
+  }
+
+  public updateTradeTimer(memberId: string, durationSeconds: number): { success: boolean; message?: string } {
+    if (memberId !== this.hostId) {
+      return { success: false, message: 'Only the top host can configure the trade decision timer.' };
+    }
+    const duration = Math.min(120, Math.max(15, durationSeconds));
+    this.settings.tradeTimerDuration = duration;
+    this.addAuditLog('SETTINGS_UPDATED', `Host set trade decision timer to ${duration}s`, 'Host');
+    this.broadcastState();
+    return { success: true };
+  }
+
   private clearAllTimers() {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
@@ -1784,6 +2216,9 @@ export class GameRoom {
       currentSetOrder: currentLot ? currentLot.player.set_order : 1,
       currentSetName: currentLot ? currentLot.player.set_name : '₹2.00 Cr Batsmen',
       kickedMemberIds: Array.from(this.kickedMemberIds),
+      activeTrade: this.activeTrade ? { ...this.activeTrade } : null,
+      tradeHistory: [...this.tradeHistory],
+      pausedByTrade: this.pausedByTrade,
       lots: this.lots
     };
   }
@@ -1811,6 +2246,9 @@ export class GameRoom {
       auditLog: this.auditLog,
       chatMessages: this.chatMessages,
       bidLog: this.bidLog,
+      activeTrade: this.activeTrade,
+      tradeHistory: this.tradeHistory,
+      pausedByTrade: this.pausedByTrade,
       kickedMemberIds: Array.from(this.kickedMemberIds),
       updatedAt: Date.now()
     };
@@ -1832,6 +2270,9 @@ export class GameRoom {
     room.auditLog = data.auditLog || [];
     room.chatMessages = data.chatMessages || [];
     room.bidLog = data.bidLog || [];
+    room.activeTrade = data.activeTrade || null;
+    room.tradeHistory = data.tradeHistory || [];
+    room.pausedByTrade = Boolean(data.pausedByTrade);
     room.kickedMemberIds = new Set(data.kickedMemberIds || []);
 
     room.members.clear();

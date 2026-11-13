@@ -39,6 +39,7 @@ interface HostControlsModalProps {
   onSkipMultiplePlayers: (count: number) => void;
   onKickMember: (targetMemberId: string) => void;
   onUpdateTimer: (duration: number) => void;
+  onUpdateTradeTimer?: (durationSec: number) => void;
   onUpdateSettings?: (settings: any) => void;
   onDrawRandomPlayer?: (category: PlayerCategory, basePriceInr: number) => void;
 }
@@ -60,6 +61,7 @@ export const HostControlsModal = React.memo<HostControlsModalProps>(({
   onSkipMultiplePlayers,
   onKickMember,
   onUpdateTimer,
+  onUpdateTradeTimer,
   onUpdateSettings,
   onDrawRandomPlayer
 }) => {
@@ -788,6 +790,40 @@ export const HostControlsModal = React.memo<HostControlsModalProps>(({
                       Apply
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Trade Decision Timer Duration */}
+              <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#7C5CFF]" />
+                    <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white">
+                      Trade Decision Timer
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono text-[#7C5CFF] font-bold">
+                    Current: {roomState.settings.tradeTimerDuration || 45}s
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {[15, 30, 45, 60, 90, 120].map(duration => (
+                    <button
+                      key={duration}
+                      onClick={() => {
+                        onUpdateTradeTimer && onUpdateTradeTimer(duration);
+                        showFeedback(`Trade decision timer updated to ${duration} seconds.`);
+                      }}
+                      className={`py-2 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border ${
+                        (roomState.settings.tradeTimerDuration || 45) === duration
+                          ? 'bg-[#7C5CFF] text-white border-[#7C5CFF] shadow-[0_0_12px_rgba(124,92,255,0.25)]'
+                          : 'bg-[#12142A] text-[#8F9CAE] border-[#1E2246] hover:text-white'
+                      }`}
+                    >
+                      {duration}s
+                    </button>
+                  ))}
                 </div>
               </div>
 

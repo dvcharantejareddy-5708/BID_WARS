@@ -18,17 +18,20 @@ import {
   X,
   AlertTriangle,
   Loader2,
-  Crown
+  Crown,
+  ArrowLeftRight
 } from 'lucide-react';
 import { 
   RoomState, 
   AuctionLot, 
   IPLTeamId, 
   IPL_FRANCHISES, 
-  PlayerCategory 
+  PlayerCategory,
+  TradeType
 } from '../types.js';
 import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { HostControlsModal } from './HostControlsModal.js';
+import { TradeModal } from './TradeModal.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
@@ -55,6 +58,16 @@ interface AuctionArenaProps {
   onUpdateSettings?: (settings: any) => void;
   onReAuctionSoldPlayer?: (playerId: string) => void;
   onReAuctionParticularPlayer?: (playerId: string) => void;
+  onCreateTrade?: (payload: {
+    toTeamId: IPLTeamId;
+    tradeType: TradeType;
+    offeredPlayerId: string;
+    requestedPlayerId?: string;
+    moneyAmount?: number;
+  }) => void;
+  onRespondTrade?: (tradeId: string, action: 'ACCEPT' | 'REJECT', rejectionReason?: string) => void;
+  onCancelTrade?: (tradeId: string, reason?: string) => void;
+  onUpdateTradeTimer?: (durationSec: number) => void;
 }
 
 export const AuctionArena = React.memo<AuctionArenaProps>(({
@@ -75,10 +88,15 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
   onUpdateTimer,
   onUpdateSettings,
   onReAuctionSoldPlayer,
-  onReAuctionParticularPlayer
+  onReAuctionParticularPlayer,
+  onCreateTrade,
+  onRespondTrade,
+  onCancelTrade,
+  onUpdateTradeTimer
 }) => {
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showHostControlsModal, setShowHostControlsModal] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
   const [showHostDraw, setShowHostDraw] = useState(false);
   const [showSquadList, setShowSquadList] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
@@ -178,6 +196,13 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                 </button>
               )}
               <button
+                onClick={() => setShowTradeModal(true)}
+                className="py-3 px-5 rounded-2xl bg-[#7C5CFF]/25 hover:bg-[#7C5CFF]/40 text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#7C5CFF]/40 flex items-center gap-2"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-[#C8FF3D]" />
+                <span>Trade Players</span>
+              </button>
+              <button
                 onClick={onEndAuction}
                 className="py-3 px-5 rounded-2xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(255,59,92,0.3)]"
               >
@@ -185,12 +210,32 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               </button>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0A0B14] border border-[#1E2246] text-xs text-[#8F9CAE]">
-              <span className="w-2 h-2 rounded-full bg-[#FFC93D] animate-ping" />
-              <span>Awaiting host decision</span>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => setShowTradeModal(true)}
+                className="py-3 px-5 rounded-2xl bg-[#7C5CFF]/25 hover:bg-[#7C5CFF]/40 text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#7C5CFF]/40 flex items-center gap-2"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-[#C8FF3D]" />
+                <span>Trade Players</span>
+              </button>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0A0B14] border border-[#1E2246] text-xs text-[#8F9CAE]">
+                <span className="w-2 h-2 rounded-full bg-[#FFC93D] animate-ping" />
+                <span>Awaiting host decision</span>
+              </div>
             </div>
           )}
         </div>
+
+        <TradeModal
+          isOpen={showTradeModal}
+          onClose={() => setShowTradeModal(false)}
+          roomState={roomState}
+          myMemberId={myMemberId}
+          onCreateTrade={onCreateTrade || (() => {})}
+          onRespondTrade={onRespondTrade || (() => {})}
+          onCancelTrade={onCancelTrade || (() => {})}
+          onUpdateTradeTimer={onUpdateTradeTimer}
+        />
 
         {isHost && (
           <HostControlsModal
@@ -210,6 +255,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
             onUpdateSettings={onUpdateSettings}
             onDrawRandomPlayer={onDrawRandomPlayer}
             onReAuctionParticularPlayer={onReAuctionParticularPlayer}
+            onUpdateTradeTimer={onUpdateTradeTimer}
           />
         )}
       </div>
@@ -340,6 +386,19 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
             </span>
           )}
 
+          {/* TRADE ACTION BUTTON ON MAIN AUCTION DASHBOARD */}
+          <button
+            onClick={() => setShowTradeModal(true)}
+            aria-label="Player Trading"
+            className="flex items-center gap-1.5 bg-[#7C5CFF]/25 hover:bg-[#7C5CFF]/40 border border-[#7C5CFF]/50 text-white font-heading font-black px-3.5 py-1 rounded-lg transition-all text-[11px] uppercase tracking-wider relative shadow-[0_0_12px_rgba(124,92,255,0.25)]"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-[#C8FF3D]" />
+            <span>Trade</span>
+            {roomState.activeTrade && (
+              <span className="w-2 h-2 rounded-full bg-[#FF3B5C] animate-ping" />
+            )}
+          </button>
+
           <button
             onClick={() => setShowOnboardingGuide(true)}
             aria-label="Auction Guide and Rules"
@@ -350,6 +409,51 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           </button>
         </div>
       </div>
+
+      {/* PROMINENT TRADE REQUEST PENDING BANNER (AUCTION PAUSED) */}
+      {roomState.activeTrade && (
+        <div className="bg-[#12142A] border-2 border-[#7C5CFF]/60 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-[0_0_25px_rgba(124,92,255,0.25)] animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#7C5CFF]/20 border border-[#7C5CFF]/40 flex items-center justify-center text-[#C8FF3D] shrink-0">
+              <ArrowLeftRight className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-black text-[10px] text-[#FF3B5C] uppercase tracking-wider bg-[#FF3B5C]/15 px-2 py-0.5 rounded-md border border-[#FF3B5C]/40 flex items-center gap-1 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B5C]" />
+                  AUCTION PAUSED FOR TRADE
+                </span>
+                <span className="font-heading font-black text-sm text-white">
+                  {roomState.activeTrade.fromTeamId} ➔ {roomState.activeTrade.toTeamId}
+                </span>
+              </div>
+              <p className="text-xs text-[#8F9CAE] mt-0.5 font-medium">
+                {roomState.activeTrade.type === 'PLAYER_FOR_PLAYER'
+                  ? `${roomState.activeTrade.fromMemberName} offers ${roomState.activeTrade.offeredPlayer.name} for ${roomState.activeTrade.requestedPlayer?.name}`
+                  : `${roomState.activeTrade.fromMemberName} offers ${roomState.activeTrade.offeredPlayer.name} for ₹${((roomState.activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowTradeModal(true)}
+              className="py-2 px-5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.3)] flex items-center gap-2"
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <span>
+                {roomState.activeTrade.toTeamId === myTeamId
+                  ? 'Review & Decide'
+                  : roomState.activeTrade.fromTeamId === myTeamId
+                  ? 'View / Cancel'
+                  : isHost
+                  ? 'Manage Trade'
+                  : 'View Trade'}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. MAIN 3-PANEL DASHBOARD LAYOUT */}
       <div className="grid grid-cols-12 gap-3.5 items-start">
@@ -1019,8 +1123,21 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           onUpdateSettings={onUpdateSettings}
           onDrawRandomPlayer={onDrawRandomPlayer}
           onReAuctionParticularPlayer={onReAuctionParticularPlayer}
+          onUpdateTradeTimer={onUpdateTradeTimer}
         />
       )}
+
+      {/* 7. LIVE TRADING MODAL */}
+      <TradeModal
+        isOpen={showTradeModal}
+        onClose={() => setShowTradeModal(false)}
+        roomState={roomState}
+        myMemberId={myMemberId}
+        onCreateTrade={onCreateTrade || (() => {})}
+        onRespondTrade={onRespondTrade || (() => {})}
+        onCancelTrade={onCancelTrade || (() => {})}
+        onUpdateTradeTimer={onUpdateTradeTimer}
+      />
     </div>
   );
 });

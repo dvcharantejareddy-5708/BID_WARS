@@ -20,7 +20,8 @@ import {
   RoomSettings, 
   BotStrategy,
   PlayerCategory,
-  ChatMessage 
+  ChatMessage,
+  TradeType 
 } from './types.js';
 
 export function App() {
@@ -533,6 +534,43 @@ export function App() {
     socketService.send({ type: 'SEND_CHAT_MESSAGE', text });
   };
 
+  const handleCreateTrade = (payload: {
+    toTeamId: IPLTeamId;
+    tradeType: TradeType;
+    offeredPlayerId: string;
+    requestedPlayerId?: string;
+    moneyAmount?: number;
+  }) => {
+    socketService.send({
+      type: 'CREATE_TRADE_REQUEST',
+      ...payload
+    });
+  };
+
+  const handleRespondTrade = (tradeId: string, action: 'ACCEPT' | 'REJECT', rejectionReason?: string) => {
+    socketService.send({
+      type: 'RESPOND_TRADE_REQUEST',
+      tradeId,
+      action,
+      rejectionReason
+    });
+  };
+
+  const handleCancelTrade = (tradeId: string, reason?: string) => {
+    socketService.send({
+      type: 'CANCEL_TRADE_REQUEST',
+      tradeId,
+      reason
+    });
+  };
+
+  const handleUpdateTradeTimer = (tradeTimerDuration: number) => {
+    socketService.send({
+      type: 'UPDATE_TRADE_TIMER',
+      tradeTimerDuration
+    });
+  };
+
   const handleToggleChat = () => {
     setIsChatOpen(open => {
       if (!open) setUnreadChatCount(0);
@@ -652,6 +690,10 @@ export function App() {
                     onUpdateSettings={handleUpdateSettings}
                     onReAuctionSoldPlayer={handleReAuctionSoldPlayer}
                     onReAuctionParticularPlayer={handleReAuctionParticularPlayer}
+                    onCreateTrade={handleCreateTrade}
+                    onRespondTrade={handleRespondTrade}
+                    onCancelTrade={handleCancelTrade}
+                    onUpdateTradeTimer={handleUpdateTradeTimer}
                   />
                 )}
 

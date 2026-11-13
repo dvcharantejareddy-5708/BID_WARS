@@ -225,6 +225,7 @@ export interface RoomSettings {
   maxSquad: number;            // default 25
   maxOverseas: number;         // default 8
   minBidIncrement: number;     // default 20,00,000 (20L)
+  tradeTimerDuration?: number; // default 45 seconds (15 to 120s)
   playMode: 'friends_only' | 'friends_bots';
   botCount: number;
   allowDuplicateTeams: boolean;
@@ -331,6 +332,29 @@ export interface BidLogEntry {
   eventMessage?: string;
 }
 
+export type TradeType = 'PLAYER_FOR_PLAYER' | 'PLAYER_FOR_MONEY';
+export type TradeStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
+
+export interface TradeRequest {
+  id: string;
+  type: TradeType;
+  status: TradeStatus;
+  fromTeamId: IPLTeamId;
+  fromMemberId: string;
+  fromMemberName: string;
+  toTeamId: IPLTeamId;
+  toMemberId?: string;
+  toMemberName?: string;
+  offeredPlayer: Player;
+  requestedPlayer?: Player;
+  moneyAmount?: number;
+  createdAt: number;
+  expiresAt: number;
+  resolvedAt?: number;
+  resolvedBy?: string;
+  rejectionReason?: string;
+}
+
 export interface RoomState {
   roomCode: string;
   status: 'LOBBY' | 'AUCTION' | 'PAUSED' | 'COMPLETED';
@@ -358,6 +382,9 @@ export interface RoomState {
   totalSets: number;
   currentSetOrder: number;
   currentSetName: string;
+  activeTrade?: TradeRequest | null;
+  tradeHistory: TradeRequest[];
+  pausedByTrade?: boolean;
 }
 
 // Client to Server Message Events
@@ -379,6 +406,10 @@ export type ClientMessage =
   | { type: 'REAUCTION_SOLD_PLAYER'; playerId: string }
   | { type: 'KICK_MEMBER'; targetMemberId: string }
   | { type: 'UPDATE_TIMER'; timerDuration: number }
+  | { type: 'UPDATE_TRADE_TIMER'; tradeTimerDuration: number }
+  | { type: 'CREATE_TRADE_REQUEST'; toTeamId: IPLTeamId; tradeType: TradeType; offeredPlayerId: string; requestedPlayerId?: string; moneyAmount?: number; durationSec?: number }
+  | { type: 'RESPOND_TRADE_REQUEST'; tradeId: string; action: 'ACCEPT' | 'REJECT'; rejectionReason?: string }
+  | { type: 'CANCEL_TRADE_REQUEST'; tradeId: string; reason?: string }
   | { type: 'SEND_CHAT_MESSAGE'; text: string }
   | { type: 'PAUSE_AUCTION' }
   | { type: 'RESUME_AUCTION' }
@@ -402,6 +433,7 @@ export type ServerMessage =
   | { type: 'AUCTION_PAUSED'; reason?: string }
   | { type: 'AUCTION_RESUMED'; deadlineTimestamp: number }
   | { type: 'AUCTION_COMPLETED'; summary: Record<IPLTeamId, TeamStats> }
+  | { type: 'TRADE_UPDATE'; trade: TradeRequest }
   | { type: 'KICKED'; message: string }
   | { type: 'ERROR'; message: string; code?: string }
   | { type: 'PONG' };
