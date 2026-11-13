@@ -1502,7 +1502,7 @@ export class GameRoom {
         else {
             return { success: false, message: 'Invalid trade type.' };
         }
-        const duration = this.settings.tradeTimerDuration || 45;
+        const duration = 45; // Exactly 45-second fixed authoritative response window
         const now = Date.now();
         const tradeId = `trade_${now}_${Math.random().toString(36).substring(2, 7)}`;
         const trade = {
@@ -1568,9 +1568,8 @@ export class GameRoom {
         if (!responder)
             return { success: false, message: 'Member not found.' };
         const isTargetTeam = responder.teamId === this.activeTrade.toTeamId;
-        const isHost = memberId === this.hostId;
-        if (!isTargetTeam && !isHost) {
-            return { success: false, message: 'Only the recipient franchise manager or top host can respond to this trade.' };
+        if (!isTargetTeam) {
+            return { success: false, message: 'Unauthorized: Only the recipient franchise manager can accept or reject this trade.' };
         }
         if (this.tradeTimeout) {
             clearTimeout(this.tradeTimeout);
@@ -1694,7 +1693,7 @@ export class GameRoom {
         const isSender = this.activeTrade.fromMemberId === memberId || caller.teamId === this.activeTrade.fromTeamId;
         const isHost = memberId === this.hostId;
         if (!isSender && !isHost) {
-            return { success: false, message: 'Only the trade initiator or top host can cancel this request.' };
+            return { success: false, message: 'Unauthorized: Only the offering franchise manager or top host can cancel this trade proposal.' };
         }
         if (this.tradeTimeout) {
             clearTimeout(this.tradeTimeout);

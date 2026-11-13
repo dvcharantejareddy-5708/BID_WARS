@@ -367,14 +367,14 @@ export class RoomManager {
     }
     broadcastToRoom(roomCode, state, eventMsg) {
         const rawEvent = eventMsg ? JSON.stringify(eventMsg) : null;
-        const rawState = !eventMsg && state ? JSON.stringify({ type: 'SYNC_STATE', state }) : null;
+        const rawState = state ? JSON.stringify({ type: 'SYNC_STATE', state }) : null;
         for (const [ws, conn] of this.connections.entries()) {
             if (conn.roomCode === roomCode && ws.readyState === WebSocket.OPEN) {
+                if (rawState) {
+                    ws.send(rawState);
+                }
                 if (rawEvent) {
                     ws.send(rawEvent);
-                }
-                else if (rawState) {
-                    ws.send(rawState);
                 }
             }
         }

@@ -32,6 +32,7 @@ import {
 import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { HostControlsModal } from './HostControlsModal.js';
 import { TradeModal } from './TradeModal.js';
+import { TradeProposalDashboardPanel } from './TradeProposalDashboardPanel.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
@@ -410,49 +411,17 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
         </div>
       </div>
 
-      {/* PROMINENT TRADE REQUEST PENDING BANNER (AUCTION PAUSED) */}
+      {/* 1B. PROMINENT TRADE PROPOSAL DASHBOARD PANEL (VISIBLE TO ALL CONNECTED PLAYERS) */}
       {roomState.activeTrade && (
-        <div className="bg-[#12142A] border-2 border-[#7C5CFF]/60 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-[0_0_25px_rgba(124,92,255,0.25)] animate-fadeIn">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#7C5CFF]/20 border border-[#7C5CFF]/40 flex items-center justify-center text-[#C8FF3D] shrink-0">
-              <ArrowLeftRight className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-heading font-black text-[10px] text-[#FF3B5C] uppercase tracking-wider bg-[#FF3B5C]/15 px-2 py-0.5 rounded-md border border-[#FF3B5C]/40 flex items-center gap-1 animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B5C]" />
-                  AUCTION PAUSED FOR TRADE
-                </span>
-                <span className="font-heading font-black text-sm text-white">
-                  {roomState.activeTrade.fromTeamId} ➔ {roomState.activeTrade.toTeamId}
-                </span>
-              </div>
-              <p className="text-xs text-[#8F9CAE] mt-0.5 font-medium">
-                {roomState.activeTrade.type === 'PLAYER_FOR_PLAYER'
-                  ? `${roomState.activeTrade.fromMemberName} offers ${roomState.activeTrade.offeredPlayer.name} for ${roomState.activeTrade.requestedPlayer?.name}`
-                  : `${roomState.activeTrade.fromMemberName} offers ${roomState.activeTrade.offeredPlayer.name} for ₹${((roomState.activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr`}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setShowTradeModal(true)}
-              className="py-2 px-5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.3)] flex items-center gap-2"
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span>
-                {roomState.activeTrade.toTeamId === myTeamId
-                  ? 'Review & Decide'
-                  : roomState.activeTrade.fromTeamId === myTeamId
-                  ? 'View / Cancel'
-                  : isHost
-                  ? 'Manage Trade'
-                  : 'View Trade'}
-              </span>
-            </button>
-          </div>
-        </div>
+        <TradeProposalDashboardPanel
+          activeTrade={roomState.activeTrade}
+          myTeamId={myTeamId}
+          isHost={Boolean(isHost)}
+          onAccept={(tradeId) => onRespondTrade && onRespondTrade(tradeId, 'ACCEPT')}
+          onReject={(tradeId, reason) => onRespondTrade && onRespondTrade(tradeId, 'REJECT', reason)}
+          onCancel={(tradeId, reason) => onCancelTrade && onCancelTrade(tradeId, reason)}
+          onOpenTradeModal={() => setShowTradeModal(true)}
+        />
       )}
 
       {/* 2. MAIN 3-PANEL DASHBOARD LAYOUT */}

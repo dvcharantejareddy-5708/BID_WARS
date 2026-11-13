@@ -76,6 +76,14 @@ export const TradeModal = React.memo<TradeModalProps>(({
   const [rejectReasonInput, setRejectReasonInput] = useState<string>('');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'>('ALL');
   const [timerSettingInput, setTimerSettingInput] = useState<number>(roomState.settings.tradeTimerDuration || 45);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Format countdown as MM:SS (e.g. 00:45)
+  const formatTimer = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // Real-time countdown for active trade
   const [remainingTradeSec, setRemainingTradeSec] = useState<number>(0);
@@ -233,8 +241,9 @@ export const TradeModal = React.memo<TradeModalProps>(({
   if (!isOpen) return null;
 
   const handleSubmitTrade = () => {
-    if (!tradeValidation.isValid || !selectedTargetTeam || !offeredPlayer) return;
+    if (!tradeValidation.isValid || !selectedTargetTeam || !offeredPlayer || isSubmitting) return;
 
+    setIsSubmitting(true);
     onCreateTrade({
       toTeamId: selectedTargetTeam,
       tradeType,
@@ -242,6 +251,7 @@ export const TradeModal = React.memo<TradeModalProps>(({
       requestedPlayerId: tradeType === 'PLAYER_FOR_PLAYER' ? requestedPlayer?.id : undefined,
       moneyAmount: tradeType === 'PLAYER_FOR_MONEY' ? moneyAmountInr : undefined
     });
+    setTimeout(() => setIsSubmitting(false), 1500);
   };
 
   const activeTrade = roomState.activeTrade;
@@ -741,12 +751,11 @@ export const TradeModal = React.memo<TradeModalProps>(({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-[#0A0B14] px-4 py-2 rounded-xl border border-[#FF3B5C]/40">
-                      <Clock className="w-4 h-4 text-[#FFC93D]" />
-                      <span className="font-number font-black text-base text-white">
-                        {remainingTradeSec}s
+                    <div className="flex items-center gap-2 bg-[#0A0B14] px-4 py-2 rounded-xl border border-[#7C5CFF]/60 shadow-[0_0_12px_rgba(124,92,255,0.25)]">
+                      <Clock className="w-4 h-4 text-[#C8FF3D] animate-pulse" />
+                      <span className="font-heading font-black text-xs text-white uppercase tracking-wider">
+                        TRADE REQUEST · <span className={`font-number font-extrabold text-sm ${remainingTradeSec <= 10 ? 'text-[#FF3B5C]' : 'text-[#C8FF3D]'}`}>{formatTimer(remainingTradeSec)}</span>
                       </span>
-                      <span className="text-[10px] text-[#8F9CAE] uppercase">remaining</span>
                     </div>
                   </div>
 
@@ -835,14 +844,26 @@ export const TradeModal = React.memo<TradeModalProps>(({
                             className="bg-[#12142A] border border-[#23274D] rounded-xl px-3 py-2 text-xs text-white w-full sm:w-64 focus:outline-none focus:border-[#FF3B5C]"
                           />
                           <button
-                            onClick={() => onRespondTrade(activeTrade.id, 'REJECT', rejectReasonInput)}
-                            className="px-5 py-2.5 rounded-xl bg-[#FF3B5C]/20 hover:bg-[#FF3B5C] border border-[#FF3B5C]/40 text-white font-heading font-black text-xs uppercase tracking-wider transition-all"
+                            onClick={() => {
+                              if (isSubmitting) return;
+                              setIsSubmitting(true);
+                              onRespondTrade(activeTrade.id, 'REJECT', rejectReasonInput);
+                              setTimeout(() => setIsSubmitting(false), 1500);
+                            }}
+                            disabled={isSubmitting}
+                            className="px-5 py-2.5 rounded-xl bg-[#FF3B5C]/20 hover:bg-[#FF3B5C] border border-[#FF3B5C]/40 text-white font-heading font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50"
                           >
                             Reject Trade
                           </button>
                           <button
-                            onClick={() => onRespondTrade(activeTrade.id, 'ACCEPT')}
-                            className="px-6 py-2.5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.3)]"
+                            onClick={() => {
+                              if (isSubmitting) return;
+                              setIsSubmitting(true);
+                              onRespondTrade(activeTrade.id, 'ACCEPT');
+                              setTimeout(() => setIsSubmitting(false), 1500);
+                            }}
+                            disabled={isSubmitting}
+                            className="px-6 py-2.5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(200,255,61,0.3)] disabled:opacity-50"
                           >
                             Accept Trade
                           </button>
@@ -851,8 +872,14 @@ export const TradeModal = React.memo<TradeModalProps>(({
 
                       {isOutgoingTrade && !isIncomingTrade && (
                         <button
-                          onClick={() => onCancelTrade(activeTrade.id, 'Cancelled by initiator')}
-                          className="px-5 py-2.5 rounded-xl bg-[#FF3B5C]/20 hover:bg-[#FF3B5C] border border-[#FF3B5C]/40 text-white font-heading font-bold text-xs uppercase tracking-wider transition-all"
+                          onClick={() => {
+                            if (isSubmitting) return;
+                            setIsSubmitting(true);
+                            onCancelTrade(activeTrade.id, 'Cancelled by initiator');
+                            setTimeout(() => setIsSubmitting(false), 1500);
+                          }}
+                          disabled={isSubmitting}
+                          className="px-5 py-2.5 rounded-xl bg-[#FF3B5C]/20 hover:bg-[#FF3B5C] border border-[#FF3B5C]/40 text-white font-heading font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
                         >
                           Cancel Trade Proposal
                         </button>
@@ -860,8 +887,14 @@ export const TradeModal = React.memo<TradeModalProps>(({
 
                       {isHost && !isIncomingTrade && (
                         <button
-                          onClick={() => onCancelTrade(activeTrade.id, 'Cancelled by Top Host')}
-                          className="px-4 py-2 rounded-xl bg-[#FFC93D]/20 hover:bg-[#FFC93D] hover:text-[#0A0B14] border border-[#FFC93D]/40 text-[#FFC93D] font-heading font-bold text-xs uppercase tracking-wider transition-all"
+                          onClick={() => {
+                            if (isSubmitting) return;
+                            setIsSubmitting(true);
+                            onCancelTrade(activeTrade.id, 'Cancelled by Top Host');
+                            setTimeout(() => setIsSubmitting(false), 1500);
+                          }}
+                          disabled={isSubmitting}
+                          className="px-4 py-2 rounded-xl bg-[#FFC93D]/20 hover:bg-[#FFC93D] hover:text-[#0A0B14] border border-[#FFC93D]/40 text-[#FFC93D] font-heading font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
                         >
                           Host Force Cancel
                         </button>

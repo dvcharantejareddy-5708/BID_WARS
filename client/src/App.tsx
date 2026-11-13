@@ -215,6 +215,24 @@ export function App() {
         setRoomState(prev => prev ? { ...prev, status: 'COMPLETED' } : prev);
         break;
       }
+      case 'TRADE_UPDATE': {
+        setRoomState(prev => {
+          if (!prev) return prev;
+          const isPending = msg.trade.status === 'PENDING';
+          const exists = (prev.tradeHistory || []).some(t => t.id === msg.trade.id);
+          const updatedHistory = exists
+            ? prev.tradeHistory.map(t => t.id === msg.trade.id ? msg.trade : t)
+            : [msg.trade, ...(prev.tradeHistory || [])];
+          return {
+            ...prev,
+            activeTrade: isPending ? msg.trade : null,
+            pausedByTrade: isPending,
+            status: isPending ? 'PAUSED' : prev.status,
+            tradeHistory: updatedHistory
+          };
+        });
+        break;
+      }
       case 'KICKED': {
         setRoomState(null);
         setMyMemberId('');
