@@ -239,3 +239,4 @@ CREATE POLICY "Player stats visible to tournament members"
       AND t.host_id = auth.uid()::text
     )
   );
+

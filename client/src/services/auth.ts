@@ -23,7 +23,13 @@ export let supabaseClient: SupabaseClient | null = null;
 
 if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('your-project')) {
   try {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
   } catch (err) {
     console.warn('[Auth] Supabase client init fallback:', err);
   }
@@ -39,8 +45,12 @@ class AuthService {
     this.init();
   }
 
-  public isConfigured(): boolean {
-    return Boolean(supabaseClient);
+  public getConfigStatus() {
+    return {
+      isConfigured: Boolean(supabaseClient),
+      supabaseUrl: SUPABASE_URL || '',
+      hasAnonKey: Boolean(SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('your-anon'))
+    };
   }
 
   private async fetchUserProfile(userId: string): Promise<UserProfileData | null> {
@@ -62,11 +72,14 @@ class AuthService {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        this.currentUser = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.isGoogleUser && parsed.id) {
+          this.currentUser = parsed;
+        }
       }
     } catch {}
 
-    // 2. Listen to Supabase Auth state changes if available
+    // 2. Listen to Supabase Auth state changes and parse OAuth redirect callback
     if (supabaseClient) {
       try {
         const { data } = await supabaseClient.auth.getSession();
@@ -83,6 +96,11 @@ class AuthService {
             isGoogleUser: true
           };
           this.setUser(userObj);
+
+          // Clean URL hash after OAuth token exchange so secrets don't linger in address bar
+          if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
         }
       } catch (err) {
         console.warn('[Auth] getSession error:', err);
@@ -102,50 +120,24 @@ class AuthService {
             isGoogleUser: true
           };
           this.setUser(userObj);
-        } else if (!this.currentUser?.isGoogleUser) {
-          // Keep guest user if any
+
+          if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
         } else {
           this.setUser(null);
         }
       });
     }
-
-    // 3. Fallback: If no user found, create or restore a persistent local user
-    if (!this.currentUser) {
-      this.restoreOrCreateDefaultGuest();
-    }
   }
 
-  private restoreOrCreateDefaultGuest(): AuthUser {
-    let guestId = localStorage.getItem('bidwars_guest_id');
-    if (!guestId) {
-      guestId = 'usr_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 10));
-      localStorage.setItem('bidwars_guest_id', guestId);
-    }
-
-    const defaultUser: AuthUser = {
-      id: guestId,
-      name: 'Manager',
-      inGameName: undefined,
-      email: `${guestId}@bidwars.ipl`,
-      avatar: undefined,
-      isGoogleUser: false
-    };
-
-    this.setUser(defaultUser);
-    return defaultUser;
-  }
-
-  public getUser(): AuthUser {
-    if (!this.currentUser) {
-      return this.restoreOrCreateDefaultGuest();
-    }
+  public getUser(): AuthUser | null {
     return this.currentUser;
   }
 
   public setUser(user: AuthUser | null) {
     this.currentUser = user;
-    if (user) {
+    if (user && user.isGoogleUser) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     } else {
       localStorage.removeItem(STORAGE_KEY);
@@ -167,7 +159,7 @@ class AuthService {
   }
 
   public async setInGameName(inGameName: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.currentUser) return { success: false, error: 'No active user' };
+    if (!this.currentUser) return { success: false, error: 'No active Google user' };
 
     const cleanName = inGameName.trim();
     if (cleanName.length < 3 || cleanName.length > 20) {
@@ -223,38 +215,10 @@ class AuthService {
       }
     } else {
       return {
-        error: 'Supabase Auth is not configured. Please provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Google OAuth.',
+        error: 'Supabase Auth is not configured. Please supply VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Google OAuth.',
         configMissing: true
       };
     }
-  }
-
-  public async signInWithGoogleTestAccount(email: string, name: string): Promise<{ success: boolean; error?: string }> {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = name.trim();
-    if (!cleanEmail || !cleanName) return { success: false, error: 'Email and name are required' };
-
-    // Generate deterministic UUID for simulated test account
-    let hash = 0;
-    for (let i = 0; i < cleanEmail.length; i++) {
-      hash = ((hash << 5) - hash) + cleanEmail.charCodeAt(i);
-      hash |= 0;
-    }
-    const hex = Math.abs(hash).toString(16).padStart(8, '0');
-    const simulatedUUID = `00000000-0000-4000-8000-${hex.padEnd(12, '0')}`;
-
-    const profile = await this.fetchUserProfile(simulatedUUID);
-
-    const googleUser: AuthUser = {
-      id: simulatedUUID,
-      email: cleanEmail,
-      name: cleanName,
-      inGameName: profile?.inGameName,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanEmail}`,
-      isGoogleUser: true
-    };
-    this.setUser(googleUser);
-    return { success: true };
   }
 
   public async signOut(): Promise<void> {
@@ -264,7 +228,7 @@ class AuthService {
       } catch {}
     }
     localStorage.removeItem(STORAGE_KEY);
-    this.restoreOrCreateDefaultGuest();
+    this.setUser(null);
   }
 
   public onAuthStateChange(callback: (user: AuthUser | null) => void): () => void {

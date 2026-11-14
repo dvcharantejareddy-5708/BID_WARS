@@ -444,6 +444,10 @@ export function App() {
 
     try {
       const activeUser = authService.getUser();
+      if (!activeUser || !activeUser.isGoogleUser) {
+        setErrorMessage('You must sign in with Google to enter tournament auction.');
+        return;
+      }
       const userInGameName = activeUser.inGameName || activeUser.name || 'Manager';
       const userSessionToken = activeUser.id;
 

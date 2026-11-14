@@ -6,19 +6,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Locate or create data storage directory
 const getStorageFilePath = () => {
-    const candidates = [
-        path.join(__dirname, 'data', 'persisted_rooms.json'),
-        path.join(__dirname, '..', 'data', 'persisted_rooms.json'),
-        path.join(process.cwd(), 'server', 'data', 'persisted_rooms.json'),
-        path.join(process.cwd(), 'data', 'persisted_rooms.json')
-    ];
-    for (const c of candidates) {
-        const parent = path.dirname(c);
-        if (fs.existsSync(parent)) {
-            return c;
-        }
-    }
-    // Fallback: create data directory in dirname or cwd
     const defaultDir = path.join(process.cwd(), 'server', 'data');
     if (!fs.existsSync(defaultDir)) {
         try {

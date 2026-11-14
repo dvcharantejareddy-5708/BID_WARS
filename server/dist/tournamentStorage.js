@@ -5,18 +5,6 @@ import { supabase } from './supabase.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const getTournamentStorageFilePath = () => {
-    const candidates = [
-        path.join(__dirname, 'data', 'persisted_tournaments.json'),
-        path.join(__dirname, '..', 'data', 'persisted_tournaments.json'),
-        path.join(process.cwd(), 'server', 'data', 'persisted_tournaments.json'),
-        path.join(process.cwd(), 'data', 'persisted_tournaments.json')
-    ];
-    for (const c of candidates) {
-        const parent = path.dirname(c);
-        if (fs.existsSync(parent)) {
-            return c;
-        }
-    }
     const defaultDir = path.join(process.cwd(), 'server', 'data');
     if (!fs.existsSync(defaultDir)) {
         try {

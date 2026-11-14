@@ -1,11 +1,28 @@
+# Dependencies
 node_modules/
+
+# Production builds
 client/dist/
+
+# Environment Variables & Secrets (CRITICAL GITHUB PRIVACY)
 .env
-.env*
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.env
-*.log
-.DS_Store
+!.env.example
+!.env.template
+
+# Dynamic Persistence & Runtime State (Never committed to GitHub)
 persisted_rooms.json
 persisted_tournaments.json
+persisted_profiles.json
+*persisted_*.json
+server/data/
+data/
 *.tmp
-
+*.log
+.DS_Store
+Thumbs.db

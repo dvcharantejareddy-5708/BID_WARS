@@ -157,3 +157,4 @@ export const DeleteTournamentModal: React.FC<DeleteTournamentModalProps> = ({
     </div>
   );
 };
+

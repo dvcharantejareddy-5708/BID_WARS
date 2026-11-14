@@ -109,6 +109,11 @@ async function runProductionTests() {
 
   // Host remains unchanged
   assert(joinedTournament.hostId === userA_id, 'Host remains permanently User A after User B joins');
+  assert(joinedTournament.members.filter(m => m.isHost).length === 1, 'Exactly one host exists in the tournament');
+
+  // Attempting to elevate User B to Host is prevented
+  const memberBRecord = joinedTournament.members.find(m => m.userId === userB_id);
+  assert(memberBRecord?.isHost === false, 'User B remains non-host regular participant');
 
   // Privacy: User B queries their tournaments after joining
   const userBTournamentsAfter = tournamentManager.getUserTournaments(userB_id);

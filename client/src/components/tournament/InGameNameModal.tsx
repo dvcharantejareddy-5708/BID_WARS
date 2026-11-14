@@ -189,3 +189,4 @@ export const InGameNameModal: React.FC<InGameNameModalProps> = ({
     </div>
   );
 };
+
