@@ -376,8 +376,8 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
                   3
                 </div>
                 <div>
-                  <div className="font-bold text-sm text-white">Hand-Cricket Matches</div>
-                  <div className="text-xs text-gray-400">Select match Playing XI &amp; battle with OVR abilities.</div>
+                  <div className="font-bold text-sm text-white">WicketPulse Matches</div>
+                  <div className="text-xs text-gray-400">Select match Playing XI &amp; battle with OVR abilities in WicketPulse mode.</div>
                 </div>
               </div>
             </div>

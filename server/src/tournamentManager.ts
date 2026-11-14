@@ -25,9 +25,19 @@ export class TournamentManager {
   private liveMatches: Map<string, LiveMatch> = new Map();
   private allPlayersMap: Map<string, Player> = new Map();
   private isInitialized: boolean = false;
+  private generatingFixtures: Set<string> = new Set();
 
   constructor() {
     this.initPlayersMap();
+    try {
+      roomManager.addAuctionCompletedListener((roomCode: string) => {
+        this.onAuctionCompleted(roomCode).catch(err => {
+          console.error(`[TournamentManager] Auto fixture generation error for room ${roomCode}:`, err);
+        });
+      });
+    } catch (err) {
+      console.warn('[TournamentManager] Could not register auction listener:', err);
+    }
   }
 
   private initPlayersMap() {
@@ -65,14 +75,147 @@ export class TournamentManager {
     );
   }
 
+  public getTournamentByRoomCode(roomCode: string): Tournament | undefined {
+    const cleanCode = roomCode.trim().toUpperCase();
+    for (const t of this.tournaments.values()) {
+      if (t.roomCode && t.roomCode.trim().toUpperCase() === cleanCode) {
+        return t;
+      }
+    }
+    return undefined;
+  }
+
   public getTournament(id: string, userId?: string): Tournament | null {
-    const tournament = this.tournaments.get(id);
+    let tournament = this.tournaments.get(id);
     if (!tournament) return null;
+
+    // Idempotent auto-generation check: If auction finished in underlying room, ensure fixtures exist
+    if ((tournament.status === 'AUCTION' || tournament.fixtures.length === 0) && tournament.roomCode) {
+      const room = roomManager.getRoom(tournament.roomCode);
+      if (room && room.getState().status === 'COMPLETED') {
+        this.onAuctionCompleted(tournament.roomCode).catch(err => {
+          console.error(`[TournamentManager] Reconnect fixture generation warning for ${tournament?.id}:`, err);
+        });
+      }
+    }
+
     if (userId) {
       const isMember = tournament.hostId === userId || tournament.members.some(m => m.userId === userId);
       if (!isMember) return null;
     }
     return tournament;
+  }
+
+  /**
+   * Automatic fixture generation triggered authoritatively by backend auction completion
+   */
+  public async onAuctionCompleted(roomCode: string): Promise<boolean> {
+    const tournament = this.getTournamentByRoomCode(roomCode);
+    if (!tournament) return false;
+
+    // Idempotent: generate fixtures exactly once per tournament
+    if (tournament.fixtures && tournament.fixtures.length > 0 && tournament.status !== 'AUCTION') {
+      return true;
+    }
+
+    if (this.generatingFixtures.has(tournament.id)) {
+      return true; // Already generating
+    }
+
+    this.generatingFixtures.add(tournament.id);
+
+    try {
+      console.log(`[TournamentManager] Auto-generating fixtures for tournament ${tournament.id} (${tournament.name})...`);
+
+      // 1. Authoritative import of squads from auction room
+      const room = roomManager.getRoom(roomCode);
+      if (room) {
+        const state = room.getState();
+        const teamSquads = state.teamSquads;
+        const teamPurses = state.teamPurse;
+
+        for (const member of tournament.members) {
+          const fid = member.franchiseId;
+          const squad = teamSquads[fid] || [];
+          const purse = teamPurses[fid] !== undefined ? teamPurses[fid] / 10000000 : 0;
+
+          const sorted = [...squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
+          const playingXI = sorted.slice(0, 11).map(p => p.id);
+          if (playingXI.length < 11) {
+            for (const pid of this.allPlayersMap.keys()) {
+              if (!playingXI.includes(pid)) {
+                playingXI.push(pid);
+                if (playingXI.length === 11) break;
+              }
+            }
+          }
+          const captainId = playingXI[0] || '';
+          const viceCaptainId = playingXI[1] || '';
+          const impactPlayerId = sorted[11]?.id;
+
+          tournament.teams[fid] = {
+            franchiseId: fid,
+            ownerUserId: member.userId,
+            ownerUserName: member.userName,
+            purseRemaining: purse,
+            squad,
+            defaultPlayingXI: {
+              playingXI,
+              captainId,
+              viceCaptainId,
+              impactPlayerId
+            }
+          };
+        }
+      }
+
+      // 2. Generate group stage fixtures for all participating teams
+      const teamIds = tournament.members.map(m => m.franchiseId);
+      const fixtures = FixtureGenerator.generateGroupStageFixtures(tournament.id, teamIds, tournament.matchOvers);
+
+      // 3. Initialize points table
+      const pointsTable: PointsTableRow[] = teamIds.map(fid => ({
+        franchiseId: fid,
+        played: 0,
+        won: 0,
+        lost: 0,
+        tied: 0,
+        nr: 0,
+        points: 0,
+        runsScored: 0,
+        oversBatted: 0,
+        runsConceded: 0,
+        oversBowled: 0,
+        nrr: 0
+      }));
+
+      tournament.fixtures = fixtures;
+      tournament.pointsTable = pointsTable;
+      tournament.status = 'TOURNAMENT_LIVE';
+      tournament.updatedAt = Date.now();
+
+      // 4. Server-authoritative persistence to Supabase and disk
+      tournamentStorage.saveTournament(tournament);
+
+      console.log(`[TournamentManager] Successfully auto-generated ${fixtures.length} fixtures for tournament ${tournament.id}`);
+
+      // 5. Broadcast fixtures generated event to room
+      if (room) {
+        room.broadcastState({
+          type: 'TOURNAMENT_FIXTURES_GENERATED',
+          tournamentId: tournament.id,
+          fixturesCount: fixtures.length,
+          status: tournament.status
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error(`[TournamentManager] Error auto-generating fixtures for tournament ${tournament.id}:`, err);
+      return false;
+    } finally {
+      this.generatingFixtures.delete(tournament.id);
+    }
   }
 
   public getLiveMatch(matchId: string): LiveMatch | undefined {
@@ -467,6 +610,13 @@ export class TournamentManager {
       return { success: false, message: 'Match is already completed' };
     }
 
+    if (fixture.status === 'IN_PROGRESS' && fixture.matchId) {
+      const existing = this.liveMatches.get(fixture.matchId);
+      if (existing) {
+        return { success: true, match: existing };
+      }
+    }
+
     const homeTeam = tournament.teams[fixture.homeFranchiseId];
     const awayTeam = tournament.teams[fixture.awayFranchiseId];
 
@@ -490,6 +640,14 @@ export class TournamentManager {
       // Auto-fallback: top 11 by OVR
       const sorted = [...team.squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
       const pXI = sorted.slice(0, 11).map(p => p.id);
+      if (pXI.length < 11) {
+        for (const pid of this.allPlayersMap.keys()) {
+          if (!pXI.includes(pid)) {
+            pXI.push(pid);
+            if (pXI.length === 11) break;
+          }
+        }
+      }
       return {
         franchiseId: fid,
         playingXI: pXI,

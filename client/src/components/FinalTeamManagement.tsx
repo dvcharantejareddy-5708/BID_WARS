@@ -30,6 +30,7 @@ import { OvrBadge } from './OvrBadge.js';
 interface FinalTeamManagementProps {
   roomState: RoomState;
   myMemberId: string | null;
+  onViewTournamentFixtures?: () => void;
   onCreateTrade: (payload: {
     toTeamId: IPLTeamId;
     tradeType: TradeType;
@@ -54,6 +55,7 @@ const ALL_FRANCHISES: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PB
 export const FinalTeamManagement: React.FC<FinalTeamManagementProps> = ({
   roomState,
   myMemberId,
+  onViewTournamentFixtures,
   onCreateTrade,
   onRespondTrade,
   onCancelTrade,
@@ -234,6 +236,16 @@ export const FinalTeamManagement: React.FC<FinalTeamManagementProps> = ({
 
           {/* Host & Utility Controls */}
           <div className="flex flex-wrap items-center gap-2">
+            {onViewTournamentFixtures && (
+              <button
+                onClick={onViewTournamentFixtures}
+                className="px-4 py-2 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] text-xs font-heading font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(200,255,61,0.25)] transition-all cursor-pointer"
+              >
+                <Award className="w-4 h-4 fill-current" />
+                View WicketPulse Fixtures
+              </button>
+            )}
+
             <button
               onClick={handleExportCSV}
               className="px-3.5 py-2 rounded-xl bg-[#0A0B14] hover:bg-[#1E2246] border border-[#1E2246] text-[#8F9CAE] hover:text-white text-xs font-heading font-bold flex items-center gap-1.5 transition-all"

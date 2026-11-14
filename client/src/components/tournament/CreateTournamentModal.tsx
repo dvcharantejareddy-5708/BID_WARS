@@ -70,7 +70,7 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
                 <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider font-heading">
                   Create IPL Tournament
                 </h2>
-                <p className="text-xs text-gray-400">Host a persistent multiplayer tournament with auction & hand-cricket</p>
+                <p className="text-xs text-gray-400">Host a persistent multiplayer tournament with auction & WicketPulse matches</p>
               </div>
             </div>
             <button

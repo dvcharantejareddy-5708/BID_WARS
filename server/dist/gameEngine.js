@@ -32,6 +32,7 @@ export class GameRoom {
     teamPlayingXI = {};
     postAuctionTradeStatus = 'NOT_STARTED';
     postAuctionTradeDeadline = null;
+    onAuctionCompletedCallback;
     timerInterval = null;
     botTimeouts = [];
     lotTransitionTimeout = null;
@@ -561,7 +562,7 @@ export class GameRoom {
             this.announcementPhase = 'NONE';
             this.announcementLotNumber = null;
             this.currentResultId = null;
-            this.broadcastState();
+            this.finishAuction(this.hostId);
             return;
         }
         const lot = this.lots[this.currentLotIndex];
@@ -1119,6 +1120,15 @@ export class GameRoom {
             summary: this.getTeamSummary(),
             postAuctionTradeDeadline: this.postAuctionTradeDeadline
         });
+        // Authoritative backend notification for tournament fixture generation
+        if (this.onAuctionCompletedCallback) {
+            try {
+                this.onAuctionCompletedCallback(this.roomCode);
+            }
+            catch (err) {
+                console.error(`[AuctionRoom ${this.roomCode}] onAuctionCompletedCallback error:`, err);
+            }
+        }
         return { success: true };
     }
     closePostAuctionTradeWindow(memberId) {

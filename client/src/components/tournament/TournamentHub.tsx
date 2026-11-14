@@ -76,7 +76,7 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              Match Format: {tournament.matchOvers} Overs • {tournament.members.length} Teams • Mode: Hand-Cricket
+              Match Format: {tournament.matchOvers} Overs • {tournament.members.length} Teams • Mode: WicketPulse
             </p>
           </div>
         </div>
@@ -157,7 +157,70 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
       <div className="max-w-7xl mx-auto">
         {/* FIXTURES TAB */}
         {activeTab === 'FIXTURES' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Tournament Progress Summary */}
+            {(() => {
+              const total = tournament.fixtures.length;
+              const completed = tournament.fixtures.filter(f => f.status === 'COMPLETED').length;
+              const live = tournament.fixtures.filter(f => f.status === 'IN_PROGRESS').length;
+              const upcoming = tournament.fixtures.filter(f => f.status === 'SCHEDULED').length;
+              const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+              return (
+                <div className="bg-[#12142A] border border-[#2A2F60] rounded-2xl p-5 shadow-xl">
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-wider text-[#C8FF3D] flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4" /> Tournament Schedule & Progress
+                      </div>
+                      <h2 className="text-xl font-heading font-black text-white uppercase tracking-wider mt-0.5">
+                        WicketPulse Match Fixtures
+                      </h2>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#1E2246] text-gray-300 border border-[#2A2F60]">
+                        Total: <strong className="text-white">{total}</strong>
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        Completed: <strong>{completed}</strong>
+                      </span>
+                      {live > 0 && (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#FF3B5C]/20 text-[#FF3B5C] border border-[#FF3B5C]/40 animate-pulse">
+                          Live: <strong>{live}</strong>
+                        </span>
+                      )}
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#C8FF3D]/10 text-[#C8FF3D] border border-[#C8FF3D]/30">
+                        Upcoming: <strong>{upcoming}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-[#07080F] rounded-full h-2.5 overflow-hidden border border-[#1E2246]">
+                    <div
+                      className="bg-gradient-to-r from-[#7C5CFF] to-[#C8FF3D] h-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-gray-400 mt-2">
+                    <span>Tournament Completion</span>
+                    <span className="font-bold text-white font-mono">{pct}% ({completed}/{total} Matches)</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {tournament.fixtures.length === 0 ? (
+              <div className="p-12 text-center bg-[#0D0E1A] rounded-2xl border border-dashed border-[#1E2246] space-y-3">
+                <Calendar className="w-10 h-10 text-gray-600 mx-auto" />
+                <h3 className="text-base font-bold text-white">Fixtures Awaiting Auction Completion</h3>
+                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  Tournament fixtures are automatically generated as soon as the tournament auction completes!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {tournament.fixtures.map(f => {
               const homeF = IPL_FRANCHISES[f.homeFranchiseId];
               const awayF = IPL_FRANCHISES[f.awayFranchiseId];
@@ -275,6 +338,8 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
                 </div>
               );
             })}
+              </div>
+            )}
           </div>
         )}
 

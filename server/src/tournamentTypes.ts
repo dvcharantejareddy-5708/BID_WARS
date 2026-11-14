@@ -25,7 +25,8 @@ export type MatchStatus =
   | 'COMPLETED'
   | 'ABANDONED';
 
-export type HandCricketChoice = 0 | 1 | 2 | 3 | 4 | 6;
+export type WicketPulseChoice = 0 | 1 | 2 | 3 | 4 | 6;
+export type HandCricketChoice = WicketPulseChoice;
 
 export type BowlerAbilityType = 'NUMBER_BLOCK' | 'ELITE_NUMBER_BLOCK';
 export type BatterAbilityType = 'COMBINATION_SHOT' | 'SECRET_DOUBLE_SHOT';

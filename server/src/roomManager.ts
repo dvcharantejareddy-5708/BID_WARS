@@ -13,7 +13,23 @@ export class RoomManager {
   private rooms: Map<string, GameRoom> = new Map();
   private connections: Map<WebSocket, ClientConnection> = new Map();
 
+  public onAuctionCompletedListeners: Array<(roomCode: string) => void> = [];
+
   constructor() {}
+
+  public addAuctionCompletedListener(listener: (roomCode: string) => void): void {
+    this.onAuctionCompletedListeners.push(listener);
+  }
+
+  private triggerAuctionCompleted(roomCode: string): void {
+    for (const listener of this.onAuctionCompletedListeners) {
+      try {
+        listener(roomCode);
+      } catch (err) {
+        console.error(`[RoomManager] Auction completed listener error for ${roomCode}:`, err);
+      }
+    }
+  }
 
   public async loadPersistedRooms(): Promise<void> {
     try {
@@ -25,6 +41,7 @@ export class RoomManager {
             jsonState,
             (state: RoomState, eventMsg?: any) => this.broadcastToRoom(code, state, eventMsg)
           );
+          room.onAuctionCompletedCallback = (c: string) => this.triggerAuctionCompleted(c);
           this.rooms.set(code, room);
         }
       }
@@ -54,6 +71,7 @@ export class RoomManager {
       settings,
       (state: RoomState, eventMsg?: any) => this.broadcastToRoom(roomCode, state, eventMsg)
     );
+    room.onAuctionCompletedCallback = (c: string) => this.triggerAuctionCompleted(c);
     this.rooms.set(roomCode, room);
     storageService.saveRoom(room.toJSON());
     return room;

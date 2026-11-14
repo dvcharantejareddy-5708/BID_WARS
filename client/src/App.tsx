@@ -844,6 +844,10 @@ export function App() {
               <FinalTeamManagement
                 roomState={roomState}
                 myMemberId={myMemberId}
+                onViewTournamentFixtures={() => {
+                  setGameMode('TOURNAMENT');
+                  setView('landing');
+                }}
                 onCreateTrade={handleCreateTrade}
                 onRespondTrade={handleRespondTrade}
                 onCancelTrade={handleCancelTrade}

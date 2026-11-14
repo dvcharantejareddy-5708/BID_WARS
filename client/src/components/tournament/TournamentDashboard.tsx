@@ -113,6 +113,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           initialMatch={activeLiveMatch}
           user={user}
           tournamentId={activeTournament.id}
+          tournament={activeTournament}
           onExit={() => {
             setViewState('HUB');
             loadTournaments();
@@ -189,7 +190,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
               Lead Your IPL Franchise to Glory
             </h1>
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
-              Compete in real-time auctions, select match Playing XIs, unleash OVR special abilities in live hand-cricket, and track permanent team records across seasons.
+              Compete in real-time auctions, select match Playing XIs, unleash OVR special abilities in live WicketPulse matches, and track permanent team records across seasons.
             </p>
           </div>
 
@@ -272,7 +273,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
               IPL Tournament Hub
             </h1>
             <p className="text-xs text-gray-400">
-              Multiplayer Tournaments • Live Hand-Cricket • Permanent Supabase Cloud Storage
+              Multiplayer Tournaments • Live WicketPulse Matches • Permanent Supabase Cloud Storage
             </p>
           </div>
         </div>
@@ -326,7 +327,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
             Lead Your Franchise to the IPL Trophy
           </h2>
           <p className="text-xs md:text-sm text-gray-300 max-w-xl mt-1 leading-relaxed">
-            Build your team in the live auction, select match Playing XIs, unleash OVR special abilities in real-time hand-cricket, and climb the points table to the championship!
+            Build your team in the live auction, select match Playing XIs, unleash OVR special abilities in real-time WicketPulse matches, and climb the points table to the championship!
           </p>
         </div>
 

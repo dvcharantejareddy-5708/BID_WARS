@@ -113,6 +113,25 @@ export class FixtureGenerator {
           matchNumber++;
         }
       }
+    } else {
+      // General Round-Robin fallback for any team count (guarantees every team plays with no duplicates)
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          fixtures.push({
+            id: `FIX-${tournamentId}-M${matchNumber}`,
+            tournamentId,
+            matchNumber,
+            roundNumber: 1,
+            stage: 'GROUP',
+            homeFranchiseId: teamIds[i],
+            awayFranchiseId: teamIds[j],
+            matchOvers,
+            status: 'SCHEDULED',
+            scheduledAt: Date.now() + matchNumber * 60000
+          });
+          matchNumber++;
+        }
+      }
     }
 
     return fixtures;

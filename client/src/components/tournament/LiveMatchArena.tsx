@@ -17,6 +17,8 @@ import { IPLTeamId, IPL_FRANCHISES } from '../../types';
 import { AuthUser } from '../../services/auth';
 import {
   LiveMatch,
+  Tournament,
+  WicketPulseChoice,
   HandCricketChoice,
   BowlerAbilityType,
   BatterAbilityType
@@ -30,6 +32,7 @@ interface LiveMatchArenaProps {
   initialMatch: LiveMatch;
   user: AuthUser;
   tournamentId: string;
+  tournament?: Tournament;
   onExit: () => void;
 }
 
@@ -37,10 +40,11 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
   initialMatch,
   user,
   tournamentId,
+  tournament,
   onExit
 }) => {
   const [match, setMatch] = useState<LiveMatch>(initialMatch);
-  const [selectedChoice, setSelectedChoice] = useState<HandCricketChoice | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<WicketPulseChoice | null>(null);
   const [activeBowlerAbility, setActiveBowlerAbility] = useState<BowlerAbilityType | null>(null);
   const [activeBatterAbility, setActiveBatterAbility] = useState<BatterAbilityType | null>(null);
   const [selectedBlockedNumbers, setSelectedBlockedNumbers] = useState<number[]>([]);
@@ -49,16 +53,22 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Identify user role in match
-  const myLineup = Object.entries(match.lineups).find(([fid]) => {
-    // Check if user is associated with this franchise
-    // In demo / standalone, if user is host or player
-    return true;
-  });
-
   const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
-  const isBattingTeam = inn ? inn.battingFranchiseId in match.lineups : false;
-  const isBowlingTeam = inn ? inn.bowlingFranchiseId in match.lineups : false;
+
+  // Identify user role and permissions in match
+  const homeOwnerId = tournament?.teams[match.homeFranchiseId]?.ownerUserId;
+  const awayOwnerId = tournament?.teams[match.awayFranchiseId]?.ownerUserId;
+  const battingOwnerId = tournament && inn ? tournament.teams[inn.battingFranchiseId]?.ownerUserId : undefined;
+  const bowlingOwnerId = tournament && inn ? tournament.teams[inn.bowlingFranchiseId]?.ownerUserId : undefined;
+
+  const isHost = tournament ? user.id === tournament.hostId : false;
+  const isHomeOwner = user.id === homeOwnerId;
+  const isAwayOwner = user.id === awayOwnerId;
+  const isBattingOwner = user.id === battingOwnerId;
+  const isBowlingOwner = user.id === bowlingOwnerId;
+  const isParticipant = isHomeOwner || isAwayOwner || isHost || !tournament;
+  const isSpectator = !isParticipant;
+  const canMakeTossDecision = isHomeOwner || isHost || !tournament;
 
   // Real-time polling / sync with server for live match state
   useEffect(() => {
@@ -113,16 +123,20 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
     }
   }, [match.status]);
 
-  // Hand Cricket Choice Submission
-  const handleSubmitPick = async (choice: HandCricketChoice) => {
-    if (isSubmitting || match.status === 'COMPLETED') return;
+  // WicketPulse Choice Submission
+  const handleSubmitPick = async (choice: WicketPulseChoice) => {
+    if (isSubmitting || match.status === 'COMPLETED' || isSpectator) return;
     setIsSubmitting(true);
     setError(null);
     setSelectedChoice(choice);
 
     try {
-      // Determine which franchise to submit for
-      const fid = inn?.battingFranchiseId || match.homeFranchiseId;
+      // Determine which franchise this user submits for
+      let fid = inn?.battingFranchiseId || match.homeFranchiseId;
+      if (isBowlingOwner && !isBattingOwner) {
+        fid = inn?.bowlingFranchiseId || match.awayFranchiseId;
+      }
+
       const res = await TournamentApi.submitChoice(match.id, {
         franchiseId: fid,
         choice,
@@ -233,22 +247,33 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
               Match Toss Ceremony
             </h2>
             <p className="text-sm text-gray-400 mb-6">
-              {match.homeFranchiseId} has won the toss. Choose whether to Bat or Bowl first!
+              {IPL_FRANCHISES[match.homeFranchiseId].name} has won the toss.
             </p>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handleTossDecision('BAT')}
-                className="py-3.5 rounded-xl bg-[#C8FF3D] text-[#0A0B14] font-black uppercase text-sm tracking-wider shadow-[0_0_15px_rgba(200,255,61,0.25)] hover:scale-105 transition-all"
-              >
-                Bat First 🏏
-              </button>
-              <button
-                onClick={() => handleTossDecision('BOWL')}
-                className="py-3.5 rounded-xl bg-[#7C5CFF] text-white font-black uppercase text-sm tracking-wider shadow-[0_0_15px_rgba(124,92,255,0.25)] hover:scale-105 transition-all"
-              >
-                Bowl First 🎯
-              </button>
-            </div>
+            {canMakeTossDecision ? (
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleTossDecision('BAT')}
+                  className="py-3.5 rounded-xl bg-[#C8FF3D] text-[#0A0B14] font-black uppercase text-sm tracking-wider shadow-[0_0_15px_rgba(200,255,61,0.25)] hover:scale-105 transition-all"
+                >
+                  Bat First 🏏
+                </button>
+                <button
+                  onClick={() => handleTossDecision('BOWL')}
+                  className="py-3.5 rounded-xl bg-[#7C5CFF] text-white font-black uppercase text-sm tracking-wider shadow-[0_0_15px_rgba(124,92,255,0.25)] hover:scale-105 transition-all"
+                >
+                  Bowl First 🎯
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#0A0B14] border border-[#1E2246] rounded-xl text-center space-y-1">
+                <span className="text-xs font-bold text-[#FFC93D] uppercase tracking-wider block">
+                  Waiting for Decision
+                </span>
+                <p className="text-xs text-gray-400">
+                  Waiting for {IPL_FRANCHISES[match.homeFranchiseId].name} manager to choose to Bat or Bowl first.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -438,49 +463,63 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
               </div>
             </div>
 
-            {/* HAND-CRICKET ACTION BUTTONS: 0, 1, 2, 3, 4, 6 */}
-            <div className="bg-[#12142A] border border-[#2A2F60] rounded-2xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-black uppercase tracking-wider text-gray-300">
-                  Select Hand-Cricket Number
-                </span>
-                <span className="text-xs text-gray-400">
-                  Same Number = OUT • Different = Runs Scored
-                </span>
+            {/* WICKETPULSE ACTION BUTTONS OR SPECTATOR BANNER */}
+            {isSpectator ? (
+              <div className="bg-[#12142A] border border-[#2A2F60] rounded-2xl p-6 text-center space-y-2 shadow-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7C5CFF]/15 text-[#7C5CFF] border border-[#7C5CFF]/30 text-xs font-black uppercase tracking-wider">
+                  <Eye className="w-4 h-4" /> Spectator Mode
+                </div>
+                <h3 className="font-heading font-black text-base uppercase text-white">
+                  Live WicketPulse Duel: {battingF.shortName} vs {bowlingF.shortName}
+                </h3>
+                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  You are spectating this match. Deliveries are selected simultaneously in real-time by the respective team managers.
+                </p>
               </div>
+            ) : (
+              <div className="bg-[#12142A] border border-[#2A2F60] rounded-2xl p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-black uppercase tracking-wider text-gray-300">
+                    Select WicketPulse Number
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    WicketPulse Rules: Same Number = OUT • Different Number = Runs Scored
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-6 gap-3">
-                {([0, 1, 2, 3, 4, 6] as HandCricketChoice[]).map(num => {
-                  const isBlocked = match.pendingInputs?.blockedNumbers?.includes(num);
-                  const isSelected = selectedChoice === num;
+                <div className="grid grid-cols-6 gap-3">
+                  {([0, 1, 2, 3, 4, 6] as WicketPulseChoice[]).map(num => {
+                    const isBlocked = match.pendingInputs?.blockedNumbers?.includes(num);
+                    const isSelected = selectedChoice === num;
 
-                  return (
-                    <button
-                      key={num}
-                      disabled={isBlocked || isSubmitting}
-                      onClick={() => handleSubmitPick(num)}
-                      className={`h-20 rounded-xl font-black text-2xl md:text-3xl border transition-all flex flex-col items-center justify-center relative ${
-                        isBlocked
-                          ? 'bg-red-950/20 border-red-900/40 text-red-500/40 cursor-not-allowed'
-                          : isSelected
-                          ? 'bg-[#C8FF3D] border-[#C8FF3D] text-[#0A0B14] shadow-[0_0_25px_rgba(200,255,61,0.4)] scale-105'
-                          : 'bg-[#0D0E1A] border-[#2A2F60] text-white hover:border-[#C8FF3D] hover:bg-[#1E2246]'
-                      }`}
-                    >
-                      <span>{num}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                        {num === 0 ? 'DOT' : num === 4 ? 'FOUR' : num === 6 ? 'SIX' : 'RUNS'}
-                      </span>
-                      {isBlocked && (
-                        <span className="absolute top-1 right-1 text-[9px] font-bold text-red-500">
-                          BLOCKED
+                    return (
+                      <button
+                        key={num}
+                        disabled={isBlocked || isSubmitting}
+                        onClick={() => handleSubmitPick(num)}
+                        className={`h-20 rounded-xl font-black text-2xl md:text-3xl border transition-all flex flex-col items-center justify-center relative ${
+                          isBlocked
+                            ? 'bg-red-950/20 border-red-900/40 text-red-500/40 cursor-not-allowed'
+                            : isSelected
+                            ? 'bg-[#C8FF3D] border-[#C8FF3D] text-[#0A0B14] shadow-[0_0_25px_rgba(200,255,61,0.4)] scale-105'
+                            : 'bg-[#0D0E1A] border-[#2A2F60] text-white hover:border-[#C8FF3D] hover:bg-[#1E2246]'
+                        }`}
+                      >
+                        <span>{num}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                          {num === 0 ? 'DOT' : num === 4 ? 'FOUR' : num === 6 ? 'SIX' : 'RUNS'}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {isBlocked && (
+                          <span className="absolute top-1 right-1 text-[9px] font-bold text-red-500">
+                            BLOCKED
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ball-by-Ball Timeline & Commentary */}
             <div className="bg-[#12142A] border border-[#2A2F60] rounded-2xl p-5">

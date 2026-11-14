@@ -4,7 +4,21 @@ import { storageService } from './storageService.js';
 export class RoomManager {
     rooms = new Map();
     connections = new Map();
+    onAuctionCompletedListeners = [];
     constructor() { }
+    addAuctionCompletedListener(listener) {
+        this.onAuctionCompletedListeners.push(listener);
+    }
+    triggerAuctionCompleted(roomCode) {
+        for (const listener of this.onAuctionCompletedListeners) {
+            try {
+                listener(roomCode);
+            }
+            catch (err) {
+                console.error(`[RoomManager] Auction completed listener error for ${roomCode}:`, err);
+            }
+        }
+    }
     async loadPersistedRooms() {
         try {
             const persisted = await storageService.loadAllRooms();
@@ -12,6 +26,7 @@ export class RoomManager {
                 const code = jsonState.roomCode;
                 if (code && !this.rooms.has(code)) {
                     const room = GameRoom.fromJSON(jsonState, (state, eventMsg) => this.broadcastToRoom(code, state, eventMsg));
+                    room.onAuctionCompletedCallback = (c) => this.triggerAuctionCompleted(c);
                     this.rooms.set(code, room);
                 }
             }
@@ -35,6 +50,7 @@ export class RoomManager {
     createRoom(hostNickname, settings) {
         const roomCode = this.generateRoomCode();
         const room = new GameRoom(roomCode, hostNickname, settings, (state, eventMsg) => this.broadcastToRoom(roomCode, state, eventMsg));
+        room.onAuctionCompletedCallback = (c) => this.triggerAuctionCompleted(c);
         this.rooms.set(roomCode, room);
         storageService.saveRoom(room.toJSON());
         return room;

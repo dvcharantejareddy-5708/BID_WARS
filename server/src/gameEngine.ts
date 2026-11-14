@@ -53,6 +53,7 @@ export class GameRoom {
   public teamPlayingXI: Record<IPLTeamId, PlayingXISelection> = {} as any;
   public postAuctionTradeStatus: 'NOT_STARTED' | 'ACTIVE' | 'CLOSED' = 'NOT_STARTED';
   public postAuctionTradeDeadline: number | null = null;
+  public onAuctionCompletedCallback?: (roomCode: string) => void;
 
   private timerInterval: NodeJS.Timeout | null = null;
   private botTimeouts: NodeJS.Timeout[] = [];
@@ -658,7 +659,7 @@ export class GameRoom {
       this.announcementPhase = 'NONE';
       this.announcementLotNumber = null;
       this.currentResultId = null;
-      this.broadcastState();
+      this.finishAuction(this.hostId);
       return;
     }
 
@@ -1298,6 +1299,16 @@ export class GameRoom {
       summary: this.getTeamSummary(),
       postAuctionTradeDeadline: this.postAuctionTradeDeadline
     });
+
+    // Authoritative backend notification for tournament fixture generation
+    if (this.onAuctionCompletedCallback) {
+      try {
+        this.onAuctionCompletedCallback(this.roomCode);
+      } catch (err) {
+        console.error(`[AuctionRoom ${this.roomCode}] onAuctionCompletedCallback error:`, err);
+      }
+    }
+
     return { success: true };
   }
 

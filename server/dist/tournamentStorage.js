@@ -118,11 +118,12 @@ export class TournamentStorageService {
             fs.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
             fs.renameSync(tempPath, storageFilePath);
             // Async sync to Supabase if configured
-            if (supabase && this.pendingSaves.size > 0) {
+            const clientToUse = supabaseAdmin || supabase;
+            if (clientToUse && this.pendingSaves.size > 0) {
                 const toSync = Array.from(this.pendingSaves.values());
                 this.pendingSaves.clear();
                 for (const t of toSync) {
-                    Promise.resolve(supabase
+                    Promise.resolve(clientToUse
                         .from('tournaments')
                         .upsert({
                         id: t.id,
@@ -137,6 +138,45 @@ export class TournamentStorageService {
                         runner_up_franchise_id: t.runnerUpFranchiseId,
                         updated_at: new Date().toISOString()
                     })).catch(() => { });
+                    // Persist all fixtures in Supabase PostgreSQL
+                    if (t.fixtures && t.fixtures.length > 0) {
+                        for (const f of t.fixtures) {
+                            Promise.resolve(clientToUse
+                                .from('fixtures')
+                                .upsert({
+                                id: f.id,
+                                tournament_id: t.id,
+                                match_number: f.matchNumber,
+                                round_number: f.roundNumber,
+                                stage: f.stage,
+                                home_franchise_id: f.homeFranchiseId,
+                                away_franchise_id: f.awayFranchiseId,
+                                match_overs: f.matchOvers,
+                                status: f.status,
+                                winner_franchise_id: f.winnerFranchiseId || null,
+                                match_result_summary: f.matchResultSummary || null,
+                                scheduled_at: new Date(f.scheduledAt).toISOString(),
+                                completed_at: f.completedAt ? new Date(f.completedAt).toISOString() : null
+                            })).catch(() => { });
+                        }
+                    }
+                    // Persist tournament teams in Supabase PostgreSQL
+                    if (t.teams) {
+                        for (const team of Object.values(t.teams)) {
+                            Promise.resolve(clientToUse
+                                .from('tournament_teams')
+                                .upsert({
+                                tournament_id: t.id,
+                                franchise_id: team.franchiseId,
+                                owner_user_id: team.ownerUserId,
+                                owner_user_name: team.ownerUserName,
+                                purse_remaining: team.purseRemaining,
+                                squad: team.squad,
+                                default_lineup: team.defaultPlayingXI,
+                                updated_at: new Date().toISOString()
+                            }, { onConflict: 'tournament_id,franchise_id' })).catch(() => { });
+                        }
+                    }
                 }
             }
             else {

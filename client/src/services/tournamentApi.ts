@@ -3,6 +3,7 @@ import {
   Tournament,
   LiveMatch,
   BallEvent,
+  WicketPulseChoice,
   HandCricketChoice,
   BowlerAbilityType,
   BatterAbilityType
