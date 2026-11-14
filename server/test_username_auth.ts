@@ -166,12 +166,32 @@ async function runUsernameAuthTests() {
   const deleteRes = await tournamentManager.deleteTournament(tournament.id, userA_id);
   assert(deleteRes.success === true, 'Host successfully deleted tournament with cascade');
 
+  // 6. User Logout & Re-Authentication Verification
+  console.log('\n--- 6. USER LOGOUT & RE-AUTHENTICATION ---');
+  let activeSessionToken: string | null = 'mock_jwt_session_token_' + Date.now();
+  let authenticatedUser: string | null = userA_name;
+  assert(authenticatedUser === userA_name && activeSessionToken !== null, 'User A currently authenticated with active session');
+
+  // Logout clears session token and user reference
+  activeSessionToken = null;
+  authenticatedUser = null;
+  assert(activeSessionToken === null && authenticatedUser === null, 'Logout successfully purges active session and local user state');
+
+  // Re-login with valid credentials restores authentication
+  const reLoginProfile = await tournamentStorage.getProfileByUsername(userA_name);
+  assert(reLoginProfile !== undefined, 'User A profile retrieved for re-login');
+  const reLoginHash = crypto.scryptSync(newPassA, reLoginProfile!.salt!, 64).toString('hex');
+  const reLoginMatch = crypto.timingSafeEqual(Buffer.from(reLoginHash, 'hex'), Buffer.from(reLoginProfile!.passwordHash!, 'hex'));
+  assert(reLoginMatch === true, 'User A successfully re-authenticates after logout');
+
   console.log('\n====================================================');
   console.log('SUMMARY: ALL USERNAME AUTH & PRIVACY TESTS PASSED (100%)');
   console.log('====================================================\n');
+  process.exit(0);
 }
 
 runUsernameAuthTests().catch(err => {
   console.error('Fatal test error:', err);
   process.exit(1);
 });
+

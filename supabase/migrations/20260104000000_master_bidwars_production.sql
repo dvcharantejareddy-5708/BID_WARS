@@ -264,3 +264,4 @@ CREATE POLICY "points_table_all_policy" ON public.points_table
 
 -- Success Confirmation Output
 SELECT 'BidWars Database Schema & RLS Policies successfully initialized for https://hafxiqnbobejjxxhulzo.supabase.co' AS status;
+

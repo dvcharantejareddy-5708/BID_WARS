@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { supabase } from './supabase.js';
+import { supabase, supabaseAdmin } from './supabase.js';
 import { Tournament, UserProfile } from './tournamentTypes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -175,7 +175,7 @@ export class TournamentStorageService {
 
     this.profilesCache.clear();
 
-    // 1. Read from disk
+    // 1. Read from local disk store (preserves all existing accounts)
     try {
       if (fs.existsSync(profilesFilePath)) {
         const raw = fs.readFileSync(profilesFilePath, 'utf-8');
@@ -190,10 +190,11 @@ export class TournamentStorageService {
       console.warn('[TournamentStorage] Disk profile read fallback:', err);
     }
 
-    // 2. Read from Supabase if configured
-    if (supabase) {
+    // 2. Read from Supabase PostgreSQL database if configured
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await clientToUse
           .from('profiles')
           .select('*')
           .limit(1000);
@@ -215,6 +216,7 @@ export class TournamentStorageService {
               });
             }
           }
+          console.log(`[TournamentStorage] Synced ${data.length} profiles from Supabase database`);
         }
       } catch (err) {
         console.warn('[TournamentStorage] Supabase profile sync fallback:', err);
@@ -226,13 +228,71 @@ export class TournamentStorageService {
   }
 
   public async getProfile(userId: string): Promise<UserProfile | undefined> {
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
+      try {
+        const { data, error } = await clientToUse
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (!error && data) {
+          const prof: UserProfile = {
+            id: data.id,
+            username: data.username || data.in_game_name,
+            inGameName: data.in_game_name || data.username,
+            email: data.email,
+            recoveryEmail: data.recovery_email,
+            avatarUrl: data.avatar_url,
+            passwordHash: data.password_hash,
+            salt: data.password_salt,
+            createdAt: data.created_at ? new Date(data.created_at).getTime() : Date.now(),
+            updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : Date.now()
+          };
+          this.profilesCache.set(data.id, prof);
+          return prof;
+        }
+      } catch {}
+    }
+
     await this.loadAllProfiles();
     return this.profilesCache.get(userId);
   }
 
   public async getProfileByUsername(username: string): Promise<UserProfile | undefined> {
-    await this.loadAllProfiles();
     const cleanLower = username.trim().toLowerCase();
+    const clientToUse = supabaseAdmin || supabase;
+
+    // Check Supabase DB directly
+    if (clientToUse) {
+      try {
+        const { data, error } = await clientToUse
+          .from('profiles')
+          .select('*')
+          .ilike('username', cleanLower)
+          .maybeSingle();
+
+        if (!error && data) {
+          const prof: UserProfile = {
+            id: data.id,
+            username: data.username || data.in_game_name,
+            inGameName: data.in_game_name || data.username,
+            email: data.email,
+            recoveryEmail: data.recovery_email,
+            avatarUrl: data.avatar_url,
+            passwordHash: data.password_hash,
+            salt: data.password_salt,
+            createdAt: data.created_at ? new Date(data.created_at).getTime() : Date.now(),
+            updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : Date.now()
+          };
+          this.profilesCache.set(data.id, prof);
+          return prof;
+        }
+      } catch {}
+    }
+
+    await this.loadAllProfiles();
     for (const p of this.profilesCache.values()) {
       const uName = (p.username || p.inGameName || '').trim().toLowerCase();
       if (uName === cleanLower) {
@@ -243,8 +303,26 @@ export class TournamentStorageService {
   }
 
   public async isNameAvailable(name: string, excludeUserId?: string): Promise<boolean> {
-    await this.loadAllProfiles();
     const cleanLower = name.trim().toLowerCase();
+    const clientToUse = supabaseAdmin || supabase;
+
+    // Check Supabase database table with case-insensitive match
+    if (clientToUse) {
+      try {
+        const { data, error } = await clientToUse
+          .from('profiles')
+          .select('id, username')
+          .ilike('username', cleanLower);
+
+        if (!error && data && data.length > 0) {
+          if (!excludeUserId || data.some(row => row.id !== excludeUserId)) {
+            return false;
+          }
+        }
+      } catch {}
+    }
+
+    await this.loadAllProfiles();
     for (const [id, p] of this.profilesCache.entries()) {
       if (excludeUserId && id === excludeUserId) continue;
       const existingName = (p.username || p.inGameName || '').trim().toLowerCase();
@@ -267,7 +345,7 @@ export class TournamentStorageService {
 
     this.profilesCache.set(profile.id, updated);
 
-    // Write to disk
+    // 1. Write to local disk cache (failsafe persistence)
     try {
       const list = Array.from(this.profilesCache.values());
       const tempPath = `${profilesFilePath}.tmp`;
@@ -277,10 +355,11 @@ export class TournamentStorageService {
       console.error('[TournamentStorage] Error saving profile to disk:', err);
     }
 
-    // Write to Supabase if available
-    if (supabase) {
+    // 2. Write to Supabase database (public.profiles)
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
       try {
-        await supabase
+        const { error } = await clientToUse
           .from('profiles')
           .upsert({
             id: updated.id,
@@ -294,6 +373,11 @@ export class TournamentStorageService {
             password_salt: updated.salt,
             updated_at: new Date(updated.updatedAt).toISOString()
           });
+        if (error) {
+          console.warn('[TournamentStorage] Supabase saveProfile warning:', error.message);
+        } else {
+          console.log(`[TournamentStorage] Profile "${updated.username}" saved to Supabase database`);
+        }
       } catch (err) {
         console.warn('[TournamentStorage] Supabase saveProfile fallback:', err);
       }

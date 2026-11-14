@@ -11,7 +11,7 @@ import { RoomManager } from './roomManager.js';
 import { getAllPlayers, getPlayerById } from './playerService.js';
 import { tournamentManager } from './tournamentManager.js';
 import { tournamentStorage } from './tournamentStorage.js';
-import { supabase } from './supabase.js';
+import { supabase, supabaseAdmin } from './supabase.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -205,7 +205,7 @@ app.post('/api/auth/register', async (req, res) => {
         if (confirmPassword && password !== confirmPassword) {
             return res.status(400).json({ error: 'Passwords do not match' });
         }
-        // Atomic uniqueness check
+        // Atomic uniqueness check (verifies Supabase DB constraint and local state)
         const isAvailable = await tournamentStorage.isNameAvailable(cleanUser);
         if (!isAvailable) {
             return res.status(409).json({ error: `Username "${cleanUser}" is already taken. Please choose another.` });
@@ -217,33 +217,81 @@ app.post('/api/auth/register', async (req, res) => {
         const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
         const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
         const internalEmail = `usr_${authHash}@bidwars.com`;
-        let userId = crypto.randomUUID();
+        let userId = '';
         let supabaseSession = null;
-        if (supabase) {
-            try {
-                const { data: suData, error: suError } = await supabase.auth.signUp({
+        if (supabaseAdmin) {
+            // 1. Preferred Server-Side Path: Admin API directly creates confirmed user in auth.users
+            const { data: suData, error: suError } = await supabaseAdmin.auth.admin.createUser({
+                email: internalEmail,
+                password: password,
+                email_confirm: true,
+                user_metadata: {
+                    username: cleanUser,
+                    in_game_name: cleanUser
+                }
+            });
+            if (suError) {
+                console.error('[Auth] Supabase Admin createUser error:', suError);
+                if (suError.message.toLowerCase().includes('already') || suError.status === 422) {
+                    return res.status(409).json({ error: `Username "${cleanUser}" is already taken.` });
+                }
+                return res.status(500).json({ error: `Supabase Auth error: ${suError.message}` });
+            }
+            if (!suData?.user) {
+                return res.status(500).json({ error: 'Failed to create user in Supabase Auth' });
+            }
+            userId = suData.user.id;
+            // Issue active session via anon client for client-side persistence
+            if (supabase) {
+                const { data: siData } = await supabase.auth.signInWithPassword({
                     email: internalEmail,
-                    password: password,
-                    options: {
-                        data: {
-                            username: cleanUser,
-                            in_game_name: cleanUser
-                        }
-                    }
+                    password: password
                 });
-                if (!suError && suData?.user) {
-                    userId = suData.user.id;
-                    if (suData.session) {
-                        supabaseSession = {
-                            access_token: suData.session.access_token,
-                            refresh_token: suData.session.refresh_token
-                        };
-                    }
+                if (siData?.session) {
+                    supabaseSession = {
+                        access_token: siData.session.access_token,
+                        refresh_token: siData.session.refresh_token
+                    };
                 }
             }
-            catch (err) {
-                console.warn('[Auth] Supabase Auth signUp fallback:', err);
+        }
+        else if (supabase) {
+            // 2. Standard Client/Anon Key Path: Uses Supabase Auth signUp
+            const { data: suData, error: suError } = await supabase.auth.signUp({
+                email: internalEmail,
+                password: password,
+                options: {
+                    data: {
+                        username: cleanUser,
+                        in_game_name: cleanUser
+                    }
+                }
+            });
+            if (suError) {
+                console.error('[Auth] Supabase Auth signUp error:', suError);
+                if (suError.code === 'over_email_send_rate_limit' || suError.status === 429) {
+                    return res.status(429).json({
+                        error: 'Supabase Auth Email Rate Limit Exceeded. In your Supabase Dashboard, go to Authentication -> Providers -> Email, and toggle "Confirm email" to OFF so instant username accounts can be created without triggering email rate limits (or configure SUPABASE_SERVICE_ROLE_KEY).'
+                    });
+                }
+                if (suError.message.toLowerCase().includes('already') || suError.status === 400 || suError.status === 422) {
+                    return res.status(409).json({ error: `Username "${cleanUser}" is already taken.` });
+                }
+                return res.status(500).json({ error: `Supabase Auth error: ${suError.message}` });
             }
+            if (!suData?.user) {
+                return res.status(500).json({ error: 'Failed to create user in Supabase Auth' });
+            }
+            userId = suData.user.id;
+            if (suData.session) {
+                supabaseSession = {
+                    access_token: suData.session.access_token,
+                    refresh_token: suData.session.refresh_token
+                };
+            }
+        }
+        else {
+            userId = crypto.randomUUID();
         }
         const profile = await tournamentStorage.saveProfile({
             id: userId,
@@ -277,7 +325,32 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ error: 'Username and password are required' });
         }
         const cleanUser = String(username).trim();
-        const profile = await tournamentStorage.getProfileByUsername(cleanUser);
+        let profile = await tournamentStorage.getProfileByUsername(cleanUser);
+        const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
+        const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
+        const internalEmail = `usr_${authHash}@bidwars.com`;
+        let supabaseSession = null;
+        // Authenticate with Supabase Auth if available
+        if (supabase) {
+            try {
+                const { data: siData } = await supabase.auth.signInWithPassword({
+                    email: internalEmail,
+                    password: password
+                });
+                if (siData?.session) {
+                    supabaseSession = {
+                        access_token: siData.session.access_token,
+                        refresh_token: siData.session.refresh_token
+                    };
+                    if (!profile && siData.user) {
+                        profile = await tournamentStorage.getProfile(siData.user.id);
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('[Auth] Supabase signIn fallback:', err);
+            }
+        }
         if (!profile || !profile.passwordHash || !profile.salt) {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
@@ -288,26 +361,38 @@ app.post('/api/auth/login', async (req, res) => {
         if (hashBuf.length !== targetBuf.length || !crypto.timingSafeEqual(hashBuf, targetBuf)) {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
-        // Authenticate with Supabase Auth if available
-        let supabaseSession = null;
-        if (supabase) {
+        // Seamless auto-migration: If this profile exists on disk and needs a Supabase Auth user created
+        if (!supabaseSession && supabaseAdmin) {
             try {
-                const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
-                const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
-                const internalEmail = `usr_${authHash}@bidwars.com`;
-                const { data: siData } = await supabase.auth.signInWithPassword({
+                const { data: created } = await supabaseAdmin.auth.admin.createUser({
+                    id: profile.id.length === 36 ? profile.id : undefined,
                     email: internalEmail,
-                    password: password
+                    password: password,
+                    email_confirm: true,
+                    user_metadata: {
+                        username: profile.username || cleanUser,
+                        in_game_name: profile.inGameName || cleanUser
+                    }
                 });
-                if (siData?.session) {
-                    supabaseSession = {
-                        access_token: siData.session.access_token,
-                        refresh_token: siData.session.refresh_token
-                    };
+                if (created?.user) {
+                    profile.id = created.user.id;
+                    await tournamentStorage.saveProfile(profile);
+                    if (supabase) {
+                        const { data: siData } = await supabase.auth.signInWithPassword({
+                            email: internalEmail,
+                            password: password
+                        });
+                        if (siData?.session) {
+                            supabaseSession = {
+                                access_token: siData.session.access_token,
+                                refresh_token: siData.session.refresh_token
+                            };
+                        }
+                    }
                 }
             }
-            catch (err) {
-                console.warn('[Auth] Supabase signIn fallback:', err);
+            catch (syncErr) {
+                console.warn('[Auth] Seamless Supabase Auth sync on login warning:', syncErr);
             }
         }
         return res.json({
