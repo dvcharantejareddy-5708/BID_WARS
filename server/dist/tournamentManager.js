@@ -1,7 +1,7 @@
 import { MatchEngine } from './matchEngine.js';
 import { FixtureGenerator } from './fixtureGenerator.js';
 import { tournamentStorage } from './tournamentStorage.js';
-import { supabase } from './supabase.js';
+import { supabase, supabaseAdmin } from './supabase.js';
 import { roomManager } from './index.js';
 import { getAllPlayers } from './playerService.js';
 export class TournamentManager {
@@ -343,9 +343,10 @@ export class TournamentManager {
         this.tournaments.delete(tournamentId);
         tournamentStorage.deleteTournament(tournamentId);
         // Cascading deletion from Supabase if configured
-        if (supabase) {
+        const clientToUse = supabaseAdmin || supabase;
+        if (clientToUse) {
             try {
-                await supabase.from('tournaments').delete().eq('id', tournamentId);
+                await clientToUse.from('tournaments').delete().eq('id', tournamentId);
             }
             catch (err) {
                 console.warn('[TournamentManager] Supabase deleteTournament fallback:', err);

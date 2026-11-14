@@ -106,11 +106,12 @@ CREATE TABLE IF NOT EXISTS room_teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
     team_id TEXT NOT NULL CHECK (team_id IN ('CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG')),
-    member_id TEXT REFERENCES room_members(id) ON DELETE SET NULL,
+    member_id TEXT,
     is_bot BOOLEAN NOT NULL DEFAULT false,
     remaining_purse BIGINT NOT NULL,
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (room_id, team_id) -- CRITICAL: Guarantees 1 human/bot per franchise per room!
+    UNIQUE (room_id, team_id), -- CRITICAL: Guarantees 1 human/bot per franchise per room!
+    CONSTRAINT room_teams_room_member_fkey FOREIGN KEY (room_id, member_id) REFERENCES room_members(room_id, member_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_room_teams_room ON room_teams(room_id);

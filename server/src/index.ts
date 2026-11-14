@@ -320,19 +320,30 @@ app.post('/api/auth/register', async (req, res) => {
         };
       }
     } else {
-      userId = crypto.randomUUID();
+      return res.status(503).json({
+        error: 'Supabase authentication service is unavailable. Local fallback storage is strictly disabled.'
+      });
     }
 
-    const profile = await tournamentStorage.saveProfile({
-      id: userId,
-      username: cleanUser,
-      inGameName: cleanUser,
-      recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
-      passwordHash,
-      salt,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+    let profile;
+    try {
+      profile = await tournamentStorage.saveProfile({
+        id: userId,
+        username: cleanUser,
+        inGameName: cleanUser,
+        recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
+        passwordHash,
+        salt,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    } catch (dbErr: any) {
+      // Rollback auth user if profile creation fails in database
+      if (supabaseAdmin && userId) {
+        await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
+      }
+      return res.status(500).json({ error: `Database persistence error: ${dbErr.message}` });
+    }
 
     return res.status(201).json({
       success: true,

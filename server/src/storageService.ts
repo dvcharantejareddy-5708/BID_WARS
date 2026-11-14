@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { supabase } from './supabase.js';
+import { supabase, supabaseAdmin } from './supabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,9 +100,10 @@ class StorageService {
     }
 
     // 2. If Supabase is active, fetch any rooms missing or newer
-    if (supabase) {
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await clientToUse
           .from('auction_rooms')
           .select('room_code, state_json, updated_at')
           .limit(100);
@@ -174,13 +175,14 @@ class StorageService {
       fs.renameSync(tempPath, storageFilePath);
 
       // Async sync to Supabase if configured for only pending items
-      if (supabase && this.pendingRooms.size > 0) {
+      const clientToUse = supabaseAdmin || supabase;
+      if (clientToUse && this.pendingRooms.size > 0) {
         const toSync = Array.from(this.pendingRooms.values());
         this.pendingRooms.clear();
 
         for (const item of toSync) {
           Promise.resolve(
-            supabase
+            clientToUse
               .from('auction_rooms')
               .upsert({
                 room_code: item.roomCode,

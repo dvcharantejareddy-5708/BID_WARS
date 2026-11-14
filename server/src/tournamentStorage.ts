@@ -380,7 +380,6 @@ export class TournamentStorageService {
   }
 
   public async saveProfile(profile: UserProfile): Promise<UserProfile> {
-    await this.loadAllProfiles();
     const cleanUsername = (profile.username || profile.inGameName).trim();
     const updated: UserProfile = {
       ...profile,
@@ -389,46 +388,48 @@ export class TournamentStorageService {
       updatedAt: Date.now()
     };
 
-    this.profilesCache.set(profile.id, updated);
-
-    // 1. Write to local disk cache (failsafe persistence)
-    try {
-      const list = Array.from(this.profilesCache.values());
-      const tempPath = `${profilesFilePath}.tmp`;
-      fs.writeFileSync(tempPath, JSON.stringify(list, null, 2), 'utf-8');
-      fs.renameSync(tempPath, profilesFilePath);
-    } catch (err) {
-      console.error('[TournamentStorage] Error saving profile to disk:', err);
+    const clientToUse = supabaseAdmin || supabase;
+    if (!clientToUse) {
+      throw new Error('Supabase database service is not configured. Local JSON fallback persistence is strictly disabled.');
     }
 
-    // 2. Write to Supabase database (public.profiles)
-    const clientToUse = supabaseAdmin || supabase;
-    if (clientToUse) {
+    // 1. Write exclusively to Supabase database (public.profiles)
+    const { error } = await clientToUse
+      .from('profiles')
+      .upsert({
+        id: updated.id,
+        username: updated.username,
+        in_game_name: updated.inGameName,
+        display_name: updated.inGameName,
+        email: updated.email,
+        recovery_email: updated.recoveryEmail,
+        avatar_url: updated.avatarUrl,
+        updated_at: new Date(updated.updatedAt).toISOString()
+      });
+
+    if (error) {
+      console.error('[TournamentStorage] Supabase saveProfile error:', error.message);
+      throw new Error(`Failed to persist profile to Supabase database: ${error.message}`);
+    }
+
+    // 2. Also back up private credentials to public.auth_secrets if hash and salt present (Service Role Only)
+    if (updated.passwordHash && updated.salt && supabaseAdmin) {
       try {
-        const { error } = await clientToUse
-          .from('profiles')
-          .upsert({
-            id: updated.id,
-            username: updated.username,
-            in_game_name: updated.inGameName,
-            display_name: updated.inGameName,
-            email: updated.email,
-            recovery_email: updated.recoveryEmail,
-            avatar_url: updated.avatarUrl,
-            password_hash: updated.passwordHash,
-            password_salt: updated.salt,
-            updated_at: new Date(updated.updatedAt).toISOString()
-          });
-        if (error) {
-          console.warn('[TournamentStorage] Supabase saveProfile warning:', error.message);
-        } else {
-          console.log(`[TournamentStorage] Profile "${updated.username}" saved to Supabase database`);
-        }
-      } catch (err) {
-        console.warn('[TournamentStorage] Supabase saveProfile fallback:', err);
+        await supabaseAdmin.from('auth_secrets').upsert({
+          user_id: updated.id,
+          username: updated.username,
+          password_hash: updated.passwordHash,
+          password_salt: updated.salt,
+          updated_at: new Date(updated.updatedAt).toISOString()
+        });
+      } catch (secErr: any) {
+        console.warn('[TournamentStorage] auth_secrets backup notice:', secErr.message);
       }
     }
 
+    // Update in-memory session cache (never write to persisted_profiles.json for new accounts)
+    this.profilesCache.set(profile.id, updated);
+    console.log(`[TournamentStorage] Profile "${updated.username}" successfully persisted in Supabase database`);
     return updated;
   }
 }
