@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, Globe, Sparkles, X, Shield, Award, CheckCircle2, Plane } from 'lucide-react';
 import { Player, PlayerCategory } from '../types.js';
+import { OvrBadge } from './OvrBadge.js';
 import playersData2026 from '../data/players2026.json';
 import playersData2025 from '../data/players2025.json';
 
@@ -222,7 +223,8 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
                   {player.category}
                 </span>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <OvrBadge ovr={player.ovr} size="xs" />
                   {player.is_overseas ? (
                     <span className="text-[9px] bg-[#00E676]/10 text-[#00E676] font-bold px-2 py-0.5 rounded-full border border-[#00E676]/30 flex items-center gap-0.5">
                       <Plane className="w-2.5 h-2.5" /> OS
@@ -326,6 +328,10 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({ season = '2026' 
             </div>
 
             <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 space-y-2.5 text-xs mb-5">
+              <div className="flex justify-between items-center py-1 border-b border-[#262626]">
+                <span className="text-[#8E8E93]">Cricket Ability Rating (OVR):</span>
+                <OvrBadge ovr={selectedPlayer.ovr} size="sm" />
+              </div>
               <div className="flex justify-between py-1 border-b border-[#262626]">
                 <span className="text-[#8E8E93]">Master List S.No:</span>
                 <span className="font-mono font-bold text-white">#{selectedPlayer.s_no}</span>

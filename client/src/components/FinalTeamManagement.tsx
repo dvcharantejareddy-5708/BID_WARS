@@ -25,6 +25,7 @@ import { TradeProposalDashboardPanel } from './TradeProposalDashboardPanel.js';
 import { TradeModal } from './TradeModal.js';
 import { PlayingXISelector } from './PlayingXISelector.js';
 import { AuctionResults } from './AuctionResults.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface FinalTeamManagementProps {
   roomState: RoomState;
@@ -361,17 +362,23 @@ export const FinalTeamManagement: React.FC<FinalTeamManagementProps> = ({
                     </div>
 
                     {/* Stats Strip */}
-                    <div className="pt-2 border-t border-[#1E2246] grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="pt-2 border-t border-[#1E2246] grid grid-cols-3 gap-1.5 text-[11px]">
                       <div>
                         <span className="text-[9px] text-[#8F9CAE] uppercase font-heading font-bold block">Squad</span>
                         <span className="font-number font-bold text-white">
-                          {squad.length} Players
+                          {squad.length}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] text-[#8F9CAE] uppercase font-heading font-bold block">Remaining</span>
+                        <span className="text-[9px] text-[#8F9CAE] uppercase font-heading font-bold block">Avg OVR</span>
                         <span className="font-number font-bold text-[#C8FF3D]">
-                          ₹{(purse / 10000000).toFixed(2)} Cr
+                          {roomState.teamStats?.[teamId]?.avgSquadOvr || (squad.length > 0 ? Math.round((squad.reduce((a, b) => a + (b.ovr || 70), 0) / squad.length) * 10) / 10 : '—')}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-[#8F9CAE] uppercase font-heading font-bold block">Purse</span>
+                        <span className="font-number font-bold text-[#FFC93D]">
+                          ₹{(purse / 10000000).toFixed(1)}Cr
                         </span>
                       </div>
                     </div>

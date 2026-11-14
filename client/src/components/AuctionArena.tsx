@@ -33,6 +33,7 @@ import { SkipPlayerModal } from './SkipPlayerModal.js';
 import { HostControlsModal } from './HostControlsModal.js';
 import { TradeModal } from './TradeModal.js';
 import { TradeProposalDashboardPanel } from './TradeProposalDashboardPanel.js';
+import { OvrBadge } from './OvrBadge.js';
 import { TeamLogo } from './TeamLogo.js';
 import { CricketPlayerSilhouette } from './CricketPlayerSilhouette.js';
 import { FullScreenGavelModal } from './FullScreenGavelModal.js';
@@ -704,13 +705,16 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                       {highestBiddedLot.player.primary_role} · {highestBiddedLot.player.category}
                     </span>
 
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-2 mt-1">
+                      <OvrBadge ovr={highestBiddedLot.player.ovr} size="xs" />
                       {highestBiddedLot.winningTeam && (
-                        <TeamLogo teamId={highestBiddedLot.winningTeam} className="w-4 h-4 object-contain shrink-0" />
+                        <div className="flex items-center gap-1.5">
+                          <TeamLogo teamId={highestBiddedLot.winningTeam} className="w-4 h-4 object-contain shrink-0" />
+                          <span className="text-[10px] font-semibold text-[#9E9EB8] truncate">
+                            {IPL_FRANCHISES[highestBiddedLot.winningTeam!]?.name || highestBiddedLot.winningTeamName || highestBiddedLot.winningTeam}
+                          </span>
+                        </div>
                       )}
-                      <span className="text-[10px] font-semibold text-[#9E9EB8] truncate">
-                        {IPL_FRANCHISES[highestBiddedLot.winningTeam!]?.name || highestBiddedLot.winningTeamName || highestBiddedLot.winningTeam}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -764,16 +768,22 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                 </div>
               </div>
 
-              <div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight uppercase leading-tight">
-                  {player.name}
-                </h2>
-                <div className="flex items-center gap-2 mt-1 text-xs text-[#9E9EB8]">
-                  <span>Role: <strong className="text-white">{player.primary_role}</strong></span>
-                  <span>•</span>
-                  <span>{player.category}</span>
-                  <span>•</span>
-                  <span>{player.nationality}</span>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight uppercase leading-tight">
+                    {player.name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-[#9E9EB8] flex-wrap">
+                    <span>Role: <strong className="text-white">{player.primary_role}</strong></span>
+                    <span>•</span>
+                    <span>{player.category}</span>
+                    <span>•</span>
+                    <span>{player.nationality}</span>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex flex-col items-end">
+                  <OvrBadge ovr={player.ovr} size="lg" />
                 </div>
               </div>
 
@@ -799,6 +809,11 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
 
             {/* Prominent Stadium Showcase Frame */}
             <div className="relative w-full h-64 sm:h-76 md:h-80 flex items-center justify-center overflow-hidden border-b border-[#23274D] p-4 bg-gradient-to-b from-[#0A0B14] via-[#12142A] to-[#0A0B14]">
+              {/* Floating Top-Right Hero OVR Rating Pill */}
+              <div className="absolute top-3.5 right-3.5 z-20">
+                <OvrBadge ovr={player.ovr} size="hero" />
+              </div>
+
               {player.image_url && !imageError ? (
                 <div className="relative z-10 w-52 h-52 sm:w-60 sm:h-60 md:w-64 md:h-64 rounded-full p-2 bg-[#0A0B14] shadow-2xl border-2 border-[#C8FF3D]/30 flex items-center justify-center overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
                   <img
@@ -813,30 +828,39 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               )}
             </div>
 
-            {/* Section 04: 3-Box Ratings Grid (BAT, BOWL, FIELD) */}
-            <div className="p-4 bg-[#0A0B14] border-b border-[#23274D] grid grid-cols-3 gap-3">
-              <div className="bg-[#12142A] border border-[#23274D] p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1.5 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <BatIcon className="w-3.5 h-3.5 text-[#C8FF3D]" />
+            {/* Section 04: 4-Box Ratings Grid (OVERALL, BAT, BOWL, FIELD) */}
+            <div className="p-4 bg-[#0A0B14] border-b border-[#23274D] grid grid-cols-4 gap-2 sm:gap-3">
+              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center flex flex-col justify-between">
+                <div className="text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5 tracking-wider">
+                  OVR
+                </div>
+                <div className="flex justify-center">
+                  <OvrBadge ovr={player.ovr} size="sm" showLabel={false} />
+                </div>
+              </div>
+
+              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
+                  <BatIcon className="w-3 h-3 text-[#C8FF3D]" />
                   <span>BAT</span>
                 </div>
-                <div className="text-xl font-heading font-black text-white">{ratings.bat}</div>
+                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.bat}</div>
               </div>
 
-              <div className="bg-[#12142A] border border-[#23274D] p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1.5 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <BallIcon className="w-3.5 h-3.5 text-[#FF3B5C]" />
+              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
+                  <BallIcon className="w-3 h-3 text-[#FF3B5C]" />
                   <span>BOWL</span>
                 </div>
-                <div className="text-xl font-heading font-black text-white">{ratings.bowl}</div>
+                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.bowl}</div>
               </div>
 
-              <div className="bg-[#12142A] border border-[#23274D] p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1.5 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <StumpsIcon className="w-3.5 h-3.5 text-[#7C5CFF]" />
+              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
+                  <StumpsIcon className="w-3 h-3 text-[#7C5CFF]" />
                   <span>FIELD</span>
                 </div>
-                <div className="text-xl font-heading font-black text-white">{ratings.field}</div>
+                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.field}</div>
               </div>
             </div>
 

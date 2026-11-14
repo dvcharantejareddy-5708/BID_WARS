@@ -109,14 +109,15 @@ export function buildAuctionLots(
   // 1. Get all unique base price brackets present in pool, sorted descending
   const priceBrackets = Array.from(new Set(pool.map(p => p.base_price_inr))).sort((a, b) => b - a);
 
-  // 2. Fixed category sequence: Batsmen -> All-Rounders -> Bowlers
+  // 2. Fixed category sequence: Batsmen -> All-Rounders -> Bowlers -> Wicket-Keepers
   const CATEGORY_SEQUENCE: Array<{
-    role: 'BATTER' | 'ALL_ROUNDER' | 'BOWLER';
+    category: 'Batsmen' | 'All-rounders' | 'Bowlers' | 'Wicket-keepers';
     label: string;
   }> = [
-    { role: 'BATTER', label: 'Batsmen' },
-    { role: 'ALL_ROUNDER', label: 'All-Rounders' },
-    { role: 'BOWLER', label: 'Bowlers' }
+    { category: 'Batsmen', label: 'Batsmen' },
+    { category: 'All-rounders', label: 'All-Rounders' },
+    { category: 'Bowlers', label: 'Bowlers' },
+    { category: 'Wicket-keepers', label: 'Wicket-Keepers' }
   ];
 
   const orderedPlayers: Player[] = [];
@@ -124,15 +125,27 @@ export function buildAuctionLots(
 
   for (const price of priceBrackets) {
     const priceDisplay = price >= 10000000
-      ? `₹${(price / 10000000).toFixed(2)} Cr`
+      ? `₹${(price / 10000000).toFixed(2).replace(/\.00$/, '')} Cr`
       : `₹${(price / 100000).toFixed(0)} Lakh`;
 
     for (const cat of CATEGORY_SEQUENCE) {
       // Filter players in this price bracket and category
-      // Wicket-keepers have primary_role === 'BATTER' so they are naturally included in Batsmen
-      const categoryPlayers = pool.filter(
-        p => p.base_price_inr === price && p.primary_role === cat.role
-      );
+      const categoryPlayers = pool.filter(p => {
+        if (p.base_price_inr !== price) return false;
+        if (cat.category === 'Wicket-keepers') {
+          return p.category === 'Wicket-keepers' || p.is_wicketkeeper;
+        }
+        if (cat.category === 'Batsmen') {
+          return (p.category === 'Batsmen' || p.primary_role === 'BATTER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
+        }
+        if (cat.category === 'All-rounders') {
+          return p.category === 'All-rounders' || p.primary_role === 'ALL_ROUNDER';
+        }
+        if (cat.category === 'Bowlers') {
+          return p.category === 'Bowlers' || p.primary_role === 'BOWLER';
+        }
+        return false;
+      });
 
       // Automatically skip if no players in this category
       if (categoryPlayers.length === 0) {

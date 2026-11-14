@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { RoomState, IPLTeamId, Player, TradeRequest, TradeType, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface TradeModalProps {
   isOpen: boolean;
@@ -575,7 +576,10 @@ export const TradeModal = React.memo<TradeModalProps>(({
                               }`}
                             >
                               <div className="min-w-0">
-                                <p className="font-heading font-bold text-xs text-white truncate">{p.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-heading font-bold text-xs text-white truncate">{p.name}</p>
+                                  <OvrBadge ovr={p.ovr} size="xs" />
+                                </div>
                                 <div className="flex items-center gap-2 text-[10px] text-[#8F9CAE]">
                                   <span>{p.category}</span>
                                   {p.is_overseas && (
@@ -627,7 +631,10 @@ export const TradeModal = React.memo<TradeModalProps>(({
                                   }`}
                                 >
                                   <div className="min-w-0">
-                                    <p className="font-heading font-bold text-xs text-white truncate">{p.name}</p>
+                                    <div className="flex items-center gap-1.5">
+                                      <p className="font-heading font-bold text-xs text-white truncate">{p.name}</p>
+                                      <OvrBadge ovr={p.ovr} size="xs" />
+                                    </div>
                                     <div className="flex items-center gap-2 text-[10px] text-[#8F9CAE]">
                                       <span>{p.category}</span>
                                       {p.is_overseas && (

@@ -14,6 +14,7 @@ import {
 import { RoomState, IPL_FRANCHISES, IPLTeamId } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
 import { TrophyIcon, GavelIcon, CoinsIcon, BatIcon, BallIcon, StumpsIcon } from './BrandIcons.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface AuctionResultsProps {
   roomState: RoomState;
@@ -121,10 +122,11 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
 
   // CSV Export handler
   const handleExportCSV = () => {
-    const headers = ['Lot', 'Player Name', 'Role', 'Country', 'Status', 'Winning Franchise', 'Sold Price (INR)', 'Base Price'];
+    const headers = ['Lot', 'Player Name', 'OVR', 'Role', 'Country', 'Status', 'Winning Franchise', 'Sold Price (INR)', 'Base Price'];
     const rows = history.map(h => [
       h.lotNumber,
       `"${h.player.name}"`,
+      h.player.ovr || '—',
       h.player.category,
       h.player.nationality,
       h.status,
@@ -181,9 +183,12 @@ export const AuctionResults: React.FC<AuctionResultsProps> = ({
 
             {bestBuyLot && (
               <div className="bg-[#0A0B14] border border-[#23274D] px-4 py-2 rounded-xl text-center md:text-right">
-                <span className="text-[10px] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider block">
-                  BEST BUY · {bestBuyLot.player.name}
-                </span>
+                <div className="flex items-center justify-center md:justify-end gap-1.5 mb-0.5">
+                  <span className="text-[10px] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider">
+                    BEST BUY · {bestBuyLot.player.name}
+                  </span>
+                  <OvrBadge ovr={bestBuyLot.player.ovr} size="xs" />
+                </div>
                 <span className="text-lg font-number font-black text-[#C8FF3D]">
                   ₹{((bestBuyLot.soldPrice || 0) / 10000000).toFixed(2)} Cr
                 </span>

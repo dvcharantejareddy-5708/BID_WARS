@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Player, IPLTeamId, IPL_FRANCHISES, PlayingXISelection } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface PlayingXISelectorProps {
   teamId: IPLTeamId;
@@ -92,6 +93,12 @@ export const PlayingXISelector: React.FC<PlayingXISelectorProps> = ({
     const bowlers = startingXIPlayers.filter(p => p.category === 'Bowlers').length;
     const wks = startingXIPlayers.filter(p => p.is_wicketkeeper).length;
     return { batters, allRounders, bowlers, wks };
+  }, [startingXIPlayers]);
+
+  // Average OVR of the selected Playing XI
+  const avgXIOvr = useMemo(() => {
+    if (startingXIPlayers.length === 0) return 0;
+    return Math.round((startingXIPlayers.reduce((sum, p) => sum + (p.ovr || 70), 0) / startingXIPlayers.length) * 10) / 10;
   }, [startingXIPlayers]);
 
   // Validation
@@ -253,13 +260,24 @@ export const PlayingXISelector: React.FC<PlayingXISelectorProps> = ({
       </div>
 
       {/* METRIC BADGES & STATUS STRIP */}
-      <div className="px-6 py-3 bg-[#0E1020] border-b border-[#1E2246] grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-xs">
+      <div className="px-6 py-3 bg-[#0E1020] border-b border-[#1E2246] grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 text-xs">
         {/* Starters counter */}
         <div className="p-2.5 rounded-xl bg-[#12142A] border border-[#1E2246] text-center">
           <span className="text-[10px] text-[#8F9CAE] uppercase font-heading font-bold block">Starters</span>
           <span className={`font-number font-black text-sm ${selectedIds.length === 11 ? 'text-[#C8FF3D]' : 'text-white'}`}>
             {selectedIds.length} / 11
           </span>
+        </div>
+
+        {/* Average Playing XI OVR */}
+        <div className="p-2.5 rounded-xl bg-[#12142A] border border-[#1E2246] text-center">
+          <span className="text-[10px] text-[#8F9CAE] uppercase font-heading font-bold block">XI Avg OVR</span>
+          <div className="flex items-center justify-center gap-1 mt-0.5">
+            <span className="font-number font-black text-sm text-[#C8FF3D]">
+              {avgXIOvr > 0 ? avgXIOvr : '—'}
+            </span>
+            {avgXIOvr > 0 && <OvrBadge ovr={avgXIOvr} size="xs" showLabel={false} />}
+          </div>
         </div>
 
         {/* Overseas in XI */}
@@ -412,12 +430,15 @@ export const PlayingXISelector: React.FC<PlayingXISelectorProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="font-number font-bold text-xs text-[#C8FF3D] block">
-                      {player.sold_price_inr
-                        ? `₹${(player.sold_price_inr / 10000000).toFixed(2)} Cr`
-                        : player.base_price_display}
-                    </span>
+                  <div className="text-right shrink-0 flex flex-col items-end">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <OvrBadge ovr={player.ovr} size="xs" />
+                      <span className="font-number font-bold text-xs text-[#C8FF3D]">
+                        {player.sold_price_inr
+                          ? `₹${(player.sold_price_inr / 10000000).toFixed(2)} Cr`
+                          : player.base_price_display}
+                      </span>
+                    </div>
                     <span className="text-[10px] text-[#62658A]">
                       {isSelectedInXI ? 'Selected' : isImpact ? 'Impact Player' : 'Bench'}
                     </span>
@@ -509,6 +530,7 @@ export const PlayingXISelector: React.FC<PlayingXISelectorProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-heading font-bold text-xs text-white truncate">{player.name}</p>
+                          <OvrBadge ovr={player.ovr} size="xs" />
                           {player.is_overseas && (
                             <span className="text-[#FFC93D] flex items-center gap-0.5 text-[10px] font-bold">
                               <Globe2 className="w-2.5 h-2.5" />
@@ -708,3 +730,4 @@ export const PlayingXISelector: React.FC<PlayingXISelectorProps> = ({
     </div>
   );
 };
+

@@ -2186,6 +2186,40 @@ export class GameRoom {
                 remaining >= 0;
             const needed = Math.max(0, this.settings.minSquad - squad.length);
             const minSpendRequired = needed * 3000000;
+            // Calculate dynamic squad OVR statistics
+            const squadOvrValues = squad.map(p => p.ovr || 70);
+            const avgSquadOvr = squadOvrValues.length > 0
+                ? Math.round((squadOvrValues.reduce((a, b) => a + b, 0) / squadOvrValues.length) * 10) / 10
+                : 0;
+            // Playing XI OVR
+            const xiIds = this.teamPlayingXI[teamId]?.playingXIIds || [];
+            const xiPlayers = squad.filter(p => xiIds.includes(p.id));
+            const xiOvrValues = xiPlayers.map(p => p.ovr || 70);
+            const avgPlayingXIOvr = xiOvrValues.length > 0
+                ? Math.round((xiOvrValues.reduce((a, b) => a + b, 0) / xiOvrValues.length) * 10) / 10
+                : 0;
+            // Highest and lowest rated players in squad
+            let highestOvrPlayer = null;
+            let lowestOvrPlayer = null;
+            if (squad.length > 0) {
+                const sortedByOvr = [...squad].sort((a, b) => (b.ovr || 0) - (a.ovr || 0));
+                const highest = sortedByOvr[0];
+                const lowest = sortedByOvr[sortedByOvr.length - 1];
+                highestOvrPlayer = { name: highest.name, ovr: highest.ovr || 70, id: highest.id };
+                lowestOvrPlayer = { name: lowest.name, ovr: lowest.ovr || 70, id: lowest.id };
+            }
+            // Role-wise rating balance
+            const calcRoleAvg = (players) => {
+                if (players.length === 0)
+                    return 0;
+                return Math.round((players.reduce((sum, p) => sum + (p.ovr || 70), 0) / players.length) * 10) / 10;
+            };
+            const roleOvrBalance = {
+                battersAvgOvr: calcRoleAvg(squad.filter(p => p.primary_role === 'BATTER' && !p.is_wicketkeeper)),
+                allRoundersAvgOvr: calcRoleAvg(squad.filter(p => p.primary_role === 'ALL_ROUNDER')),
+                bowlersAvgOvr: calcRoleAvg(squad.filter(p => p.primary_role === 'BOWLER')),
+                wicketKeepersAvgOvr: calcRoleAvg(squad.filter(p => p.is_wicketkeeper))
+            };
             summary[teamId] = {
                 teamId,
                 teamName: IPL_FRANCHISES[teamId].name,
@@ -2203,7 +2237,12 @@ export class GameRoom {
                 allRoundersCount: allRounders,
                 wicketKeepersCount: wks,
                 isValidSquad: isValid,
-                minSpendRequired
+                minSpendRequired,
+                avgSquadOvr,
+                avgPlayingXIOvr,
+                highestOvrPlayer,
+                lowestOvrPlayer,
+                roleOvrBalance
             };
         }
         return summary;

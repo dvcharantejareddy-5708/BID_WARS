@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { RoomState, IPLTeamId, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface AllTeamsViewProps {
   roomState: RoomState;
@@ -102,8 +103,8 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
             </div>
           </div>
 
-          {/* Purse Summary Box */}
-          <div className="bg-[#0A0B14] border border-[#23274D] rounded-2xl p-4 flex items-center gap-6 text-xs shadow-md">
+          {/* Purse & Squad OVR Summary Box */}
+          <div className="bg-[#0A0B14] border border-[#23274D] rounded-2xl p-4 flex items-center gap-5 text-xs shadow-md flex-wrap">
             <div>
               <span className="text-[10px] text-[#9E9EB8] uppercase font-heading font-extrabold block">Purse Left</span>
               <span className="text-xl font-number font-black text-[#FFC93D]">
@@ -116,6 +117,22 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
               <span className="text-xl font-number font-black text-[#C8FF3D]">
                 ₹{(spent / 10000000).toFixed(2)} Cr
               </span>
+            </div>
+            <div className="h-8 w-px bg-[#23274D]" />
+            <div>
+              <span className="text-[10px] text-[#9E9EB8] uppercase font-heading font-extrabold block">Avg Squad OVR</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-xl font-number font-black text-white">
+                  {roomState.teamStats?.[selectedTeamId]?.avgSquadOvr || (squad.length > 0 ? Math.round((squad.reduce((a, b) => a + (b.ovr || 70), 0) / squad.length) * 10) / 10 : '—')}
+                </span>
+                {squad.length > 0 && (
+                  <OvrBadge
+                    ovr={roomState.teamStats?.[selectedTeamId]?.avgSquadOvr || Math.round((squad.reduce((a, b) => a + (b.ovr || 70), 0) / squad.length) * 10) / 10}
+                    size="xs"
+                    showLabel={false}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -194,6 +211,7 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                   <tr className="border-b border-[#23274D] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider text-[11px]">
                     <th className="pb-3.5 pl-3">#</th>
                     <th className="pb-3.5">Player</th>
+                    <th className="pb-3.5 text-center">OVR</th>
                     <th className="pb-3.5">Role</th>
                     <th className="pb-3.5">Classification</th>
                     <th className="pb-3.5">Base Price</th>
@@ -225,6 +243,9 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                             <span className="text-[10px] text-[#9E9EB8]">{p.primary_role}</span>
                           </div>
                         </div>
+                      </td>
+                      <td className="py-3.5 text-center">
+                        <OvrBadge ovr={p.ovr} size="sm" />
                       </td>
                       <td className="py-3.5">
                         <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] text-white font-heading font-bold uppercase">
@@ -352,7 +373,7 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                   </div>
                 </div>
 
-                {/* Squad Counts */}
+                {/* Squad Counts & OVR */}
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between text-white">
                     <span className="text-[#9E9EB8] font-heading font-extrabold uppercase text-[10px]">Squad:</span>
@@ -366,6 +387,18 @@ export const AllTeamsView: React.FC<AllTeamsViewProps> = ({ roomState, myMemberI
                       {overseas} / {maxOverseas}
                       {overseas >= maxOverseas && <span className="ml-1 text-[10px] text-[#FF3B5C] font-heading uppercase">(MAX)</span>}
                     </span>
+                  </div>
+                  <div className="flex justify-between items-center text-white pt-0.5">
+                    <span className="text-[#9E9EB8] font-heading font-extrabold uppercase text-[10px]">Avg OVR:</span>
+                    {squad.length > 0 ? (
+                      <OvrBadge
+                        ovr={roomState.teamStats?.[teamId]?.avgSquadOvr || Math.round((squad.reduce((a, b) => a + (b.ovr || 70), 0) / squad.length) * 10) / 10}
+                        size="xs"
+                        showLabel={false}
+                      />
+                    ) : (
+                      <span className="text-[#62658A] text-[10px]">—</span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { TradeRequest, IPLTeamId, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface TradeProposalDashboardPanelProps {
   activeTrade: TradeRequest;
@@ -146,9 +147,12 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
 
           <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-heading font-black text-sm text-white truncate">
-                {activeTrade.offeredPlayer.name}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="font-heading font-black text-sm text-white truncate">
+                  {activeTrade.offeredPlayer.name}
+                </p>
+                <OvrBadge ovr={activeTrade.offeredPlayer.ovr} size="xs" />
+              </div>
               <div className="flex items-center gap-2 text-[11px] text-[#8F9CAE] mt-0.5">
                 <span>{activeTrade.offeredPlayer.category}</span>
                 {activeTrade.offeredPlayer.is_overseas && (
@@ -208,9 +212,12 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
           {(activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'PLAYER_PLUS_CASH') && activeTrade.requestedPlayer ? (
             <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-heading font-black text-sm text-white truncate">
-                  {activeTrade.requestedPlayer.name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-heading font-black text-sm text-white truncate">
+                    {activeTrade.requestedPlayer.name}
+                  </p>
+                  <OvrBadge ovr={activeTrade.requestedPlayer.ovr} size="xs" />
+                </div>
                 <div className="flex items-center gap-2 text-[11px] text-[#8F9CAE] mt-0.5">
                   <span>{activeTrade.requestedPlayer.category}</span>
                   {activeTrade.requestedPlayer.is_overseas && (

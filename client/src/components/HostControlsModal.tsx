@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { RoomState, IPLTeamId, Player, PlayerCategory, IPL_FRANCHISES, AuctionLot } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface HostControlsModalProps {
   isOpen: boolean;
@@ -453,6 +454,7 @@ export const HostControlsModal = React.memo<HostControlsModalProps>(({
                                     <span className="font-heading font-bold text-xs text-white uppercase truncate block">
                                       {p.name}
                                     </span>
+                                    <OvrBadge ovr={p.ovr} size="xs" />
                                     {isSkipped ? (
                                       <span className="px-2 py-0.5 rounded-full text-[9px] font-heading font-black uppercase bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30 shrink-0">
                                         SKIPPED
@@ -570,6 +572,7 @@ export const HostControlsModal = React.memo<HostControlsModalProps>(({
                                 <div>
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-xs font-heading font-black text-white uppercase">{p.name}</p>
+                                    <OvrBadge ovr={p.ovr} size="xs" />
                                     <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-heading font-black uppercase ${
                                       isSkipped
                                         ? 'bg-[#FFC93D]/15 text-[#FFC93D] border border-[#FFC93D]/30'

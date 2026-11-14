@@ -9,6 +9,7 @@ import {
 import { RoomState, IPL_FRANCHISES } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
 import { BatIcon, BallIcon, StumpsIcon, CoinsIcon } from './BrandIcons.js';
+import { OvrBadge } from './OvrBadge.js';
 
 interface MyTeamViewProps {
   roomState: RoomState;
@@ -67,6 +68,13 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
     : null;
   const avgPrice = squad.length > 0 ? Math.round(totalSpent / squad.length) : 0;
 
+  // Dynamic OVR calculations from teamStats or squad
+  const teamStat = roomState.teamStats?.[myTeamId];
+  const avgSquadOvr = teamStat?.avgSquadOvr ?? (squad.length > 0 ? Math.round((squad.reduce((sum, p) => sum + (p.ovr || 70), 0) / squad.length) * 10) / 10 : 0);
+  const avgPlayingXIOvr = teamStat?.avgPlayingXIOvr ?? 0;
+  const highestOvr = teamStat?.highestOvrPlayer ?? (squad.length > 0 ? [...squad].sort((a, b) => (b.ovr || 0) - (a.ovr || 0))[0] : null);
+  const lowestOvr = teamStat?.lowestOvrPlayer ?? (squad.length > 0 ? [...squad].sort((a, b) => (a.ovr || 0) - (b.ovr || 0))[0] : null);
+
   // Feasibility reserve check
   const slotsRemainingNeeded = Math.max(0, minSquad - squad.length);
   const minSpendRequired = slotsRemainingNeeded * 3000000;
@@ -118,8 +126,8 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
           </div>
         </div>
 
-        {/* Purse Overview Box */}
-        <div className="bg-[#0A0B14] border border-[#23274D] rounded-2xl p-4 flex items-center gap-6 shadow-md">
+        {/* Purse & OVR Overview Box */}
+        <div className="bg-[#0A0B14] border border-[#23274D] rounded-2xl p-4 flex items-center gap-5 shadow-md flex-wrap">
           <div>
             <span className="text-[10px] text-[#9E9EB8] uppercase tracking-wider font-heading font-extrabold block">
               Remaining Purse
@@ -137,6 +145,34 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
               ₹{(totalSpent / 10000000).toFixed(2)} Cr
             </span>
           </div>
+          <div className="h-8 w-px bg-[#23274D]" />
+          <div>
+            <span className="text-[10px] text-[#9E9EB8] uppercase tracking-wider font-heading font-extrabold block">
+              Squad Avg OVR
+            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-2xl font-black font-number text-white">
+                {avgSquadOvr > 0 ? avgSquadOvr : '—'}
+              </span>
+              {avgSquadOvr > 0 && <OvrBadge ovr={avgSquadOvr} size="xs" showLabel={false} />}
+            </div>
+          </div>
+          {avgPlayingXIOvr > 0 && (
+            <>
+              <div className="h-8 w-px bg-[#23274D]" />
+              <div>
+                <span className="text-[10px] text-[#9E9EB8] uppercase tracking-wider font-heading font-extrabold block">
+                  Playing XI OVR
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black font-number text-[#C8FF3D]">
+                    {avgPlayingXIOvr}
+                  </span>
+                  <OvrBadge ovr={avgPlayingXIOvr} size="xs" showLabel={false} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -205,6 +241,45 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
         </div>
       </div>
 
+      {/* OVR Rating Performance & Balance Banner */}
+      <div className="bg-[#12142A] border border-[#23274D] rounded-3xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] font-heading font-black text-sm">
+            ★
+          </div>
+          <div>
+            <span className="text-[10px] text-[#9E9EB8] uppercase tracking-wider font-heading font-extrabold block">
+              Franchise Rating Balance
+            </span>
+            <span className="text-sm font-heading font-bold text-white uppercase">
+              {squad.length > 0 ? `Squad Average: ${avgSquadOvr} OVR` : 'No players in squad yet'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 flex-wrap text-xs">
+          {highestOvr && (
+            <div className="bg-[#0A0B14] border border-[#23274D] px-3.5 py-2 rounded-xl flex items-center gap-2.5">
+              <div>
+                <span className="text-[9px] text-[#C8FF3D] font-heading font-extrabold uppercase block">Highest Rated</span>
+                <span className="font-heading font-bold text-white text-xs uppercase truncate max-w-[120px] block">{highestOvr.name}</span>
+              </div>
+              <OvrBadge ovr={highestOvr.ovr} size="sm" />
+            </div>
+          )}
+
+          {lowestOvr && (
+            <div className="bg-[#0A0B14] border border-[#23274D] px-3.5 py-2 rounded-xl flex items-center gap-2.5">
+              <div>
+                <span className="text-[9px] text-[#9E9EB8] font-heading font-extrabold uppercase block">Lowest Rated</span>
+                <span className="font-heading font-bold text-[#B0BED0] text-xs uppercase truncate max-w-[120px] block">{lowestOvr.name}</span>
+              </div>
+              <OvrBadge ovr={lowestOvr.ovr} size="sm" />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Role Composition Progress Bars */}
       <div className="bg-[#12142A] border border-[#23274D] rounded-3xl p-6 shadow-xl">
         <h3 className="font-heading font-black text-sm text-white mb-4 uppercase tracking-wide">
@@ -225,7 +300,12 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                 style={{ width: `${Math.min(100, (batters.length / 6) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-[#62658A] mt-1.5 block">Target: 5-7</span>
+            <div className="flex justify-between items-center text-[10px] text-[#62658A] mt-1.5">
+              <span>Target: 5-7</span>
+              {teamStat?.roleOvrBalance?.battersAvgOvr ? (
+                <span className="text-[#C8FF3D] font-bold">Avg {teamStat.roleOvrBalance.battersAvgOvr} OVR</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="bg-[#0A0B14] p-4 rounded-2xl border border-[#23274D]">
@@ -241,7 +321,12 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                 style={{ width: `${Math.min(100, (bowlers.length / 6) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-[#62658A] mt-1.5 block">Target: 5-7</span>
+            <div className="flex justify-between items-center text-[10px] text-[#62658A] mt-1.5">
+              <span>Target: 5-7</span>
+              {teamStat?.roleOvrBalance?.bowlersAvgOvr ? (
+                <span className="text-[#FF3B5C] font-bold">Avg {teamStat.roleOvrBalance.bowlersAvgOvr} OVR</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="bg-[#0A0B14] p-4 rounded-2xl border border-[#23274D]">
@@ -257,7 +342,12 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                 style={{ width: `${Math.min(100, (allRounders.length / 4) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-[#62658A] mt-1.5 block">Target: 3-5</span>
+            <div className="flex justify-between items-center text-[10px] text-[#62658A] mt-1.5">
+              <span>Target: 3-5</span>
+              {teamStat?.roleOvrBalance?.allRoundersAvgOvr ? (
+                <span className="text-[#FFC93D] font-bold">Avg {teamStat.roleOvrBalance.allRoundersAvgOvr} OVR</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="bg-[#0A0B14] p-4 rounded-2xl border border-[#23274D]">
@@ -273,7 +363,12 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                 style={{ width: `${Math.min(100, (wicketKeepers.length / 2) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-[#62658A] mt-1.5 block">Target: 2</span>
+            <div className="flex justify-between items-center text-[10px] text-[#62658A] mt-1.5">
+              <span>Target: 2</span>
+              {teamStat?.roleOvrBalance?.wicketKeepersAvgOvr ? (
+                <span className="text-[#7C5CFF] font-bold">Avg {teamStat.roleOvrBalance.wicketKeepersAvgOvr} OVR</span>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -345,6 +440,7 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                 <tr className="border-b border-[#23274D] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider">
                   <th className="pb-3.5 pl-3">#</th>
                   <th className="pb-3.5">Player</th>
+                  <th className="pb-3.5 text-center">OVR</th>
                   <th className="pb-3.5">Role</th>
                   <th className="pb-3.5">Nationality</th>
                   <th className="pb-3.5">Base Price</th>
@@ -376,6 +472,9 @@ export const MyTeamView: React.FC<MyTeamViewProps> = ({ roomState, myMemberId })
                           <span className="text-[11px] text-[#9E9EB8]">{p.primary_role}</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3.5 text-center">
+                      <OvrBadge ovr={p.ovr} size="sm" />
                     </td>
                     <td className="py-3.5">
                       <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-white font-heading font-bold uppercase text-[11px]">

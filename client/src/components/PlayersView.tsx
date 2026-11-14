@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Plane, Award, XCircle, Clock, RotateCcw, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
 import { RoomState, Player, IPL_FRANCHISES, IPLTeamId } from '../types.js';
 import { TeamLogo } from './TeamLogo.js';
+import { OvrBadge } from './OvrBadge.js';
 import playersData2026 from '../data/players2026.json';
 import playersData2025 from '../data/players2025.json';
 
@@ -300,6 +301,7 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                     <tr className="border-b border-[#23274D] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider text-[11px]">
                       <th className="pb-3.5 pl-3">#</th>
                       <th className="pb-3.5">Player Name</th>
+                      <th className="pb-3.5 text-center">OVR</th>
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Base Price</th>
                       <th className="pb-3.5 text-center">FINAL SOLD AMOUNT</th>
@@ -336,6 +338,9 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                                 </span>
                               </div>
                             </div>
+                          </td>
+                          <td className="py-3.5 text-center">
+                            <OvrBadge ovr={p.ovr} size="sm" />
                           </td>
                           <td className="py-3.5">
                             <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] text-[#C8FF3D] font-heading font-bold uppercase">
@@ -409,6 +414,7 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                     <tr className="border-b border-[#23274D] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider text-[11px]">
                       <th className="pb-3.5 pl-3">#</th>
                       <th className="pb-3.5">Player Name</th>
+                      <th className="pb-3.5 text-center">OVR</th>
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Nationality</th>
                       <th className="pb-3.5">Base Price</th>
@@ -437,6 +443,9 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                               </div>
                               <span className="font-heading font-bold uppercase text-white">{p.name}</span>
                             </div>
+                          </td>
+                          <td className="py-3.5 text-center">
+                            <OvrBadge ovr={p.ovr} size="sm" />
                           </td>
                           <td className="py-3.5 text-[#9E9EB8]">
                             <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold uppercase text-[#7C5CFF]">
@@ -515,6 +524,7 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                     <tr className="border-b border-[#23274D] text-[#9E9EB8] font-heading font-extrabold uppercase tracking-wider text-[11px]">
                       <th className="pb-3.5 pl-3">S.No</th>
                       <th className="pb-3.5">Player Name</th>
+                      <th className="pb-3.5 text-center">OVR</th>
                       <th className="pb-3.5">Category</th>
                       <th className="pb-3.5">Nationality</th>
                       <th className="pb-3.5">Set Name</th>
@@ -545,6 +555,9 @@ export const PlayersView = React.memo<PlayersViewProps>(({
                               </div>
                             </div>
                           </div>
+                        </td>
+                        <td className="py-3 text-center">
+                          <OvrBadge ovr={p.ovr} size="sm" />
                         </td>
                         <td className="py-3 text-[#9E9EB8]">
                           <span className="bg-[#0A0B14] border border-[#23274D] px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold uppercase text-[#C8FF3D]">

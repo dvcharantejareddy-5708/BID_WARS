@@ -209,6 +209,10 @@ export interface Player {
   image_source: string;
   verification_status: string;
   data_source: string;
+  ovr: number;
+  ovr_rating_source?: string;
+  ovr_scale?: string;
+  ovr_verified?: boolean;
 }
 
 export type BotStrategy = 'balanced' | 'aggressive' | 'budget' | 'specialist';
@@ -303,6 +307,16 @@ export interface TeamStats {
   wicketKeepersCount: number;
   isValidSquad: boolean;
   minSpendRequired: number;
+  avgSquadOvr?: number;
+  avgPlayingXIOvr?: number;
+  highestOvrPlayer?: { name: string; ovr: number; id: string } | null;
+  lowestOvrPlayer?: { name: string; ovr: number; id: string } | null;
+  roleOvrBalance?: {
+    battersAvgOvr: number;
+    allRoundersAvgOvr: number;
+    bowlersAvgOvr: number;
+    wicketKeepersAvgOvr: number;
+  };
 }
 
 export interface ChatMessage {
