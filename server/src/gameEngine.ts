@@ -99,7 +99,10 @@ export class GameRoom {
       playMode: initialSettings.playMode || 'friends_only',
       botCount: initialSettings.botCount || 0,
       allowDuplicateTeams: initialSettings.allowDuplicateTeams || false,
-      tradeTimerDuration: initialSettings.tradeTimerDuration || 45
+      tradeTimerDuration: initialSettings.tradeTimerDuration || 45,
+      tournamentId: initialSettings.tournamentId,
+      hostId: initialSettings.hostId,
+      hostFranchiseId: initialSettings.hostFranchiseId
     };
 
     // Initialize 10 franchise purses, squads, and Playing XI
@@ -117,13 +120,13 @@ export class GameRoom {
       };
     }
 
-    // Create host member
-    const hostId = `mem_${Math.random().toString(36).substring(2, 9)}`;
+    // Create host member (using permanent hostId if provided for tournament rooms)
+    const hostId = initialSettings.hostId || `mem_${Math.random().toString(36).substring(2, 9)}`;
     this.hostId = hostId;
     this.members.set(hostId, {
       id: hostId,
       nickname: hostNickname,
-      teamId: null,
+      teamId: initialSettings.hostFranchiseId || null,
       isHost: true,
       isReady: false,
       isBot: false,
@@ -213,10 +216,41 @@ export class GameRoom {
     return { success: true };
   }
 
+  public preRegisterMember(memberId: string, nickname: string, franchiseId: IPLTeamId, isHost: boolean = false): RoomMember {
+    if (this.members.has(memberId)) {
+      const existing = this.members.get(memberId)!;
+      existing.nickname = nickname.trim().slice(0, 24);
+      existing.teamId = franchiseId;
+      existing.isHost = isHost || existing.isHost;
+      return existing;
+    }
+
+    const member: RoomMember = {
+      id: memberId,
+      nickname: nickname.trim().slice(0, 24),
+      teamId: franchiseId,
+      isHost,
+      isReady: true,
+      isBot: false,
+      connected: false,
+      lastSeen: Date.now()
+    };
+    this.members.set(memberId, member);
+    this.broadcastState();
+    return member;
+  }
+
   public join(nickname: string, sessionToken?: string): RoomMember {
     // Kicked check
     if (sessionToken && this.kickedMemberIds.has(sessionToken)) {
       throw new Error('You have been removed from this auction room by the host.');
+    }
+
+    // Strict Tournament Privacy: If tournament auction, member MUST be a registered tournament participant
+    if (this.settings.tournamentId && sessionToken) {
+      if (!this.members.has(sessionToken)) {
+        throw new Error('Access denied. You are not a registered participant of this tournament auction.');
+      }
     }
 
     // Reconnect check
@@ -224,13 +258,20 @@ export class GameRoom {
       const existing = this.members.get(sessionToken)!;
       existing.connected = true;
       existing.lastSeen = Date.now();
-      existing.nickname = nickname || existing.nickname;
-      this.addAuditLog('USER_RECONNECTED', `${existing.nickname} reconnected`, existing.nickname);
+      if (nickname && nickname.trim()) {
+        existing.nickname = nickname.trim().slice(0, 24);
+      }
+      this.addAuditLog('USER_RECONNECTED', `${existing.nickname} connected`, existing.nickname);
       this.broadcastState();
       return existing;
     }
 
-    const memberId = `mem_${Math.random().toString(36).substring(2, 9)}`;
+    // If tournament room and unauthenticated/unregistered, deny
+    if (this.settings.tournamentId) {
+      throw new Error('Access denied. Please join this tournament from the Tournament Dashboard.');
+    }
+
+    const memberId = sessionToken || `mem_${Math.random().toString(36).substring(2, 9)}`;
     const newMember: RoomMember = {
       id: memberId,
       nickname: nickname.trim().slice(0, 24),
@@ -243,6 +284,8 @@ export class GameRoom {
     };
     this.members.set(memberId, newMember);
     this.addAuditLog('USER_JOINED', `${newMember.nickname} joined the room`, newMember.nickname);
+    this.broadcastState();
+    return newMember;
     this.broadcastState();
     return newMember;
   }
@@ -2621,7 +2664,7 @@ export class GameRoom {
     return { success: true };
   }
 
-  private clearAllTimers() {
+  public clearAllTimers() {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;

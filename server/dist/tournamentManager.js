@@ -1,6 +1,7 @@
 import { MatchEngine } from './matchEngine.js';
 import { FixtureGenerator } from './fixtureGenerator.js';
 import { tournamentStorage } from './tournamentStorage.js';
+import { supabase } from './supabase.js';
 import { roomManager } from './index.js';
 import { getAllPlayers } from './playerService.js';
 export class TournamentManager {
@@ -35,8 +36,24 @@ export class TournamentManager {
     getAllTournaments() {
         return Array.from(this.tournaments.values());
     }
-    getTournament(id) {
-        return this.tournaments.get(id);
+    /**
+     * STRICT PRIVACY: Returns only tournaments created or joined by this user
+     */
+    getUserTournaments(userId) {
+        if (!userId)
+            return [];
+        return Array.from(this.tournaments.values()).filter(t => t.hostId === userId || t.members.some(m => m.userId === userId));
+    }
+    getTournament(id, userId) {
+        const tournament = this.tournaments.get(id);
+        if (!tournament)
+            return null;
+        if (userId) {
+            const isMember = tournament.hostId === userId || tournament.members.some(m => m.userId === userId);
+            if (!isMember)
+                return null;
+        }
+        return tournament;
     }
     getLiveMatch(matchId) {
         return this.liveMatches.get(matchId);
@@ -61,16 +78,22 @@ export class TournamentManager {
      */
     async createTournament(name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId) {
         await this.init();
+        const tournamentId = this.generateTournamentId();
+        const now = Date.now();
         // Create an underlying Quick Auction room in roomManager to guarantee 100% auction reuse
         const roomSettings = {
             season: '2026',
             startingPurse: 1200000000,
             timerDuration: 15,
-            isPrivate: false
+            isPrivate: false,
+            tournamentId,
+            hostId,
+            hostFranchiseId
         };
         const auctionRoom = roomManager.createRoom(hostName, roomSettings);
-        const tournamentId = this.generateTournamentId();
-        const now = Date.now();
+        // Pre-register and lock host franchise in auction room
+        auctionRoom.preRegisterMember(hostId, hostName, hostFranchiseId, true);
+        auctionRoom.selectTeam(hostId, hostFranchiseId);
         const hostMember = {
             userId: hostId,
             userEmail: hostEmail,
@@ -162,18 +185,68 @@ export class TournamentManager {
         tournament.members.push(newMember);
         tournament.teams[franchiseId] = newTeam;
         tournament.updatedAt = now;
+        // Pre-register member and lock chosen franchise in underlying auction room
+        const auctionRoom = roomManager.getRoom(tournament.roomCode);
+        if (auctionRoom) {
+            auctionRoom.preRegisterMember(userId, userName, franchiseId, false);
+            auctionRoom.selectTeam(userId, franchiseId);
+        }
         tournamentStorage.saveTournament(tournament);
         return { success: true, tournament };
     }
     /**
+     * Delete tournament (STRICT: Only the original tournament creator can delete)
+     */
+    async deleteTournament(tournamentId, userId) {
+        await this.init();
+        const tournament = this.tournaments.get(tournamentId);
+        if (!tournament) {
+            return { success: false, message: 'Tournament not found' };
+        }
+        if (tournament.hostId !== userId) {
+            return { success: false, message: 'Access denied: Only the original tournament creator can delete this tournament.' };
+        }
+        // Cascading deletion: remove underlying auction room
+        if (tournament.roomCode) {
+            roomManager.deleteRoom(tournament.roomCode);
+        }
+        // Delete tournament from memory and durable storage
+        this.tournaments.delete(tournamentId);
+        tournamentStorage.deleteTournament(tournamentId);
+        // Cascading deletion from Supabase if configured
+        if (supabase) {
+            try {
+                await supabase.from('tournaments').delete().eq('id', tournamentId);
+            }
+            catch (err) {
+                console.warn('[TournamentManager] Supabase deleteTournament fallback:', err);
+            }
+        }
+        return { success: true };
+    }
+    /**
      * Start the Auction stage for this tournament
+     * STRICT: Only the original creator/host can start the auction
      */
     async startAuction(tournamentId, userId) {
+        await this.init();
         const tournament = this.tournaments.get(tournamentId);
         if (!tournament)
             return { success: false, message: 'Tournament not found' };
         if (tournament.hostId !== userId) {
-            return { success: false, message: 'Only tournament host can start the auction' };
+            return { success: false, message: 'Access denied: Only the original tournament host can start the auction.' };
+        }
+        // Check pre-auction state
+        if (tournament.status !== 'REGISTRATION') {
+            return { success: false, message: `Cannot start auction for tournament in ${tournament.status} state.` };
+        }
+        // Start underlying auction room if in LOBBY state
+        const room = roomManager.getRoom(tournament.roomCode);
+        if (room && room.getState().status === 'LOBBY') {
+            const startRes = room.startAuction(tournament.hostId);
+            if (!startRes.success) {
+                return { success: false, message: startRes.message || 'Failed to start auction engine' };
+            }
         }
         tournament.status = 'AUCTION';
         tournament.updatedAt = Date.now();

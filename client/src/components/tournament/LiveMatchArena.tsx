@@ -23,6 +23,7 @@ import {
 } from '../../tournamentTypes';
 import { TournamentApi } from '../../services/tournamentApi';
 import { OvrBadge } from '../OvrBadge';
+import { HeaderBackButton } from '../common/HeaderBackButton';
 import { ScorecardModal } from './ScorecardModal';
 
 interface LiveMatchArenaProps {
@@ -186,13 +187,7 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
       {/* Top Match Bar */}
       <div className="bg-[#0D0E1A] border-b border-[#1E2246] px-4 md:px-8 py-3 shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button
-            onClick={onExit}
-            className="p-2 rounded-xl bg-[#12142A] border border-[#2A2F60] text-gray-400 hover:text-white transition-colors"
-            title="Back to Tournament Hub"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <HeaderBackButton label="Tournament Hub" onClick={onExit} />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-black text-sm uppercase tracking-wider text-white">

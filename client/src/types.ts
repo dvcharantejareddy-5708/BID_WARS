@@ -233,6 +233,9 @@ export interface RoomSettings {
   playMode: 'friends_only' | 'friends_bots';
   botCount: number;
   allowDuplicateTeams: boolean;
+  tournamentId?: string;
+  hostId?: string;
+  hostFranchiseId?: IPLTeamId;
 }
 
 export interface RoomMember {

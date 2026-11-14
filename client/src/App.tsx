@@ -15,6 +15,7 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { PasswordModal } from './components/PasswordModal.js';
 import { TournamentDashboard } from './components/tournament/TournamentDashboard.js';
 import { socketService } from './services/socket.js';
+import { authService } from './services/auth.js';
 import { 
   RoomState, 
   ServerMessage, 
@@ -435,6 +436,47 @@ export function App() {
     }
   };
 
+  // TOURNAMENT AUCTION ENTRY HANDLER
+  // Connects with permanent Supabase Auth UUID and In-Game Name, skipping OnboardingFlow
+  const handleEnterTournamentAuction = async (roomCode: string) => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const activeUser = authService.getUser();
+      const userInGameName = activeUser.inGameName || activeUser.name || 'Manager';
+      const userSessionToken = activeUser.id;
+
+      const apiBase = (import.meta.env.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/rooms/${roomCode}`);
+      const data = await parseJsonResponse(res, `Tournament auction room "${roomCode}" not found`);
+
+      setPendingRoomCode(roomCode);
+      setPendingNickname(userInGameName);
+      setMyMemberId(userSessionToken);
+      setRoomState(data.state);
+
+      // Persist session tokens
+      localStorage.setItem('bid_wars_member_id', userSessionToken);
+      localStorage.setItem('bid_wars_room_code', roomCode);
+      localStorage.setItem('bid_wars_nickname', userInGameName);
+      sessionStorage.setItem('bid_wars_member_id', userSessionToken);
+      sessionStorage.setItem('bid_wars_room_code', roomCode);
+
+      // Connect WebSocket with user's permanent UUID and in-game name
+      await socketService.connect(roomCode, userInGameName, userSessionToken);
+      setConnected(true);
+
+      // Directly enter auction arena (skipping onboarding because tournament already assigned franchise)
+      setView('in_room');
+      setActiveTab('auction');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to enter tournament auction');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Socket action dispatchers
   const handleToggleReady = (isReady: boolean) => {
     socketService.send({ type: 'TOGGLE_READY', isReady });
@@ -630,6 +672,7 @@ export function App() {
   };
 
   const handleLeaveRoom = () => {
+    const isTournament = Boolean(roomState?.settings?.tournamentId);
     try {
       socketService.send({ type: 'LEAVE_ROOM' });
     } catch {}
@@ -643,6 +686,9 @@ export function App() {
     setRoomState(null);
     setMyMemberId('');
     setView('landing');
+    if (isTournament) {
+      setGameMode('TOURNAMENT');
+    }
   };
 
   const myMember = roomState?.members[myMemberId];
@@ -683,7 +729,7 @@ export function App() {
         {view === 'landing' && gameMode === 'TOURNAMENT' && (
           <TournamentDashboard
             onSwitchToQuickAuction={() => setGameMode('QUICK_AUCTION')}
-            onEnterAuctionRoom={(roomCode) => handleJoinRoom(roomCode)}
+            onEnterAuctionRoom={(roomCode) => handleEnterTournamentAuction(roomCode)}
           />
         )}
 

@@ -42,6 +42,15 @@ export class RoomManager {
     getRoom(roomCode) {
         return this.rooms.get(roomCode.toUpperCase().trim());
     }
+    deleteRoom(roomCode) {
+        const code = roomCode.toUpperCase().trim();
+        const room = this.rooms.get(code);
+        if (room) {
+            room.clearAllTimers();
+        }
+        this.rooms.delete(code);
+        storageService.deleteRoom(code);
+    }
     handleConnection(ws) {
         ws.on('message', (data) => {
             try {

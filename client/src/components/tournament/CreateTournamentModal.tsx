@@ -34,9 +34,9 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
 
     try {
       const tournament = await TournamentApi.createTournament({
-        name: name.trim() || `${user.name}'s IPL Championship`,
+        name: name.trim() || `${user.inGameName || user.name}'s IPL Championship`,
         hostId: user.id,
-        hostName: user.name,
+        hostName: user.inGameName || user.name,
         hostEmail: user.email,
         teamsCount,
         matchOvers,

@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import { RoomManager } from './roomManager.js';
 import { getAllPlayers, getPlayerById } from './playerService.js';
 import { tournamentManager } from './tournamentManager.js';
+import { tournamentStorage } from './tournamentStorage.js';
 import './supabase.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -181,20 +182,92 @@ app.get('/api/players/:id', (req, res) => {
     res.json({ player });
 });
 // ==========================================
+// USER PROFILES & IN-GAME NAME ENDPOINTS
+// ==========================================
+// Check if an In-Game Name is available
+app.get('/api/profiles/check-name', async (req, res) => {
+    try {
+        const name = String(req.query.name || '').trim();
+        const excludeUserId = req.query.excludeUserId;
+        if (!name || name.length < 3 || name.length > 20) {
+            return res.json({ available: false, message: 'Name must be between 3 and 20 characters.' });
+        }
+        if (!/^[a-zA-Z0-9_ -]{3,20}$/.test(name)) {
+            return res.json({ available: false, message: 'Name can only contain letters, numbers, spaces, underscores, and hyphens.' });
+        }
+        const available = await tournamentStorage.isNameAvailable(name, excludeUserId);
+        return res.json({ available, message: available ? 'Name is available' : 'This In-Game Name is already taken.' });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+// Get user profile by Supabase UUID
+app.get('/api/profiles/:id', async (req, res) => {
+    try {
+        const profile = await tournamentStorage.getProfile(req.params.id);
+        if (!profile) {
+            return res.status(404).json({ error: 'Profile not found' });
+        }
+        return res.json({ success: true, profile });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+// Create or update user profile with In-Game Name
+app.post('/api/profiles', async (req, res) => {
+    try {
+        const { id, inGameName, email, avatarUrl } = req.body || {};
+        if (!id || !inGameName) {
+            return res.status(400).json({ error: 'id and inGameName are required' });
+        }
+        const cleanName = String(inGameName).trim();
+        if (cleanName.length < 3 || cleanName.length > 20) {
+            return res.status(400).json({ error: 'In-Game Name must be between 3 and 20 characters' });
+        }
+        if (!/^[a-zA-Z0-9_ -]{3,20}$/.test(cleanName)) {
+            return res.status(400).json({ error: 'In-Game Name can only contain letters, numbers, spaces, underscores, and hyphens.' });
+        }
+        const isAvailable = await tournamentStorage.isNameAvailable(cleanName, id);
+        if (!isAvailable) {
+            return res.status(409).json({ error: 'This In-Game Name is already taken. Please choose another.' });
+        }
+        const profile = await tournamentStorage.saveProfile({
+            id,
+            email,
+            inGameName: cleanName,
+            avatarUrl,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+        return res.json({ success: true, profile });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
+// ==========================================
 // TOURNAMENT REST API ENDPOINTS
 // ==========================================
-// List all tournaments
+// List tournaments (STRICT PRIVACY: Only returns user's created or joined tournaments)
 app.get('/api/tournaments', async (req, res) => {
     try {
         await tournamentManager.init();
-        const tournaments = tournamentManager.getAllTournaments();
+        const userId = req.query.userId;
+        if (userId) {
+            const tournaments = tournamentManager.getUserTournaments(userId);
+            return res.json({ success: true, tournaments });
+        }
+        // Fallback: If no userId specified, return open registration tournaments
+        const tournaments = tournamentManager.getAllTournaments().filter(t => t.status === 'REGISTRATION');
         return res.json({ success: true, tournaments });
     }
     catch (err) {
         return res.status(500).json({ error: err.message || 'Error fetching tournaments' });
     }
 });
-// Single tournament details
+// Single tournament details (Strict privacy: non-members cannot access active tournaments)
 app.get('/api/tournaments/:id', async (req, res) => {
     try {
         await tournamentManager.init();
@@ -202,10 +275,33 @@ app.get('/api/tournaments/:id', async (req, res) => {
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
+        const userId = req.query.userId;
+        if (tournament.status !== 'REGISTRATION') {
+            if (!userId || (tournament.hostId !== userId && !tournament.members.some(m => m.userId === userId))) {
+                return res.status(403).json({ error: 'Access denied: You must be an authorized member of this tournament.' });
+            }
+        }
         return res.json({ success: true, tournament });
     }
     catch (err) {
         return res.status(500).json({ error: err.message || 'Error fetching tournament' });
+    }
+});
+// Delete tournament (STRICT: Only the original tournament creator can delete)
+app.delete('/api/tournaments/:id', async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required for tournament deletion' });
+        }
+        const result = await tournamentManager.deleteTournament(req.params.id, userId);
+        if (!result.success) {
+            return res.status(result.message?.includes('Access denied') ? 403 : 400).json({ error: result.message });
+        }
+        return res.json({ success: true, message: 'Tournament deleted successfully' });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error deleting tournament' });
     }
 });
 // Create tournament

@@ -11,7 +11,8 @@ import {
   LogOut, 
   Lock,
   MessageSquare,
-  Trophy
+  Trophy,
+  ArrowLeft
 } from 'lucide-react';
 import { IPL_FRANCHISES, RoomMember } from '../types.js';
 import { soundManager } from '../services/audio.js';
@@ -65,12 +66,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-50 bg-[#0A0B14]/95 backdrop-blur-md text-white border-b border-[#23274D] px-3.5 lg:px-6 py-2.5 transition-all shadow-xl">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-        {/* Logo & Brand matching PDF */}
-        <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => roomCode && setActiveTab('auction')}>
-          <BidWarsLogo size="sm" />
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#12142A] border border-[#23274D] text-[10px] font-mono font-medium text-[#C8FF3D] uppercase tracking-wider">
-            IPL 2026
-          </span>
+        {/* Logo & Brand matching PDF with Header Back Button */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {roomCode && onLeaveRoom && (
+            <button
+              onClick={onLeaveRoom}
+              className="px-2.5 py-1.5 rounded-xl bg-[#12142A] border border-[#23274D] text-gray-300 hover:text-white hover:border-[#C8FF3D] flex items-center gap-1.5 text-xs font-bold font-heading uppercase transition-all shadow-sm"
+              title="Back / Exit Room"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#C8FF3D]" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => roomCode && setActiveTab('auction')}>
+            <BidWarsLogo size="sm" />
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#12142A] border border-[#23274D] text-[10px] font-mono font-medium text-[#C8FF3D] uppercase tracking-wider">
+              IPL 2026
+            </span>
+          </div>
         </div>
 
         {/* Center Navigation Tabs (When inside a room) */}

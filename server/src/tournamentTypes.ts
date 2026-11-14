@@ -30,6 +30,15 @@ export type HandCricketChoice = 0 | 1 | 2 | 3 | 4 | 6;
 export type BowlerAbilityType = 'NUMBER_BLOCK' | 'ELITE_NUMBER_BLOCK';
 export type BatterAbilityType = 'COMBINATION_SHOT' | 'SECRET_DOUBLE_SHOT';
 
+export interface UserProfile {
+  id: string;
+  email?: string;
+  inGameName: string;
+  avatarUrl?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface TournamentMember {
   userId: string;
   userEmail?: string;

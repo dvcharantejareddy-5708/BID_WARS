@@ -63,6 +63,16 @@ export class RoomManager {
     return this.rooms.get(roomCode.toUpperCase().trim());
   }
 
+  public deleteRoom(roomCode: string): void {
+    const code = roomCode.toUpperCase().trim();
+    const room = this.rooms.get(code);
+    if (room) {
+      room.clearAllTimers();
+    }
+    this.rooms.delete(code);
+    storageService.deleteRoom(code);
+  }
+
   public handleConnection(ws: WebSocket) {
     ws.on('message', (data: string) => {
       try {

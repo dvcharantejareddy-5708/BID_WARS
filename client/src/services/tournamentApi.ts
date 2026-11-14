@@ -11,17 +11,32 @@ import {
 const API_BASE = '/api';
 
 export class TournamentApi {
-  public static async getTournaments(): Promise<Tournament[]> {
-    const res = await fetch(`${API_BASE}/tournaments`);
+  public static async getTournaments(userId?: string): Promise<Tournament[]> {
+    const url = userId ? `${API_BASE}/tournaments?userId=${encodeURIComponent(userId)}` : `${API_BASE}/tournaments`;
+    const res = await fetch(url);
     const data = await res.json();
     return data.tournaments || [];
   }
 
-  public static async getTournament(id: string): Promise<Tournament | null> {
-    const res = await fetch(`${API_BASE}/tournaments/${id}`);
+  public static async getTournament(id: string, userId?: string): Promise<Tournament | null> {
+    const url = userId ? `${API_BASE}/tournaments/${id}?userId=${encodeURIComponent(userId)}` : `${API_BASE}/tournaments/${id}`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
     return data.tournament || null;
+  }
+
+  public static async deleteTournament(id: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    const res = await fetch(`${API_BASE}/tournaments/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Failed to delete tournament' };
+    }
+    return { success: true };
   }
 
   public static async createTournament(payload: {
@@ -64,13 +79,17 @@ export class TournamentApi {
     return { success: true, tournament: data.tournament };
   }
 
-  public static async startAuction(tournamentId: string, userId: string): Promise<boolean> {
+  public static async startAuction(tournamentId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     const res = await fetch(`${API_BASE}/tournaments/${tournamentId}/start-auction`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    return res.ok;
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Failed to start tournament auction' };
+    }
+    return { success: true };
   }
 
   public static async importAuctionSquads(tournamentId: string): Promise<boolean> {

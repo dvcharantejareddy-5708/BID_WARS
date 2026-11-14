@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Trophy, Calendar, Table, Award, Users, Play, FileText, CheckCircle2 } from 'lucide-react';
+import { Trophy, Calendar, Table, Award, Users, Play, FileText, CheckCircle2 } from 'lucide-react';
 import { Tournament, Fixture, LiveMatch } from '../../tournamentTypes';
 import { AuthUser } from '../../services/auth';
 import { IPL_FRANCHISES } from '../../types';
@@ -9,6 +9,7 @@ import { MatchPrepModal } from './MatchPrepModal';
 import { ScorecardModal } from './ScorecardModal';
 import { TournamentApi } from '../../services/tournamentApi';
 import { OvrBadge } from '../OvrBadge';
+import { HeaderBackButton } from '../common/HeaderBackButton';
 
 interface TournamentHubProps {
   tournament: Tournament;
@@ -64,12 +65,7 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
       {/* Top Tournament Header */}
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-2.5 rounded-xl bg-[#12142A] border border-[#2A2F60] text-gray-400 hover:text-white transition-all"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <HeaderBackButton label="Dashboard" onClick={onBack} />
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl md:text-3xl font-black uppercase tracking-wider font-heading">

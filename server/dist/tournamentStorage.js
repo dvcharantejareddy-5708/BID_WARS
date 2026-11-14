@@ -27,11 +27,14 @@ const getTournamentStorageFilePath = () => {
     return path.join(defaultDir, 'persisted_tournaments.json');
 };
 const storageFilePath = getTournamentStorageFilePath();
+const profilesFilePath = path.join(path.dirname(storageFilePath), 'persisted_profiles.json');
 export class TournamentStorageService {
     saveTimeout = null;
     tournamentsCache = new Map();
     pendingSaves = new Map();
+    profilesCache = new Map();
     isLoaded = false;
+    isProfilesLoaded = false;
     constructor() {
         this.init();
     }
@@ -155,6 +158,113 @@ export class TournamentStorageService {
         catch (err) {
             console.error('[TournamentStorage] Error flushing tournaments to disk:', err);
         }
+    }
+    // ==========================================
+    // PROFILE STORAGE METHODS
+    // ==========================================
+    async loadAllProfiles() {
+        if (this.isProfilesLoaded) {
+            return Array.from(this.profilesCache.values());
+        }
+        this.profilesCache.clear();
+        // 1. Read from disk
+        try {
+            if (fs.existsSync(profilesFilePath)) {
+                const raw = fs.readFileSync(profilesFilePath, 'utf-8');
+                if (raw.trim()) {
+                    const list = JSON.parse(raw);
+                    for (const p of list) {
+                        if (p.id)
+                            this.profilesCache.set(p.id, p);
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.warn('[TournamentStorage] Disk profile read fallback:', err);
+        }
+        // 2. Read from Supabase if configured
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .limit(1000);
+                if (!error && data) {
+                    for (const row of data) {
+                        if (row.id) {
+                            this.profilesCache.set(row.id, {
+                                id: row.id,
+                                email: row.email,
+                                inGameName: row.in_game_name || row.display_name,
+                                avatarUrl: row.avatar_url,
+                                createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+                                updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now()
+                            });
+                        }
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('[TournamentStorage] Supabase profile sync fallback:', err);
+            }
+        }
+        this.isProfilesLoaded = true;
+        return Array.from(this.profilesCache.values());
+    }
+    async getProfile(userId) {
+        await this.loadAllProfiles();
+        return this.profilesCache.get(userId);
+    }
+    async isNameAvailable(inGameName, excludeUserId) {
+        await this.loadAllProfiles();
+        const cleanLower = inGameName.trim().toLowerCase();
+        for (const [id, p] of this.profilesCache.entries()) {
+            if (excludeUserId && id === excludeUserId)
+                continue;
+            if (p.inGameName.trim().toLowerCase() === cleanLower) {
+                return false;
+            }
+        }
+        return true;
+    }
+    async saveProfile(profile) {
+        await this.loadAllProfiles();
+        const updated = {
+            ...profile,
+            inGameName: profile.inGameName.trim(),
+            updatedAt: Date.now()
+        };
+        this.profilesCache.set(profile.id, updated);
+        // Write to disk
+        try {
+            const list = Array.from(this.profilesCache.values());
+            const tempPath = `${profilesFilePath}.tmp`;
+            fs.writeFileSync(tempPath, JSON.stringify(list, null, 2), 'utf-8');
+            fs.renameSync(tempPath, profilesFilePath);
+        }
+        catch (err) {
+            console.error('[TournamentStorage] Error saving profile to disk:', err);
+        }
+        // Write to Supabase if available
+        if (supabase) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .upsert({
+                    id: updated.id,
+                    email: updated.email,
+                    display_name: updated.inGameName,
+                    in_game_name: updated.inGameName,
+                    avatar_url: updated.avatarUrl,
+                    updated_at: new Date(updated.updatedAt).toISOString()
+                });
+            }
+            catch (err) {
+                console.warn('[TournamentStorage] Supabase saveProfile fallback:', err);
+            }
+        }
+        return updated;
     }
 }
 export const tournamentStorage = new TournamentStorageService();
