@@ -123,10 +123,10 @@ export function buildAuctionLots(season = '2026', poolMode = 'auction_pool', cus
                     return (p.category === 'Batsmen' || p.primary_role === 'BATTER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
                 }
                 if (cat.category === 'All-rounders') {
-                    return p.category === 'All-rounders' || p.primary_role === 'ALL_ROUNDER';
+                    return (p.category === 'All-rounders' || p.primary_role === 'ALL_ROUNDER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
                 }
                 if (cat.category === 'Bowlers') {
-                    return p.category === 'Bowlers' || p.primary_role === 'BOWLER';
+                    return (p.category === 'Bowlers' || p.primary_role === 'BOWLER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
                 }
                 return false;
             });

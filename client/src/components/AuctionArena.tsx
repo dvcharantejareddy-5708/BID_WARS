@@ -46,7 +46,7 @@ interface AuctionArenaProps {
   myMemberId: string;
   onPlaceBid: (amount?: number) => void;
   onSkipPlayer: () => void;
-  onDrawRandomPlayer?: (category: PlayerCategory, basePriceInr: number) => void;
+  onDrawRandomPlayer?: (category?: PlayerCategory, basePriceInr?: number) => void;
   onPauseAuction: () => void;
   onResumeAuction: () => void;
   onRestartAuction: () => void;
@@ -327,21 +327,6 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
     ? [...soldHistoryLots].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0) || a.lotNumber - b.lotNumber)[0]
     : null;
 
-  // Section 04: Player Ratings generator
-  const getPlayerRatings = (p: typeof player) => {
-    const isBat = p.category === 'Batsmen';
-    const isBowl = p.category === 'Bowlers';
-    const isAll = p.category === 'All-rounders';
-    const isWK = p.is_wicketkeeper;
-
-    if (isWK) return { bat: p.is_marquee ? 'S' : 'A+', bowl: '—', field: 'S' };
-    if (isAll) return { bat: p.is_marquee ? 'S' : 'A+', bowl: p.is_marquee ? 'S' : 'A', field: 'A+' };
-    if (isBat) return { bat: p.is_marquee ? 'S' : 'A+', bowl: 'C', field: 'A' };
-    if (isBowl) return { bat: 'B', bowl: p.is_marquee ? 'S' : 'A+', field: 'A' };
-    return { bat: 'A', bowl: 'A', field: 'A' };
-  };
-
-  const ratings = getPlayerRatings(player);
 
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-5 py-3 space-y-3 font-body">
@@ -578,6 +563,18 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                     <FastForward className="w-3 h-3" />
                     <span>Skip</span>
                   </button>
+
+                  {onDrawRandomPlayer && (
+                    <button
+                      onClick={() => onDrawRandomPlayer()}
+                      disabled={lot.status !== 'IN_PROGRESS' || Boolean(announcingLot)}
+                      className="px-2.5 py-1 bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] hover:opacity-95 text-white rounded-lg font-heading font-black uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-[0_0_10px_rgba(124,92,255,0.3)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Draw next random player from active sequence"
+                    >
+                      <Dice5 className="w-3 h-3 text-[#FFC93D]" />
+                      <span>Draw Random</span>
+                    </button>
+                  )}
 
                   {roomState.status === 'AUCTION' ? (
                     <button
@@ -828,39 +825,20 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               )}
             </div>
 
-            {/* Section 04: 4-Box Ratings Grid (OVERALL, BAT, BOWL, FIELD) */}
-            <div className="p-4 bg-[#0A0B14] border-b border-[#23274D] grid grid-cols-4 gap-2 sm:gap-3">
-              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center flex flex-col justify-between">
-                <div className="text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5 tracking-wider">
-                  OVR
-                </div>
-                <div className="flex justify-center">
-                  <OvrBadge ovr={player.ovr} size="sm" showLabel={false} />
-                </div>
+            {/* Essential Player Details Strip: Clean, Compact, Professional */}
+            <div className="p-3.5 bg-[#0A0B14] border-b border-[#23274D] flex items-center justify-between text-xs">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-[#9E9EB8] uppercase font-bold tracking-wider">
+                  Base: <strong className="text-[#FFC93D] font-number text-sm">{player.base_price_display}</strong>
+                </span>
+                <span className="text-[#23274D]">|</span>
+                <span className="text-[10px] text-[#9E9EB8] uppercase font-bold tracking-wider">
+                  Set: <strong className="text-gray-300 font-medium">{player.set_name}</strong>
+                </span>
               </div>
-
-              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <BatIcon className="w-3 h-3 text-[#C8FF3D]" />
-                  <span>BAT</span>
-                </div>
-                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.bat}</div>
-              </div>
-
-              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <BallIcon className="w-3 h-3 text-[#FF3B5C]" />
-                  <span>BOWL</span>
-                </div>
-                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.bowl}</div>
-              </div>
-
-              <div className="bg-[#12142A] border border-[#23274D] p-2.5 sm:p-3 rounded-xl text-center">
-                <div className="flex items-center justify-center gap-1 text-[10px] font-heading font-extrabold uppercase text-[#9E9EB8] mb-0.5">
-                  <StumpsIcon className="w-3 h-3 text-[#7C5CFF]" />
-                  <span>FIELD</span>
-                </div>
-                <div className="text-lg sm:text-xl font-heading font-black text-white">{ratings.field}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#9E9EB8] uppercase font-bold tracking-wider">Rating:</span>
+                <OvrBadge ovr={player.ovr} size="sm" />
               </div>
             </div>
 

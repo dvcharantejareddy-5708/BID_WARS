@@ -6,5 +6,6 @@ client/dist/
 *.log
 .DS_Store
 persisted_rooms.json
+persisted_tournaments.json
 *.tmp
 

@@ -8,6 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { RoomManager } from './roomManager.js';
 import { getAllPlayers, getPlayerById } from './playerService.js';
+import { tournamentManager } from './tournamentManager.js';
 import './supabase.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -179,6 +180,185 @@ app.get('/api/players/:id', (req, res) => {
     }
     res.json({ player });
 });
+// ==========================================
+// TOURNAMENT REST API ENDPOINTS
+// ==========================================
+// List all tournaments
+app.get('/api/tournaments', async (req, res) => {
+    try {
+        await tournamentManager.init();
+        const tournaments = tournamentManager.getAllTournaments();
+        return res.json({ success: true, tournaments });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error fetching tournaments' });
+    }
+});
+// Single tournament details
+app.get('/api/tournaments/:id', async (req, res) => {
+    try {
+        await tournamentManager.init();
+        const tournament = tournamentManager.getTournament(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({ error: 'Tournament not found' });
+        }
+        return res.json({ success: true, tournament });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error fetching tournament' });
+    }
+});
+// Create tournament
+app.post('/api/tournaments', async (req, res) => {
+    try {
+        const { name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId } = req.body || {};
+        if (!hostId || !hostName || !hostFranchiseId) {
+            return res.status(400).json({ error: 'hostId, hostName, and hostFranchiseId are required' });
+        }
+        const tCount = [4, 6, 8, 10].includes(Number(teamsCount)) ? Number(teamsCount) : 8;
+        const mOvers = [1, 2, 5, 10, 15, 20].includes(Number(matchOvers)) ? Number(matchOvers) : 5;
+        const tournament = await tournamentManager.createTournament(name || 'IPL Tournament', hostId, hostName, hostEmail, tCount, mOvers, hostFranchiseId);
+        return res.status(201).json({ success: true, tournament });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Failed to create tournament' });
+    }
+});
+// Join tournament (Strict 1 account = 1 team check)
+app.post('/api/tournaments/:id/join', async (req, res) => {
+    try {
+        const { userId, userName, userEmail, franchiseId } = req.body || {};
+        if (!userId || !userName || !franchiseId) {
+            return res.status(400).json({ error: 'userId, userName, and franchiseId are required' });
+        }
+        const result = await tournamentManager.joinTournament(req.params.id, userId, userName, userEmail, franchiseId);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true, tournament: result.tournament });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error joining tournament' });
+    }
+});
+// Start tournament auction stage
+app.post('/api/tournaments/:id/start-auction', async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        const result = await tournamentManager.startAuction(req.params.id, userId);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error starting auction' });
+    }
+});
+// Import completed auction squads
+app.post('/api/tournaments/:id/import-auction', async (req, res) => {
+    try {
+        const result = await tournamentManager.importAuctionSquads(req.params.id);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error importing squads' });
+    }
+});
+// Start live tournament & generate fixtures
+app.post('/api/tournaments/:id/start-live', async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        const result = await tournamentManager.startLiveTournament(req.params.id, userId);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error starting live tournament' });
+    }
+});
+// Save match lineup
+app.post('/api/tournaments/:id/lineup', (req, res) => {
+    try {
+        const { franchiseId, userId, lineup } = req.body || {};
+        if (!franchiseId || !userId || !lineup) {
+            return res.status(400).json({ error: 'franchiseId, userId, and lineup are required' });
+        }
+        const result = tournamentManager.saveMatchLineup(req.params.id, franchiseId, userId, lineup);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error saving lineup' });
+    }
+});
+// Start a scheduled match
+app.post('/api/tournaments/:id/matches/:fixtureId/start', (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        const result = tournamentManager.startMatch(req.params.id, req.params.fixtureId, userId);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true, match: result.match });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error starting match' });
+    }
+});
+// Get Live Match
+app.get('/api/matches/:matchId', (req, res) => {
+    const match = tournamentManager.getLiveMatch(req.params.matchId);
+    if (!match) {
+        return res.status(404).json({ error: 'Match not found' });
+    }
+    return res.json({ success: true, match });
+});
+// Match Toss
+app.post('/api/matches/:matchId/toss', (req, res) => {
+    try {
+        const { tossWinnerFranchiseId, decision } = req.body || {};
+        const result = tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
+        if (!result.success) {
+            return res.status(400).json({ error: result.message });
+        }
+        return res.json({ success: true, match: result.match });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error handling toss' });
+    }
+});
+// Submit ball choice
+app.post('/api/matches/:matchId/choice', (req, res) => {
+    try {
+        const { franchiseId, choice, ability, blockedNumbers } = req.body || {};
+        const result = tournamentManager.submitChoice(req.params.matchId, franchiseId, choice, ability, blockedNumbers);
+        if (result.error) {
+            return res.status(400).json({ error: result.error });
+        }
+        return res.json({ success: true, resolved: result.resolved, ballEvent: result.ballEvent, match: result.match });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error submitting choice' });
+    }
+});
+// Handle turn timeout
+app.post('/api/matches/:matchId/timeout', (req, res) => {
+    try {
+        const result = tournamentManager.handleTimeout(req.params.matchId);
+        return res.json({ success: true, resolved: result.resolved, ballEvent: result.ballEvent, match: result.match });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Error handling timeout' });
+    }
+});
 // API 404 handler - Unmatched /api/* routes must ALWAYS return JSON 404, never HTML
 app.all('/api/*', (req, res) => {
     res.status(404).json({
@@ -239,4 +419,4 @@ if (wss) {
     app.wss = wss;
 }
 export default app;
-export { app, server, roomManager };
+export { app, server, roomManager, tournamentManager };

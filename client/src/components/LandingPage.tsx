@@ -19,10 +19,11 @@ import { CoinsIcon, GavelIcon, TrophyIcon as TrophyBrandIcon } from './BrandIcon
 interface LandingPageProps {
   onCreateRoom: (nickname: string, settings: Partial<RoomSettings>) => void;
   onJoinRoom: (roomCode: string, password?: string) => void;
+  onSwitchToTournament?: () => void;
   isLoading: boolean;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRoom, isLoading }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRoom, onSwitchToTournament, isLoading }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const actionHubRef = useRef<HTMLDivElement>(null);
   
@@ -136,13 +137,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
         </div>
 
         {/* Right CTA button */}
-        <button
-          type="button"
-          onClick={() => scrollToActions('join')}
-          className="px-5 py-2.5 rounded-full bg-[#C8FF3D] hover:bg-[#AEE620] text-[#0A0B14] font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-lime-glow hover:scale-105 active:scale-95"
-        >
-          Join an auction
-        </button>
+        <div className="flex items-center gap-3">
+          {onSwitchToTournament && (
+            <button
+              type="button"
+              onClick={onSwitchToTournament}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] text-white font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(124,92,255,0.35)] hover:scale-105 active:scale-95 flex items-center gap-1.5"
+            >
+              <span>🏆</span>
+              <span>Tournament Mode</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => scrollToActions('join')}
+            className="px-5 py-2.5 rounded-full bg-[#C8FF3D] hover:bg-[#AEE620] text-[#0A0B14] font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-lime-glow hover:scale-105 active:scale-95"
+          >
+            Join an auction
+          </button>
+        </div>
       </nav>
 
       {/* Hero Section matching Page 2 of PDF */}
@@ -175,6 +188,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
             >
               Start bidding
             </button>
+            {onSwitchToTournament && (
+              <button
+                type="button"
+                onClick={onSwitchToTournament}
+                className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] hover:opacity-95 text-white font-sans font-bold text-sm uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(124,92,255,0.35)] hover:scale-105 active:scale-95 flex items-center gap-2"
+              >
+                <span>🏆</span>
+                <span>Play Tournament Mode</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => scrollToActions('join')}

@@ -427,7 +427,7 @@ export type ClientMessage =
   | { type: 'PLACE_BID'; amount?: number }
   | { type: 'SKIP_PLAYER' }
   | { type: 'SKIP_MULTIPLE_PLAYERS'; count: number }
-  | { type: 'DRAW_RANDOM_PLAYER'; category: PlayerCategory; basePriceInr: number }
+  | { type: 'DRAW_RANDOM_PLAYER'; category?: PlayerCategory; basePriceInr?: number }
   | { type: 'BRING_ALL_UNSOLD_BACK' }
   | { type: 'RANDOM_DRAW_UNSOLD'; count: number; playerIds?: string[] }
   | { type: 'REAUCTION_PARTICULAR_PLAYER'; playerId: string }

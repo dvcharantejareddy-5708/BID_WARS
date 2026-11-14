@@ -116,14 +116,29 @@ export const PlayersView = React.memo<PlayersViewProps>(({
     const unsold = Array.from(unsoldPlayerMap.values());
     const unsoldIds = new Set(unsoldPlayerMap.keys());
 
-    // Remaining: Not sold, not unsold/skipped, not currently on auction or queued
+    // Remaining: Follows the actual randomized auction queue from roomState.lots
     const currentLotPlayerId = roomState.currentLot?.player.id;
-    const remaining = allMasterPlayers.filter(p => 
-      !soldPlayerMap.has(p.id) && 
-      !unsoldIds.has(p.id) && 
-      !queuedIds.has(p.id) &&
-      p.id !== currentLotPlayerId
-    );
+    const remaining: Player[] = [];
+    if (roomState.lots && roomState.lots.length > 0) {
+      for (let i = roomState.currentLotIndex + 1; i < roomState.lots.length; i++) {
+        const l = roomState.lots[i];
+        if (
+          l &&
+          l.status === 'PENDING' &&
+          !soldPlayerMap.has(l.player.id) &&
+          !unsoldIds.has(l.player.id) &&
+          l.player.id !== currentLotPlayerId
+        ) {
+          remaining.push(l.player);
+        }
+      }
+    } else {
+      for (const p of allMasterPlayers) {
+        if (!soldPlayerMap.has(p.id) && !unsoldIds.has(p.id) && p.id !== currentLotPlayerId) {
+          remaining.push(p);
+        }
+      }
+    }
 
     return {
       soldList: sold,

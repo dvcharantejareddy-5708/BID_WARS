@@ -42,7 +42,7 @@ interface HostControlsModalProps {
   onUpdateTimer: (duration: number) => void;
   onUpdateTradeTimer?: (durationSec: number) => void;
   onUpdateSettings?: (settings: any) => void;
-  onDrawRandomPlayer?: (category: PlayerCategory, basePriceInr: number) => void;
+  onDrawRandomPlayer?: (category?: PlayerCategory, basePriceInr?: number) => void;
 }
 
 type TabType = 'auction' | 'players' | 'room';
@@ -356,6 +356,47 @@ export const HostControlsModal = React.memo<HostControlsModalProps>(({
           {/* SECTION 1: PLAYER MANAGEMENT */}
           {activeTab === 'players' && (
             <div className="space-y-6">
+
+              {/* DRAW RANDOM PLAYER (MANDATORY RANDOM AUCTION ACTION) */}
+              <div className="bg-[#0A0B14] border border-[#C8FF3D]/30 rounded-2xl p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#C8FF3D]/10 border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] shrink-0">
+                      <Dice5 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-black text-sm uppercase tracking-wider text-white flex items-center gap-2">
+                        <span>Draw Random Player</span>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-heading font-extrabold uppercase bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30">
+                          Active Group
+                        </span>
+                      </h3>
+                      <p className="text-xs text-[#8F9CAE] mt-0.5 leading-relaxed">
+                        Randomly select an unauctioned player from the current active price &amp; category tier without waiting. Automatically steps to the next tier when current group completes.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (onDrawRandomPlayer) {
+                        onDrawRandomPlayer();
+                        showFeedback('Drawing random player from active group...');
+                        onClose();
+                      }
+                    }}
+                    disabled={!onDrawRandomPlayer || roomState.status !== 'AUCTION' || (Boolean(roomState.currentLot?.currentBid) && (roomState.currentLot?.currentBid || 0) > 0)}
+                    className={`py-2.5 px-5 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                      roomState.status === 'AUCTION' && (!roomState.currentLot?.currentBid || roomState.currentLot.currentBid === 0)
+                        ? 'bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] shadow-[0_0_15px_rgba(200,255,61,0.25)]'
+                        : 'bg-[#1E2246] text-[#8F9CAE]/50 cursor-not-allowed border border-[#1E2246]'
+                    }`}
+                  >
+                    <Dice5 className="w-4 h-4" />
+                    <span>Draw Player</span>
+                  </button>
+                </div>
+              </div>
               
               {/* UNSOLD & SKIPPED PLAYERS */}
               <div className="bg-[#0A0B14] border border-[#1E2246] rounded-2xl p-5 space-y-4">

@@ -98,6 +98,8 @@ export class GameRoom {
             lastSeen: Date.now()
         });
         this.addAuditLog('ROOM_CREATED', `Room ${roomCode} created by ${hostNickname}`, hostNickname);
+        // Mandatory: Generate randomized auction queue on room creation and persist it
+        this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
     }
     verifyPassword(inputPassword) {
         if (!this.isPrivate)
@@ -370,7 +372,10 @@ export class GameRoom {
                 this.addBot(team, strategy);
             }
         }
-        this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        // Only generate lots if queue is not yet initialized; preserves saved queue on reconnects
+        if (!this.lots || this.lots.length === 0) {
+            this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        }
         if (this.lots.length === 0) {
             return { success: false, message: 'No eligible auction lots found for this season/pool mode' };
         }
@@ -386,7 +391,13 @@ export class GameRoom {
         return { success: true };
     }
     /**
-     * SECTION 16: Random Player Selection by Category and Price Bracket
+     * SECTION 16: Mandatory Random Player Selection from Current Active Group or Specified Bracket
+     * Complies with Section 6 of Specification:
+     * - Selects an eligible player randomly from the current active base-price and category group.
+     * - Never selects a player from a lower base price before current group is finished.
+     * - Never selects a later category before current category is finished.
+     * - Never selects sold or previously auctioned players.
+     * - Automatically advances category / price group when exhausted.
      */
     drawRandomPlayer(memberId, category, basePriceInr) {
         if (memberId !== this.hostId) {
@@ -395,48 +406,114 @@ export class GameRoom {
         if (this.status !== 'AUCTION') {
             return { success: false, message: 'Auction must be active to draw lots' };
         }
-        // Filter available pending lots matching category and price bracket
-        // Criteria:
-        // 1. Belongs to selected category
-        // 2. Base price matches selected bracket
-        // 3. Status is PENDING (not already sold, unsold, or skipped)
-        // 4. Not currently being auctioned
-        const eligibleIndices = [];
-        for (let idx = 0; idx < this.lots.length; idx++) {
-            if (idx === this.currentLotIndex && this.lots[idx].status === 'IN_PROGRESS') {
-                continue; // Currently active lot
-            }
-            const l = this.lots[idx];
-            const matchesCategory = l.player.category === category ||
-                (category === 'Batsmen' && l.player.primary_role === 'BATTER') ||
-                (category === 'Bowlers' && l.player.primary_role === 'BOWLER') ||
-                (category === 'All-rounders' && l.player.primary_role === 'ALL_ROUNDER') ||
-                (category === 'Wicket-keepers' && l.player.is_wicketkeeper);
-            if (l.status === 'PENDING' &&
-                matchesCategory &&
-                l.player.base_price_inr === basePriceInr &&
-                l.player.auction_status === 'AVAILABLE') {
-                eligibleIndices.push(idx);
-            }
-        }
-        if (eligibleIndices.length === 0) {
+        // Check if current lot has active bids
+        const currentActive = this.lots[this.currentLotIndex];
+        if (currentActive && currentActive.status === 'IN_PROGRESS' && currentActive.currentBid > 0) {
             return {
                 success: false,
-                message: `No available unauctioned players found in ${category} at ₹${(basePriceInr / 10000000).toFixed(2)} Cr.`
+                message: `Cannot draw a new player while bidding is active on ${currentActive.player.name} (Current Bid: ₹${(currentActive.currentBid / 10000000).toFixed(2)} Cr). Wait for lot to conclude.`
             };
         }
-        // Pick random eligible lot index
-        const randomIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
-        // Finalize or pause current lot if active without bids, or advance directly
-        const currentActive = this.lots[this.currentLotIndex];
-        if (currentActive && currentActive.status === 'IN_PROGRESS' && currentActive.currentBid === 0) {
-            currentActive.status = 'PENDING'; // Return to pending
+        // Identify all completed player IDs (sold, unsold, skipped, or in team squads)
+        const completedPlayerIds = new Set();
+        for (const h of this.history) {
+            if (h.player?.id)
+                completedPlayerIds.add(h.player.id);
         }
+        for (const squad of Object.values(this.teamSquads)) {
+            for (const p of squad) {
+                if (p?.id)
+                    completedPlayerIds.add(p.id);
+            }
+        }
+        // Filter available pending lots in the remaining queue
+        const pendingLotsWithIndex = [];
+        for (let idx = 0; idx < this.lots.length; idx++) {
+            if (idx === this.currentLotIndex && this.lots[idx].status === 'IN_PROGRESS') {
+                continue;
+            }
+            const l = this.lots[idx];
+            if (l.status === 'PENDING' &&
+                l.player.auction_status === 'AVAILABLE' &&
+                !completedPlayerIds.has(l.player.id)) {
+                pendingLotsWithIndex.push({ lot: l, index: idx });
+            }
+        }
+        if (pendingLotsWithIndex.length === 0) {
+            return { success: false, message: 'No eligible remaining unauctioned players in the queue' };
+        }
+        let targetCandidates = [];
+        // Case A: Specific category and base price requested
+        if (category && basePriceInr) {
+            targetCandidates = pendingLotsWithIndex.filter(({ lot: l }) => {
+                const matchesCategory = l.player.category === category ||
+                    (category === 'Batsmen' && l.player.primary_role === 'BATTER' && !l.player.is_wicketkeeper && l.player.category !== 'Wicket-keepers') ||
+                    (category === 'Bowlers' && l.player.primary_role === 'BOWLER' && !l.player.is_wicketkeeper && l.player.category !== 'Wicket-keepers') ||
+                    (category === 'All-rounders' && l.player.primary_role === 'ALL_ROUNDER' && !l.player.is_wicketkeeper && l.player.category !== 'Wicket-keepers') ||
+                    (category === 'Wicket-keepers' && (l.player.is_wicketkeeper || l.player.category === 'Wicket-keepers'));
+                return matchesCategory && l.player.base_price_inr === basePriceInr;
+            });
+            if (targetCandidates.length === 0) {
+                return {
+                    success: false,
+                    message: `No remaining eligible players found in ${category} at ₹${(basePriceInr / 10000000).toFixed(2)} Cr.`
+                };
+            }
+        }
+        else {
+            // Case B: Mandatory sequence random draw (Section 6)
+            // 1. Group pending lots by descending base price
+            const uniqueBasePrices = Array.from(new Set(pendingLotsWithIndex.map(({ lot }) => lot.player.base_price_inr))).sort((a, b) => b - a);
+            const activeHighestPrice = uniqueBasePrices[0];
+            const lotsInActivePrice = pendingLotsWithIndex.filter(({ lot }) => lot.player.base_price_inr === activeHighestPrice);
+            // 2. In this price group, check category sequence: Batters -> All-Rounders -> Bowlers -> Wicket-Keepers
+            const CATEGORY_ORDER = [
+                {
+                    name: 'Batsmen',
+                    matcher: p => (p.category === 'Batsmen' || p.primary_role === 'BATTER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers'
+                },
+                {
+                    name: 'All-rounders',
+                    matcher: p => (p.category === 'All-rounders' || p.primary_role === 'ALL_ROUNDER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers'
+                },
+                {
+                    name: 'Bowlers',
+                    matcher: p => (p.category === 'Bowlers' || p.primary_role === 'BOWLER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers'
+                },
+                {
+                    name: 'Wicket-keepers',
+                    matcher: p => p.category === 'Wicket-keepers' || p.is_wicketkeeper
+                }
+            ];
+            for (const catDef of CATEGORY_ORDER) {
+                const matchesInCat = lotsInActivePrice.filter(({ lot }) => catDef.matcher(lot.player));
+                if (matchesInCat.length > 0) {
+                    targetCandidates = matchesInCat;
+                    break;
+                }
+            }
+            if (targetCandidates.length === 0) {
+                targetCandidates = lotsInActivePrice;
+            }
+        }
+        // Pick one randomly from targetCandidates using unbiased random selection
+        const chosen = targetCandidates[Math.floor(Math.random() * targetCandidates.length)];
+        const chosenLot = chosen.lot;
+        const originalIdx = chosen.index;
+        // Reset current active lot to PENDING if it had 0 bids
+        if (currentActive && currentActive.status === 'IN_PROGRESS' && currentActive.currentBid === 0) {
+            currentActive.status = 'PENDING';
+        }
+        // Swap the chosen lot into currentLotIndex so it becomes the active lot,
+        // and the previous lot moves to originalIdx in the remaining queue
+        this.lots[originalIdx] = this.lots[this.currentLotIndex];
+        this.lots[this.currentLotIndex] = chosenLot;
+        // Start the drawn lot
         this.clearAllTimers();
-        this.currentLotIndex = randomIdx;
         this.startCurrentLot();
-        this.addAuditLog('RANDOM_LOT_DRAWN', `Host randomly drew ${this.lots[randomIdx].player.name} from ${category} (${this.lots[randomIdx].player.base_price_display})`, 'Host');
-        return { success: true, lot: this.lots[randomIdx] };
+        this.addAuditLog('RANDOM_LOT_DRAWN', `Host randomly drew ${chosenLot.player.name} (${chosenLot.player.set_name})`, 'Host');
+        this.broadcastState();
+        return { success: true, lot: chosenLot };
     }
     startCurrentLot() {
         this.clearAllTimers();
@@ -941,7 +1018,9 @@ export class GameRoom {
         this.currentLotIndex = 0;
         this.history = [];
         this.deadlineTimestamp = null;
-        this.addAuditLog('AUCTION_RESTARTED', 'Auction was reset to lobby by host', 'Host');
+        // Generate fresh randomized auction sequence for restarted auction
+        this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        this.addAuditLog('AUCTION_RESTARTED', 'Auction was reset to lobby by host with a newly randomized queue', 'Host');
         this.broadcastState();
         return { success: true };
     }

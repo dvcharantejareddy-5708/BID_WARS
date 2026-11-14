@@ -13,6 +13,7 @@ import { AuctionResults } from './components/AuctionResults.js';
 import { FinalTeamManagement } from './components/FinalTeamManagement.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { PasswordModal } from './components/PasswordModal.js';
+import { TournamentDashboard } from './components/tournament/TournamentDashboard.js';
 import { socketService } from './services/socket.js';
 import { 
   RoomState, 
@@ -36,6 +37,7 @@ export function App() {
   // Flow State
   // 'landing' | 'onboarding' | 'in_room'
   const [view, setView] = useState<'landing' | 'onboarding' | 'in_room'>('landing');
+  const [gameMode, setGameMode] = useState<'QUICK_AUCTION' | 'TOURNAMENT'>('QUICK_AUCTION');
   const [activeTab, setActiveTab] = useState<'auction' | 'my-team' | 'all-teams' | 'players' | 'history' | 'settings'>('auction');
 
   // Live Chat State
@@ -454,7 +456,7 @@ export function App() {
     socketService.send({ type: 'SKIP_PLAYER' });
   };
 
-  const handleDrawRandomPlayer = (category: PlayerCategory, basePriceInr: number) => {
+  const handleDrawRandomPlayer = (category?: PlayerCategory, basePriceInr?: number) => {
     socketService.send({ type: 'DRAW_RANDOM_PLAYER', category, basePriceInr });
   };
 
@@ -677,11 +679,19 @@ export function App() {
 
       {/* Main Content Views */}
       <main className="flex-1 relative">
-        {/* VIEW 1: LANDING PAGE */}
-        {view === 'landing' && (
+        {/* VIEW 1: LANDING PAGE & TOURNAMENT DASHBOARD */}
+        {view === 'landing' && gameMode === 'TOURNAMENT' && (
+          <TournamentDashboard
+            onSwitchToQuickAuction={() => setGameMode('QUICK_AUCTION')}
+            onEnterAuctionRoom={(roomCode) => handleJoinRoom(roomCode)}
+          />
+        )}
+
+        {view === 'landing' && gameMode === 'QUICK_AUCTION' && (
           <LandingPage
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
+            onSwitchToTournament={() => setGameMode('TOURNAMENT')}
             isLoading={isLoading}
           />
         )}
