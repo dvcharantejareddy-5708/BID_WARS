@@ -343,7 +343,8 @@ export class RoomManager {
           type: msg.tradeType,
           offeredPlayerId: msg.offeredPlayerId,
           requestedPlayerId: msg.requestedPlayerId,
-          moneyAmount: msg.moneyAmount
+          moneyAmount: msg.moneyAmount,
+          cashPayer: msg.cashPayer
         });
         if (!res.success) {
           this.sendError(ws, res.message || 'Failed to create trade request');
@@ -368,6 +369,34 @@ export class RoomManager {
         const res = room.updateTradeTimer(conn.memberId, msg.tradeTimerDuration);
         if (!res.success) {
           this.sendError(ws, res.message || 'Failed to update trade timer');
+        }
+        break;
+      }
+      case 'SAVE_PLAYING_XI': {
+        const res = room.savePlayingXI(conn.memberId, msg.teamId, msg.selection);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to save Playing XI draft');
+        }
+        break;
+      }
+      case 'CONFIRM_PLAYING_XI': {
+        const res = room.confirmPlayingXI(conn.memberId, msg.teamId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to confirm Playing XI');
+        }
+        break;
+      }
+      case 'UNLOCK_PLAYING_XI': {
+        const res = room.unlockPlayingXI(conn.memberId, msg.teamId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to unlock Playing XI');
+        }
+        break;
+      }
+      case 'CLOSE_POST_AUCTION_TRADE_WINDOW': {
+        const res = room.closePostAuctionTradeWindow(conn.memberId);
+        if (!res.success) {
+          this.sendError(ws, res.message || 'Failed to close trade window');
         }
         break;
       }

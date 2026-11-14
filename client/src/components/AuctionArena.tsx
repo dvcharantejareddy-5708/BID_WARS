@@ -65,6 +65,7 @@ interface AuctionArenaProps {
     offeredPlayerId: string;
     requestedPlayerId?: string;
     moneyAmount?: number;
+    cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM';
   }) => void;
   onRespondTrade?: (tradeId: string, action: 'ACCEPT' | 'REJECT', rejectionReason?: string) => void;
   onCancelTrade?: (tradeId: string, reason?: string) => void;

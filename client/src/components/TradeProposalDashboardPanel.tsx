@@ -157,6 +157,11 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
                   </span>
                 )}
               </div>
+              {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'OFFERING_TEAM' && (
+                <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#C8FF3D] bg-[#C8FF3D]/10 px-2 py-0.5 rounded border border-[#C8FF3D]/30">
+                  + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
+                </span>
+              )}
             </div>
             <div className="text-right shrink-0">
               <span className="font-number font-bold text-xs text-[#C8FF3D]">
@@ -174,7 +179,11 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
             <ArrowLeftRight className="w-6 h-6 stroke-[2.5]" />
           </div>
           <span className="text-[11px] font-heading font-black text-white uppercase tracking-wider">
-            {activeTrade.type === 'PLAYER_FOR_PLAYER' ? 'Player Swap' : 'Cash Purchase'}
+            {activeTrade.type === 'PLAYER_FOR_PLAYER'
+              ? 'Player Swap'
+              : activeTrade.type === 'PLAYER_PLUS_CASH'
+              ? 'Player + Cash'
+              : 'Cash Purchase'}
           </span>
           <span className="text-[10px] text-[#8F9CAE] mt-0.5">
             45s Window
@@ -196,7 +205,7 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
             </span>
           </div>
 
-          {activeTrade.type === 'PLAYER_FOR_PLAYER' && activeTrade.requestedPlayer ? (
+          {(activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'PLAYER_PLUS_CASH') && activeTrade.requestedPlayer ? (
             <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-heading font-black text-sm text-white truncate">
@@ -210,6 +219,11 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
                     </span>
                   )}
                 </div>
+                {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'RECEIVING_TEAM' && (
+                  <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#FFC93D] bg-[#FFC93D]/10 px-2 py-0.5 rounded border border-[#FFC93D]/30">
+                    + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
+                  </span>
+                )}
               </div>
               <div className="text-right shrink-0">
                 <span className="font-number font-bold text-xs text-[#7C5CFF]">
@@ -351,3 +365,4 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
     </div>
   );
 });
+

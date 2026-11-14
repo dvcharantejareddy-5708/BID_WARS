@@ -54,6 +54,9 @@ export interface SerializedRoomData {
   activeTrade?: any;
   tradeHistory?: any[];
   pausedByTrade?: boolean;
+  teamPlayingXI?: Record<string, any>;
+  postAuctionTradeStatus?: string;
+  postAuctionTradeDeadline?: number | null;
   kickedMemberIds?: string[];
   updatedAt: number;
 }

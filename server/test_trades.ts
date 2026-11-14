@@ -253,7 +253,204 @@ async function runTradeTests() {
   assert(restoredRoom.pausedByTrade === true, 'pausedByTrade preserved across reload');
 
   // Clean up
-  restoredRoom.cancelTradeRequest(aliceId, refreshTrade.trade!.id);
+  room.cancelTradeRequest(aliceId, refreshTrade.trade!.id);
+
+  // ========================================================
+  // Scenario 9: Player + Cash (Offering Team Pays Cash)
+  // ========================================================
+  console.log('\n--- Scenario 9: Player + Cash (Offering Franchise Pays Cash) ---');
+  const cskPursePreTrade9 = room.teamPurse['CSK'];
+  const rcbPursePreTrade9 = room.teamPurse['RCB'];
+  const tradeCash9 = 30000000; // ₹3 Cr
+
+  const plusCashTrade1 = room.createTradeRequest(aliceId, {
+    targetTeamId: 'RCB',
+    type: 'PLAYER_PLUS_CASH',
+    offeredPlayerId: 'p5',
+    requestedPlayerId: 'p4',
+    moneyAmount: tradeCash9,
+    cashPayer: 'OFFERING_TEAM'
+  });
+  assert(plusCashTrade1.success, 'Player + Cash trade created (CSK pays ₹3 Cr)');
+  assert(plusCashTrade1.trade?.cashPayer === 'OFFERING_TEAM', 'cashPayer set to OFFERING_TEAM');
+  assert(room.status === 'PAUSED', 'Auction paused during Player + Cash review');
+
+  // Charlie accepts
+  const acceptPlusCash1 = room.respondTradeRequest(charlieId, plusCashTrade1.trade!.id, 'ACCEPT');
+  assert(acceptPlusCash1.success, 'Player + Cash trade accepted by RCB');
+  assert(room.teamPurse['CSK'] === cskPursePreTrade9 - tradeCash9, 'CSK purse deducted by ₹3 Cr');
+  assert(room.teamPurse['RCB'] === rcbPursePreTrade9 + tradeCash9, 'RCB purse credited by ₹3 Cr');
+  assert(room.teamSquads['CSK'].some(p => p.id === 'p4'), 'CSK received player p4');
+  assert(room.teamSquads['RCB'].some(p => p.id === 'p5'), 'RCB received player p5');
+
+  // ========================================================
+  // Scenario 10: Player + Cash (Receiving Team Pays Cash)
+  // ========================================================
+  console.log('\n--- Scenario 10: Player + Cash (Receiving Franchise Pays Cash) ---');
+  const cskPursePreTrade10 = room.teamPurse['CSK'];
+  const miPursePreTrade10 = room.teamPurse['MI'];
+  const tradeCash10 = 50000000; // ₹5 Cr
+
+  const plusCashTrade2 = room.createTradeRequest(aliceId, {
+    targetTeamId: 'MI',
+    type: 'PLAYER_PLUS_CASH',
+    offeredPlayerId: 'p4',
+    requestedPlayerId: 'p1',
+    moneyAmount: tradeCash10,
+    cashPayer: 'RECEIVING_TEAM'
+  });
+  assert(plusCashTrade2.success, 'Player + Cash trade created (MI pays ₹5 Cr)');
+  assert(plusCashTrade2.trade?.cashPayer === 'RECEIVING_TEAM', 'cashPayer set to RECEIVING_TEAM');
+
+  // Bob accepts
+  const acceptPlusCash2 = room.respondTradeRequest(bobId, plusCashTrade2.trade!.id, 'ACCEPT');
+  assert(acceptPlusCash2.success, 'Player + Cash trade accepted by MI');
+  assert(room.teamPurse['CSK'] === cskPursePreTrade10 + tradeCash10, 'CSK purse credited by ₹5 Cr');
+  assert(room.teamPurse['MI'] === miPursePreTrade10 - tradeCash10, 'MI purse deducted by ₹5 Cr');
+  assert(room.teamSquads['CSK'].some(p => p.id === 'p1'), 'CSK received player p1');
+  assert(room.teamSquads['MI'].some(p => p.id === 'p4'), 'MI received player p4');
+
+  // ========================================================
+  // Scenario 11: End Auction & 10-Minute Post-Auction Window
+  // ========================================================
+  console.log('\n--- Scenario 11: End Auction & 10-Minute Post-Auction Window ---');
+  const finishRes = room.finishAuction(aliceId);
+  assert(finishRes.success, 'Top Host successfully ended auction');
+  assert(room.status === 'COMPLETED', 'Room status set to COMPLETED');
+  assert(room.postAuctionTradeStatus === 'ACTIVE', 'Post-auction trade status is ACTIVE');
+  assert(room.postAuctionTradeDeadline !== null, 'Post-auction trade deadline timestamp is set');
+  const durationRemainingMs = room.postAuctionTradeDeadline! - Date.now();
+  assert(durationRemainingMs > 590000 && durationRemainingMs <= 600000, 'Authoritative window set to exactly 10 minutes');
+
+  // Trading allowed during 10-minute post-auction window
+  const postAuctionTrade = room.createTradeRequest(aliceId, {
+    targetTeamId: 'MI',
+    type: 'PLAYER_FOR_PLAYER',
+    offeredPlayerId: 'p1',
+    requestedPlayerId: 'p4'
+  });
+  assert(postAuctionTrade.success, 'Trade successfully proposed during 10-minute post-auction window');
+  assert(room.status === 'COMPLETED', 'Status remains COMPLETED during post-auction trade review');
+
+  // Bob accepts post-auction trade
+  const postAuctionAccept = room.respondTradeRequest(bobId, postAuctionTrade.trade!.id, 'ACCEPT');
+  assert(postAuctionAccept.success, 'Post-auction trade successfully accepted');
+  assert(room.teamSquads['CSK'].some(p => p.id === 'p4'), 'CSK received p4 post-auction');
+  assert(room.teamSquads['MI'].some(p => p.id === 'p1'), 'MI received p1 post-auction');
+
+  // ========================================================
+  // Scenario 12: Playing XI Selection & IPL Rule Validations
+  // ========================================================
+  console.log('\n--- Scenario 12: Playing XI Selection & IPL Rule Validations ---');
+  // Add 12 players to CSK squad to form a complete Playing XI + Impact player
+  const cskPlayers: Player[] = [];
+  for (let i = 10; i < 22; i++) {
+    // 3 overseas (i=10,11,12) and 9 domestic
+    const isOv = i <= 12;
+    const p = createDummyPlayer(`csk_${i}`, `CSK Player ${i}`, isOv);
+    cskPlayers.push(p);
+    room.teamSquads['CSK'].push({ ...p, team_id: 'CSK' });
+  }
+
+  // Save partial draft (6 players)
+  const draftIds = cskPlayers.slice(0, 6).map(p => p.id);
+  const saveDraftRes = room.savePlayingXI(aliceId, 'CSK', {
+    playingXIIds: draftIds,
+    captainId: draftIds[0],
+    viceCaptainId: draftIds[1]
+  });
+  assert(saveDraftRes.success, 'Playing XI draft saved successfully');
+  assert(room.teamPlayingXI['CSK'].playingXIIds.length === 6, 'Draft contains 6 players');
+  assert(room.teamPlayingXI['CSK'].isConfirmed === false, 'Draft is not confirmed yet');
+
+  // Try to confirm with only 6 players (Should fail)
+  const prematureConfirm = room.confirmPlayingXI(aliceId, 'CSK');
+  assert(!prematureConfirm.success, 'Cannot confirm Playing XI with fewer than 11 players');
+
+  // Try to exceed 4 overseas players in Playing XI (Should fail)
+  const ov1 = createDummyPlayer('ov1', 'Overseas 1', true);
+  const ov2 = createDummyPlayer('ov2', 'Overseas 2', true);
+  room.teamSquads['CSK'].push({ ...ov1, team_id: 'CSK' });
+  room.teamSquads['CSK'].push({ ...ov2, team_id: 'CSK' });
+  // Currently cskPlayers[0..2] are overseas, adding ov1 and ov2 gives 5 overseas
+  const fiveOverseasXI = [cskPlayers[0].id, cskPlayers[1].id, cskPlayers[2].id, ov1.id, ov2.id, ...cskPlayers.slice(3, 9).map(p => p.id)];
+  const excessOverseasRes = room.savePlayingXI(aliceId, 'CSK', { playingXIIds: fiveOverseasXI });
+  assert(!excessOverseasRes.success, 'Playing XI rejects more than 4 overseas players');
+
+  // Form valid 11 players (3 overseas + 8 domestic), select Captain, Vice-Captain, Impact Player
+  const valid11Ids = cskPlayers.slice(0, 11).map(p => p.id);
+  const impactId = cskPlayers[11].id;
+  const captainId = valid11Ids[0];
+  const viceCaptainId = valid11Ids[1];
+
+  const validSaveRes = room.savePlayingXI(aliceId, 'CSK', {
+    playingXIIds: valid11Ids,
+    captainId,
+    viceCaptainId,
+    impactPlayerId: impactId
+  });
+  assert(validSaveRes.success, 'Valid 11 players + Captain + VC + Impact Player saved');
+
+  // Confirm Playing XI
+  const confirmRes = room.confirmPlayingXI(aliceId, 'CSK');
+  assert(confirmRes.success, 'Playing XI successfully confirmed and locked');
+  assert(room.teamPlayingXI['CSK'].isConfirmed === true, 'CSK Playing XI isConfirmed is true');
+  assert(room.teamPlayingXI['CSK'].captainId === captainId, 'Captain ID matches');
+  assert(room.teamPlayingXI['CSK'].viceCaptainId === viceCaptainId, 'Vice-Captain ID matches');
+  assert(room.teamPlayingXI['CSK'].impactPlayerId === impactId, 'Impact Player matches');
+
+  // Unauthorized team cannot edit CSK's Playing XI
+  const unauthEdit = room.savePlayingXI(bobId, 'CSK', { playingXIIds: [] });
+  assert(!unauthEdit.success, 'Unauthorized member cannot edit another team Playing XI');
+
+  // ========================================================
+  // Scenario 13: Player Traded Away Auto-Sanitizes Playing XI
+  // ========================================================
+  console.log('\n--- Scenario 13: Traded Player Auto-Sanitizes Playing XI ---');
+  // Trade away the CSK captain (captainId) to MI
+  const tradeCap = room.createTradeRequest(aliceId, {
+    targetTeamId: 'MI',
+    type: 'PLAYER_FOR_PLAYER',
+    offeredPlayerId: captainId,
+    requestedPlayerId: 'p2'
+  });
+  assert(tradeCap.success, 'Trade for Captain proposed');
+  const acceptCap = room.respondTradeRequest(bobId, tradeCap.trade!.id, 'ACCEPT');
+  assert(acceptCap.success, 'Trade for Captain accepted');
+
+  // Verify captain was safely removed from CSK Playing XI and status unlocked
+  const cskXI = room.teamPlayingXI['CSK'];
+  assert(!cskXI.playingXIIds.includes(captainId), 'Traded player automatically removed from Playing XI');
+  assert(cskXI.captainId === null, 'Captain unset after trade departure');
+  assert(cskXI.isConfirmed === false, 'Playing XI confirmation unlocked for squad adjustment');
+
+  // ========================================================
+  // Scenario 14: Close Post-Auction Trade Window
+  // ========================================================
+  console.log('\n--- Scenario 14: Close Post-Auction Window Locks Trading Permanently ---');
+  const closeWindowRes = room.closePostAuctionTradeWindow(aliceId);
+  assert(closeWindowRes.success, 'Post-auction trade window closed');
+  assert(room.postAuctionTradeStatus === 'CLOSED', 'Status set to CLOSED');
+
+  // New trade proposal must be rejected
+  const rejectedPostCloseTrade = room.createTradeRequest(aliceId, {
+    targetTeamId: 'MI',
+    type: 'PLAYER_FOR_PLAYER',
+    offeredPlayerId: 'p4',
+    requestedPlayerId: 'p1'
+  });
+  assert(!rejectedPostCloseTrade.success, 'Trades blocked permanently once 10-minute window closes');
+
+  // ========================================================
+  // Scenario 15: Full Storage Persistence on Reconnect
+  // ========================================================
+  console.log('\n--- Scenario 15: Full Storage Persistence Across Reload ---');
+  const serialized = room.toJSON();
+  const loadedRoom = GameRoom.fromJSON(serialized, () => {});
+  assert(loadedRoom.status === 'COMPLETED', 'Status COMPLETED preserved');
+  assert(loadedRoom.postAuctionTradeStatus === 'CLOSED', 'postAuctionTradeStatus CLOSED preserved');
+  assert(loadedRoom.teamPlayingXI['CSK'] !== undefined, 'CSK Playing XI preserved');
+  assert(loadedRoom.teamPlayingXI['CSK'].playingXIIds.length === 10, 'Playing XI count (10) preserved');
 
   console.log(`\n=== TEST SUITE COMPLETED: ${passed} PASSED, ${failed} FAILED ===\n`);
   if (failed > 0) process.exit(1);

@@ -332,8 +332,18 @@ export interface BidLogEntry {
   eventMessage?: string;
 }
 
-export type TradeType = 'PLAYER_FOR_PLAYER' | 'PLAYER_FOR_MONEY';
+export type TradeType = 'PLAYER_FOR_PLAYER' | 'PLAYER_FOR_MONEY' | 'PLAYER_PLUS_CASH';
 export type TradeStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
+
+export interface PlayingXISelection {
+  teamId: IPLTeamId;
+  playingXIIds: string[]; // Up to 11 player IDs (exactly 11 when confirmed)
+  captainId: string | null;
+  viceCaptainId: string | null;
+  impactPlayerId: string | null;
+  isConfirmed: boolean;
+  confirmedAt?: number;
+}
 
 export interface TradeRequest {
   id: string;
@@ -348,6 +358,7 @@ export interface TradeRequest {
   offeredPlayer: Player;
   requestedPlayer?: Player;
   moneyAmount?: number;
+  cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM' | null;
   createdAt: number;
   expiresAt: number;
   resolvedAt?: number;
@@ -365,6 +376,7 @@ export interface RoomState {
   teamPurse: Record<IPLTeamId, number>;
   teamSquads: Record<IPLTeamId, Player[]>;
   teamStats: Record<IPLTeamId, TeamStats>;
+  teamPlayingXI: Record<IPLTeamId, PlayingXISelection>;
   currentLotIndex: number;
   currentLot: AuctionLot | null;
   deadlineTimestamp: number | null;
@@ -385,6 +397,8 @@ export interface RoomState {
   activeTrade?: TradeRequest | null;
   tradeHistory: TradeRequest[];
   pausedByTrade?: boolean;
+  postAuctionTradeStatus?: 'NOT_STARTED' | 'ACTIVE' | 'CLOSED';
+  postAuctionTradeDeadline?: number | null;
 }
 
 // Client to Server Message Events
@@ -407,9 +421,13 @@ export type ClientMessage =
   | { type: 'KICK_MEMBER'; targetMemberId: string }
   | { type: 'UPDATE_TIMER'; timerDuration: number }
   | { type: 'UPDATE_TRADE_TIMER'; tradeTimerDuration: number }
-  | { type: 'CREATE_TRADE_REQUEST'; toTeamId: IPLTeamId; tradeType: TradeType; offeredPlayerId: string; requestedPlayerId?: string; moneyAmount?: number; durationSec?: number }
+  | { type: 'CREATE_TRADE_REQUEST'; toTeamId: IPLTeamId; tradeType: TradeType; offeredPlayerId: string; requestedPlayerId?: string; moneyAmount?: number; cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM'; durationSec?: number }
   | { type: 'RESPOND_TRADE_REQUEST'; tradeId: string; action: 'ACCEPT' | 'REJECT'; rejectionReason?: string }
   | { type: 'CANCEL_TRADE_REQUEST'; tradeId: string; reason?: string }
+  | { type: 'SAVE_PLAYING_XI'; teamId: IPLTeamId; selection: Partial<PlayingXISelection> }
+  | { type: 'CONFIRM_PLAYING_XI'; teamId: IPLTeamId }
+  | { type: 'UNLOCK_PLAYING_XI'; teamId: IPLTeamId }
+  | { type: 'CLOSE_POST_AUCTION_TRADE_WINDOW' }
   | { type: 'SEND_CHAT_MESSAGE'; text: string }
   | { type: 'PAUSE_AUCTION' }
   | { type: 'RESUME_AUCTION' }
@@ -434,6 +452,9 @@ export type ServerMessage =
   | { type: 'AUCTION_RESUMED'; deadlineTimestamp: number }
   | { type: 'AUCTION_COMPLETED'; summary: Record<IPLTeamId, TeamStats> }
   | { type: 'TRADE_UPDATE'; trade: TradeRequest }
+  | { type: 'PLAYING_XI_UPDATED'; teamId: IPLTeamId; selection: PlayingXISelection }
+  | { type: 'POST_AUCTION_TRADE_WINDOW_STARTED'; deadlineTimestamp: number }
+  | { type: 'POST_AUCTION_TRADE_WINDOW_CLOSED' }
   | { type: 'KICKED'; message: string }
   | { type: 'ERROR'; message: string; code?: string }
   | { type: 'PONG' };

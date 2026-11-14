@@ -32,6 +32,7 @@ interface TradeModalProps {
     offeredPlayerId: string;
     requestedPlayerId?: string;
     moneyAmount?: number;
+    cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM';
   }) => void;
   onRespondTrade: (tradeId: string, action: 'ACCEPT' | 'REJECT', rejectionReason?: string) => void;
   onCancelTrade: (tradeId: string, reason?: string) => void;
@@ -71,6 +72,7 @@ export const TradeModal = React.memo<TradeModalProps>(({
   const [tradeType, setTradeType] = useState<TradeType>('PLAYER_FOR_PLAYER');
   const [selectedOfferedPlayerId, setSelectedOfferedPlayerId] = useState<string | null>(null);
   const [selectedRequestedPlayerId, setSelectedRequestedPlayerId] = useState<string | null>(null);
+  const [cashPayer, setCashPayer] = useState<'OFFERING_TEAM' | 'RECEIVING_TEAM'>('OFFERING_TEAM');
   const [moneyAmountCr, setMoneyAmountCr] = useState<number>(5); // In Crores
   const [customMoneyInput, setCustomMoneyInput] = useState<string>('5');
   const [rejectReasonInput, setRejectReasonInput] = useState<string>('');
@@ -195,6 +197,53 @@ export const TradeModal = React.memo<TradeModalProps>(({
         myPurseAfter: myPurse,
         targetPurseAfter: targetPurse
       };
+    } else if (tradeType === 'PLAYER_PLUS_CASH') {
+      if (!requestedPlayer) return { isValid: false, message: 'Please select a player to request from the target franchise.' };
+      if (moneyAmountInr <= 0) return { isValid: false, message: 'Trade cash amount must be greater than ₹0.' };
+
+      // Check overseas impact
+      const myNewOverseas = mySquad.filter(p => p.is_overseas && p.id !== offeredPlayer.id).length + (requestedPlayer.is_overseas ? 1 : 0);
+      if (myNewOverseas > 8) {
+        return { isValid: false, message: `Trade would cause your franchise to exceed the 8 overseas player limit (${myNewOverseas}/8).` };
+      }
+
+      const targetNewOverseas = targetSquad.filter(p => p.is_overseas && p.id !== requestedPlayer.id).length + (offeredPlayer.is_overseas ? 1 : 0);
+      if (targetNewOverseas > 8) {
+        return { isValid: false, message: `Trade would cause ${IPL_FRANCHISES[selectedTargetTeam].name} to exceed the 8 overseas player limit (${targetNewOverseas}/8).` };
+      }
+
+      let myNewPurse = myPurse;
+      let targetNewPurse = targetPurse;
+
+      if (cashPayer === 'OFFERING_TEAM') {
+        if (myPurse < moneyAmountInr) {
+          return { 
+            isValid: false, 
+            message: `Your franchise has insufficient purse (₹${(myPurse / 10000000).toFixed(2)} Cr) to offer ₹${(moneyAmountInr / 10000000).toFixed(2)} Cr cash.` 
+          };
+        }
+        myNewPurse = myPurse - moneyAmountInr;
+        targetNewPurse = targetPurse + moneyAmountInr;
+      } else {
+        if (targetPurse < moneyAmountInr) {
+          return { 
+            isValid: false, 
+            message: `${IPL_FRANCHISES[selectedTargetTeam].name} has insufficient purse (₹${(targetPurse / 10000000).toFixed(2)} Cr) to pay requested ₹${(moneyAmountInr / 10000000).toFixed(2)} Cr cash.` 
+          };
+        }
+        myNewPurse = myPurse + moneyAmountInr;
+        targetNewPurse = targetPurse - moneyAmountInr;
+      }
+
+      return {
+        isValid: true,
+        myOverseasAfter: myNewOverseas,
+        targetOverseasAfter: targetNewOverseas,
+        mySquadCountAfter: mySquad.length,
+        targetSquadCountAfter: targetSquad.length,
+        myPurseAfter: myNewPurse,
+        targetPurseAfter: targetNewPurse
+      };
     } else {
       // PLAYER_FOR_MONEY
       if (moneyAmountInr <= 0) {
@@ -230,6 +279,7 @@ export const TradeModal = React.memo<TradeModalProps>(({
     offeredPlayer,
     requestedPlayer,
     tradeType,
+    cashPayer,
     mySquad,
     targetSquad,
     moneyAmountInr,
@@ -248,8 +298,9 @@ export const TradeModal = React.memo<TradeModalProps>(({
       toTeamId: selectedTargetTeam,
       tradeType,
       offeredPlayerId: offeredPlayer.id,
-      requestedPlayerId: tradeType === 'PLAYER_FOR_PLAYER' ? requestedPlayer?.id : undefined,
-      moneyAmount: tradeType === 'PLAYER_FOR_MONEY' ? moneyAmountInr : undefined
+      requestedPlayerId: (tradeType === 'PLAYER_FOR_PLAYER' || tradeType === 'PLAYER_PLUS_CASH') ? requestedPlayer?.id : undefined,
+      moneyAmount: (tradeType === 'PLAYER_FOR_MONEY' || tradeType === 'PLAYER_PLUS_CASH') ? moneyAmountInr : undefined,
+      cashPayer: tradeType === 'PLAYER_PLUS_CASH' ? cashPayer : undefined
     });
     setTimeout(() => setIsSubmitting(false), 1500);
   };
@@ -445,38 +496,55 @@ export const TradeModal = React.memo<TradeModalProps>(({
                       <ArrowLeftRight className="w-4 h-4" />
                       <span>2. Choose Trade Type</span>
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <button
                         onClick={() => setTradeType('PLAYER_FOR_PLAYER')}
-                        className={`p-4 rounded-2xl border text-left transition-all flex items-center gap-3.5 ${
+                        className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                           tradeType === 'PLAYER_FOR_PLAYER'
                             ? 'bg-[#7C5CFF]/20 border-[#C8FF3D] shadow-[0_0_15px_rgba(200,255,61,0.2)]'
                             : 'bg-[#0A0B14]/60 border-[#1E2246] hover:bg-[#1E2246]/40'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D]">
-                          <ArrowLeftRight className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] shrink-0">
+                          <ArrowLeftRight className="w-4 h-4" />
                         </div>
-                        <div>
-                          <p className="font-heading font-black text-sm text-white">Player for Player</p>
-                          <p className="text-[11px] text-[#8F9CAE]">Exchange one of your players for one of theirs.</p>
+                        <div className="min-w-0">
+                          <p className="font-heading font-black text-xs text-white truncate">Player for Player</p>
+                          <p className="text-[10px] text-[#8F9CAE] truncate">Direct player swap.</p>
                         </div>
                       </button>
 
                       <button
                         onClick={() => setTradeType('PLAYER_FOR_MONEY')}
-                        className={`p-4 rounded-2xl border text-left transition-all flex items-center gap-3.5 ${
+                        className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
                           tradeType === 'PLAYER_FOR_MONEY'
                             ? 'bg-[#7C5CFF]/20 border-[#C8FF3D] shadow-[0_0_15px_rgba(200,255,61,0.2)]'
                             : 'bg-[#0A0B14]/60 border-[#1E2246] hover:bg-[#1E2246]/40'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-xl bg-[#0A0B14] border border-[#FFC93D]/30 flex items-center justify-center text-[#FFC93D]">
-                          <Coins className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#FFC93D]/30 flex items-center justify-center text-[#FFC93D] shrink-0">
+                          <Coins className="w-4 h-4" />
                         </div>
-                        <div>
-                          <p className="font-heading font-black text-sm text-white">Player for Money</p>
-                          <p className="text-[11px] text-[#8F9CAE]">Sell a player to the target franchise for purse funds.</p>
+                        <div className="min-w-0">
+                          <p className="font-heading font-black text-xs text-white truncate">Player for Money</p>
+                          <p className="text-[10px] text-[#8F9CAE] truncate">Sell player for purse.</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setTradeType('PLAYER_PLUS_CASH')}
+                        className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
+                          tradeType === 'PLAYER_PLUS_CASH'
+                            ? 'bg-[#7C5CFF]/20 border-[#C8FF3D] shadow-[0_0_15px_rgba(200,255,61,0.2)]'
+                            : 'bg-[#0A0B14]/60 border-[#1E2246] hover:bg-[#1E2246]/40'
+                        }`}
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#7C5CFF]/40 flex items-center justify-center text-[#C8FF3D] shrink-0">
+                          <span className="font-number font-black text-xs text-[#C8FF3D]">+₹</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-black text-xs text-white truncate">Player + Cash</p>
+                          <p className="text-[10px] text-[#8F9CAE] truncate">Swap player + cash.</p>
                         </div>
                       </button>
                     </div>
@@ -539,7 +607,7 @@ export const TradeModal = React.memo<TradeModalProps>(({
                         )}
                       </div>
 
-                      {tradeType === 'PLAYER_FOR_PLAYER' ? (
+                      {tradeType === 'PLAYER_FOR_PLAYER' || tradeType === 'PLAYER_PLUS_CASH' ? (
                         targetSquad.length === 0 ? (
                           <div className="text-center py-8 text-xs text-[#8F9CAE]">
                             Target franchise does not own any players to trade.
@@ -609,6 +677,82 @@ export const TradeModal = React.memo<TradeModalProps>(({
                       )}
                     </div>
                   </div>
+
+                  {/* Cash Balancer for PLAYER_PLUS_CASH */}
+                  {tradeType === 'PLAYER_PLUS_CASH' && (
+                    <div className="bg-[#0A0B14]/90 border border-[#7C5CFF]/40 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                      <div className="flex items-center justify-between pb-2 border-b border-[#1E2246]">
+                        <span className="text-xs font-heading font-extrabold text-[#FFC93D] uppercase tracking-wider flex items-center gap-1.5">
+                          <Coins className="w-4 h-4 text-[#FFC93D]" />
+                          <span>Cash Component Direction & Amount</span>
+                        </span>
+                        <span className="text-[10px] text-[#8F9CAE]">
+                          My Purse: <strong className="text-[#C8FF3D]">₹{(myPurse / 10000000).toFixed(2)} Cr</strong> · Target Purse: <strong className="text-white">₹{(targetPurse / 10000000).toFixed(2)} Cr</strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCashPayer('OFFERING_TEAM')}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            cashPayer === 'OFFERING_TEAM'
+                              ? 'bg-[#C8FF3D]/15 border-[#C8FF3D] text-white shadow-[0_0_10px_rgba(200,255,61,0.2)]'
+                              : 'bg-[#12142A] border-[#1E2246] text-[#8F9CAE] hover:border-[#282E5C]'
+                          }`}
+                        >
+                          <p className="font-heading font-black text-xs text-white">We Offer Cash</p>
+                          <p className="text-[10px] text-[#8F9CAE] mt-0.5">
+                            My franchise gives {offeredPlayer?.name || 'Player'} + ₹{customMoneyInput} Cr cash.
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCashPayer('RECEIVING_TEAM')}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            cashPayer === 'RECEIVING_TEAM'
+                              ? 'bg-[#7C5CFF]/20 border-[#7C5CFF] text-white shadow-[0_0_10px_rgba(124,92,255,0.2)]'
+                              : 'bg-[#12142A] border-[#1E2246] text-[#8F9CAE] hover:border-[#282E5C]'
+                          }`}
+                        >
+                          <p className="font-heading font-black text-xs text-white">We Request Cash</p>
+                          <p className="text-[10px] text-[#8F9CAE] mt-0.5">
+                            Target franchise pays ₹{customMoneyInput} Cr cash along with {requestedPlayer?.name || 'Player'}.
+                          </p>
+                        </button>
+                      </div>
+
+                      <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                        <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                          <span className="font-heading font-black text-white text-base">₹</span>
+                          <input
+                            type="number"
+                            min="0.2"
+                            max="120"
+                            step="0.5"
+                            value={customMoneyInput}
+                            onChange={e => setCustomMoneyInput(e.target.value)}
+                            className="bg-[#12142A] border border-[#23274D] rounded-xl px-3 py-2 text-white font-number text-sm font-bold w-full focus:outline-none focus:border-[#C8FF3D]"
+                          />
+                          <span className="font-heading font-bold text-white text-xs">Cr</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
+                          {[1, 2, 3, 5, 10].map(amt => (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setCustomMoneyInput(String(amt))}
+                              className="px-2.5 py-1 rounded-lg bg-[#12142A] hover:bg-[#1E2246] border border-[#23274D] text-[10px] font-number font-bold text-white"
+                            >
+                              +₹{amt} Cr
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 4. Live Impact Comparison Preview Card */}
                   <div className="bg-[#0A0B14] border border-[#23274D] rounded-2xl p-4 space-y-3">
@@ -764,7 +908,11 @@ export const TradeModal = React.memo<TradeModalProps>(({
                     <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#1E2246]">
                       <div className="flex items-center gap-2">
                         <span className="bg-[#7C5CFF]/20 text-[#7C5CFF] text-[10px] font-heading font-black px-2.5 py-1 rounded-lg border border-[#7C5CFF]/40 uppercase tracking-wider">
-                          {activeTrade.type === 'PLAYER_FOR_PLAYER' ? 'Player Exchange' : 'Player For Cash'}
+                          {activeTrade.type === 'PLAYER_FOR_PLAYER'
+                            ? 'Player Exchange'
+                            : activeTrade.type === 'PLAYER_PLUS_CASH'
+                            ? 'Player + Cash'
+                            : 'Player For Cash'}
                         </span>
                         <span className="text-xs text-[#8F9CAE]">
                           Proposed by <strong className="text-white">{activeTrade.fromMemberName}</strong> ({activeTrade.fromTeamId})
@@ -783,13 +931,22 @@ export const TradeModal = React.memo<TradeModalProps>(({
                           <TeamLogo teamId={activeTrade.fromTeamId} className="w-6 h-6" />
                           <div>
                             <span className="font-heading font-black text-xs text-white">{activeTrade.fromTeamId}</span>
-                            <p className="text-[10px] text-[#8F9CAE]">Transfers player:</p>
+                            <p className="text-[10px] text-[#8F9CAE]">
+                              {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'OFFERING_TEAM'
+                                ? `Transfers player + ₹${((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr cash:`
+                                : 'Transfers player:'}
+                            </p>
                           </div>
                         </div>
                         <div className="p-3 bg-[#0A0B14] rounded-lg border border-[#23274D] flex items-center justify-between">
                           <div>
                             <p className="font-heading font-black text-sm text-white">{activeTrade.offeredPlayer.name}</p>
                             <p className="text-[10px] text-[#8F9CAE]">{activeTrade.offeredPlayer.category} · {activeTrade.offeredPlayer.is_overseas ? 'Overseas' : 'Domestic'}</p>
+                            {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'OFFERING_TEAM' && (
+                              <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#C8FF3D] bg-[#C8FF3D]/10 px-2 py-0.5 rounded border border-[#C8FF3D]/30">
+                                + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
+                              </span>
+                            )}
                           </div>
                           <span className="font-number font-bold text-xs text-[#C8FF3D]">
                             {activeTrade.offeredPlayer.sold_price_inr ? `₹${(activeTrade.offeredPlayer.sold_price_inr / 10000000).toFixed(2)} Cr` : activeTrade.offeredPlayer.base_price_display}
@@ -804,15 +961,26 @@ export const TradeModal = React.memo<TradeModalProps>(({
                           <div>
                             <span className="font-heading font-black text-xs text-white">{activeTrade.toTeamId}</span>
                             <p className="text-[10px] text-[#8F9CAE]">
-                              {activeTrade.type === 'PLAYER_FOR_PLAYER' ? 'Transfers player:' : 'Transfers purse credits:'}
+                              {activeTrade.type === 'PLAYER_FOR_PLAYER'
+                                ? 'Transfers player:'
+                                : activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'RECEIVING_TEAM'
+                                ? `Transfers player + ₹${((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr cash:`
+                                : activeTrade.type === 'PLAYER_PLUS_CASH'
+                                ? 'Transfers player:'
+                                : 'Transfers purse credits:'}
                             </p>
                           </div>
                         </div>
-                        {activeTrade.type === 'PLAYER_FOR_PLAYER' && activeTrade.requestedPlayer ? (
+                        {(activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'PLAYER_PLUS_CASH') && activeTrade.requestedPlayer ? (
                           <div className="p-3 bg-[#0A0B14] rounded-lg border border-[#23274D] flex items-center justify-between">
                             <div>
                               <p className="font-heading font-black text-sm text-white">{activeTrade.requestedPlayer.name}</p>
                               <p className="text-[10px] text-[#8F9CAE]">{activeTrade.requestedPlayer.category} · {activeTrade.requestedPlayer.is_overseas ? 'Overseas' : 'Domestic'}</p>
+                              {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'RECEIVING_TEAM' && (
+                                <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#FFC93D] bg-[#FFC93D]/10 px-2 py-0.5 rounded border border-[#FFC93D]/30">
+                                  + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
+                                </span>
+                              )}
                             </div>
                             <span className="font-number font-bold text-xs text-[#7C5CFF]">
                               {activeTrade.requestedPlayer.sold_price_inr ? `₹${(activeTrade.requestedPlayer.sold_price_inr / 10000000).toFixed(2)} Cr` : activeTrade.requestedPlayer.base_price_display}
@@ -965,13 +1133,19 @@ export const TradeModal = React.memo<TradeModalProps>(({
                             </span>
                             <span className="text-[#62658A]">·</span>
                             <span className="text-[11px] text-[#8F9CAE]">
-                              {tr.type === 'PLAYER_FOR_PLAYER' ? 'Player Swap' : 'Cash Sale'}
+                              {tr.type === 'PLAYER_FOR_PLAYER'
+                                ? 'Player Swap'
+                                : tr.type === 'PLAYER_PLUS_CASH'
+                                ? 'Player + Cash'
+                                : 'Cash Sale'}
                             </span>
                           </div>
 
                           <p className="text-[11px] text-[#C8FF3D]">
                             {tr.type === 'PLAYER_FOR_PLAYER'
                               ? `${tr.offeredPlayer.name} ⮂ ${tr.requestedPlayer?.name}`
+                              : tr.type === 'PLAYER_PLUS_CASH'
+                              ? `${tr.offeredPlayer.name} ⮂ ${tr.requestedPlayer?.name} (+ ₹${((tr.moneyAmount || 0) / 10000000).toFixed(2)} Cr ${tr.cashPayer === 'OFFERING_TEAM' ? tr.fromTeamId : tr.toTeamId})`
                               : `${tr.offeredPlayer.name} for ₹${((tr.moneyAmount || 0) / 10000000).toFixed(2)} Cr`}
                           </p>
 

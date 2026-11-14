@@ -29,10 +29,14 @@ export class GameRoom {
     activeTrade = null;
     tradeHistory = [];
     pausedByTrade = false;
+    teamPlayingXI = {};
+    postAuctionTradeStatus = 'NOT_STARTED';
+    postAuctionTradeDeadline = null;
     timerInterval = null;
     botTimeouts = [];
     lotTransitionTimeout = null;
     tradeTimeout = null;
+    postAuctionTradeTimeout = null;
     wasAuctionActiveBeforeTrade = false;
     broadcastCallback;
     isProcessingBid = false;
@@ -66,11 +70,19 @@ export class GameRoom {
             allowDuplicateTeams: initialSettings.allowDuplicateTeams || false,
             tradeTimerDuration: initialSettings.tradeTimerDuration || 45
         };
-        // Initialize 10 franchise purses and squads
+        // Initialize 10 franchise purses, squads, and Playing XI
         const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
         for (const team of allTeams) {
             this.teamPurse[team] = this.settings.startingPurse;
             this.teamSquads[team] = [];
+            this.teamPlayingXI[team] = {
+                teamId: team,
+                playingXIIds: [],
+                captainId: null,
+                viceCaptainId: null,
+                impactPlayerId: null,
+                isConfirmed: false
+            };
         }
         // Create host member
         const hostId = `mem_${Math.random().toString(36).substring(2, 9)}`;
@@ -906,10 +918,24 @@ export class GameRoom {
             return { success: false, message: 'Only the host can restart the auction' };
         }
         this.clearAllTimers();
+        if (this.postAuctionTradeTimeout) {
+            clearTimeout(this.postAuctionTradeTimeout);
+            this.postAuctionTradeTimeout = null;
+        }
+        this.postAuctionTradeStatus = 'NOT_STARTED';
+        this.postAuctionTradeDeadline = null;
         const allTeams = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
         for (const team of allTeams) {
             this.teamPurse[team] = this.settings.startingPurse;
             this.teamSquads[team] = [];
+            this.teamPlayingXI[team] = {
+                teamId: team,
+                playingXIIds: [],
+                captainId: null,
+                viceCaptainId: null,
+                impactPlayerId: null,
+                isConfirmed: false
+            };
         }
         this.status = 'LOBBY';
         this.currentLotIndex = 0;
@@ -960,8 +986,39 @@ export class GameRoom {
         this.announcementPhase = 'NONE';
         this.announcementLotNumber = null;
         this.currentResultId = null;
-        this.addAuditLog('AUCTION_COMPLETED', 'The auction has concluded!', 'Host');
-        this.broadcastState({ type: 'AUCTION_COMPLETED', summary: this.getTeamSummary() });
+        // Start authoritative 10-minute post-auction trade window
+        this.postAuctionTradeStatus = 'ACTIVE';
+        this.postAuctionTradeDeadline = Date.now() + 600000; // Exactly 10 minutes (600,000 ms)
+        if (this.postAuctionTradeTimeout) {
+            clearTimeout(this.postAuctionTradeTimeout);
+        }
+        this.postAuctionTradeTimeout = setTimeout(() => {
+            this.closePostAuctionTradeWindow();
+        }, 600000);
+        this.addAuditLog('AUCTION_COMPLETED', 'The auction has concluded! 10-Minute Post-Auction Trade Window is now OPEN.', 'Host');
+        this.broadcastState({
+            type: 'AUCTION_COMPLETED',
+            summary: this.getTeamSummary(),
+            postAuctionTradeDeadline: this.postAuctionTradeDeadline
+        });
+        return { success: true };
+    }
+    closePostAuctionTradeWindow(memberId) {
+        if (memberId && memberId !== this.hostId) {
+            return { success: false, message: 'Only the top host can close the trade window early.' };
+        }
+        if (this.postAuctionTradeTimeout) {
+            clearTimeout(this.postAuctionTradeTimeout);
+            this.postAuctionTradeTimeout = null;
+        }
+        this.postAuctionTradeStatus = 'CLOSED';
+        this.postAuctionTradeDeadline = null;
+        // Expire any active trade that was pending when the 10-minute window closed
+        if (this.activeTrade && this.activeTrade.status === 'PENDING') {
+            this.expireTradeRequest(this.activeTrade.id);
+        }
+        this.addAuditLog('POST_AUCTION_TRADE_CLOSED', 'The 10-Minute Post-Auction Trade Window has officially CLOSED. Final squads and Playing XIs locked.', 'System');
+        this.broadcastState({ type: 'POST_AUCTION_TRADE_WINDOW_CLOSED' });
         return { success: true };
     }
     /**
@@ -1427,6 +1484,17 @@ export class GameRoom {
      * LIVE PLAYER TRADING SYSTEM
      */
     createTradeRequest(memberId, payload) {
+        if (this.status === 'COMPLETED') {
+            if (this.postAuctionTradeStatus === 'CLOSED') {
+                return { success: false, message: 'The 10-minute post-auction trading window has permanently closed.' };
+            }
+            if (this.postAuctionTradeStatus !== 'ACTIVE') {
+                return { success: false, message: 'Trading window is not active.' };
+            }
+        }
+        else if (this.status !== 'AUCTION' && this.status !== 'PAUSED') {
+            return { success: false, message: 'Trades can only be initiated during an active auction or the post-auction trading window.' };
+        }
         const sender = this.members.get(memberId);
         if (!sender)
             return { success: false, message: 'Participant not found in room.' };
@@ -1447,7 +1515,7 @@ export class GameRoom {
         }
         // Check if offered player is currently being bid on in the active lot
         const currentLot = this.lots[this.currentLotIndex];
-        if (currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === offeredPlayer.id) {
+        if (this.status === 'AUCTION' && currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === offeredPlayer.id) {
             return { success: false, message: 'Cannot trade a player currently being auctioned in the live arena.' };
         }
         // Find manager for target franchise
@@ -1455,6 +1523,7 @@ export class GameRoom {
         const toSquad = this.teamSquads[payload.targetTeamId] || [];
         let requestedPlayer = undefined;
         let moneyAmount = undefined;
+        let cashPayer = null;
         if (payload.type === 'PLAYER_FOR_PLAYER') {
             if (!payload.requestedPlayerId) {
                 return { success: false, message: 'You must specify which player you want in exchange.' };
@@ -1463,7 +1532,7 @@ export class GameRoom {
             if (!requestedPlayer) {
                 return { success: false, message: 'The requested player is not in the target franchise squad.' };
             }
-            if (currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === requestedPlayer.id) {
+            if (this.status === 'AUCTION' && currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === requestedPlayer.id) {
                 return { success: false, message: 'Cannot trade for a player currently being auctioned in the live arena.' };
             }
             // Check overseas limits (max 8)
@@ -1499,6 +1568,51 @@ export class GameRoom {
                 }
             }
         }
+        else if (payload.type === 'PLAYER_PLUS_CASH') {
+            if (!payload.requestedPlayerId) {
+                return { success: false, message: 'You must specify which player you want in exchange.' };
+            }
+            requestedPlayer = toSquad.find(p => p.id === payload.requestedPlayerId);
+            if (!requestedPlayer) {
+                return { success: false, message: 'The requested player is not in the target franchise squad.' };
+            }
+            if (this.status === 'AUCTION' && currentLot && currentLot.status === 'IN_PROGRESS' && currentLot.player.id === requestedPlayer.id) {
+                return { success: false, message: 'Cannot trade for a player currently being auctioned in the live arena.' };
+            }
+            const amount = payload.moneyAmount || 0;
+            if (amount <= 0) {
+                return { success: false, message: 'Trade cash amount must be greater than ₹0.' };
+            }
+            moneyAmount = amount;
+            cashPayer = payload.cashPayer || 'OFFERING_TEAM';
+            if (cashPayer === 'OFFERING_TEAM') {
+                const senderPurse = this.teamPurse[fromTeamId] || 0;
+                if (senderPurse < amount) {
+                    return {
+                        success: false,
+                        message: `Your franchise has insufficient purse (₹${(senderPurse / 10000000).toFixed(2)} Cr) to pay the cash amount of ₹${(amount / 10000000).toFixed(2)} Cr.`
+                    };
+                }
+            }
+            else {
+                const targetPurse = this.teamPurse[payload.targetTeamId] || 0;
+                if (targetPurse < amount) {
+                    return {
+                        success: false,
+                        message: `Target franchise has insufficient purse (₹${(targetPurse / 10000000).toFixed(2)} Cr) to pay requested cash of ₹${(amount / 10000000).toFixed(2)} Cr.`
+                    };
+                }
+            }
+            // Check overseas limits (max 8)
+            const senderOverseas = fromSquad.filter(p => p.is_overseas && p.id !== offeredPlayer.id).length + (requestedPlayer.is_overseas ? 1 : 0);
+            if (senderOverseas > 8) {
+                return { success: false, message: 'This trade would exceed your overseas limit (maximum 8 overseas players allowed).' };
+            }
+            const targetOverseas = toSquad.filter(p => p.is_overseas && p.id !== requestedPlayer.id).length + (offeredPlayer.is_overseas ? 1 : 0);
+            if (targetOverseas > 8) {
+                return { success: false, message: 'This trade would cause the recipient franchise to exceed the 8 overseas player limit.' };
+            }
+        }
         else {
             return { success: false, message: 'Invalid trade type.' };
         }
@@ -1518,11 +1632,12 @@ export class GameRoom {
             offeredPlayer: { ...offeredPlayer },
             requestedPlayer: requestedPlayer ? { ...requestedPlayer } : undefined,
             moneyAmount,
+            cashPayer,
             createdAt: now,
             expiresAt: now + (duration * 1000)
         };
         this.activeTrade = trade;
-        // AUTOMATIC AUCTION PAUSE ON TRADE PROPOSAL
+        // AUTOMATIC AUCTION PAUSE ON TRADE PROPOSAL (only if live auction was running)
         if (this.status === 'AUCTION') {
             if (this.deadlineTimestamp) {
                 this.pauseRemainingMs = Math.max(0, this.deadlineTimestamp - Date.now());
@@ -1544,9 +1659,17 @@ export class GameRoom {
         this.tradeTimeout = setTimeout(() => {
             this.expireTradeRequest(trade.id);
         }, duration * 1000);
-        const tradeDesc = trade.type === 'PLAYER_FOR_PLAYER'
-            ? `${sender.nickname} (${fromTeamId}) proposed trading ${trade.offeredPlayer.name} for ${trade.requestedPlayer?.name} with ${trade.toMemberName} (${trade.toTeamId})`
-            : `${sender.nickname} (${fromTeamId}) proposed selling ${trade.offeredPlayer.name} to ${trade.toMemberName} (${trade.toTeamId}) for ₹${((trade.moneyAmount || 0) / 10000000).toFixed(2)} Cr`;
+        let tradeDesc = '';
+        if (trade.type === 'PLAYER_FOR_PLAYER') {
+            tradeDesc = `${sender.nickname} (${fromTeamId}) proposed trading ${trade.offeredPlayer.name} for ${trade.requestedPlayer?.name} with ${trade.toMemberName} (${trade.toTeamId})`;
+        }
+        else if (trade.type === 'PLAYER_FOR_MONEY') {
+            tradeDesc = `${sender.nickname} (${fromTeamId}) proposed selling ${trade.offeredPlayer.name} to ${trade.toMemberName} (${trade.toTeamId}) for ₹${((trade.moneyAmount || 0) / 10000000).toFixed(2)} Cr`;
+        }
+        else {
+            const payerName = trade.cashPayer === 'OFFERING_TEAM' ? fromTeamId : trade.toTeamId;
+            tradeDesc = `${sender.nickname} (${fromTeamId}) proposed trading ${trade.offeredPlayer.name} for ${trade.requestedPlayer?.name} with ₹${((trade.moneyAmount || 0) / 10000000).toFixed(2)} Cr cash paid by ${payerName}`;
+        }
         this.addAuditLog('TRADE_PROPOSED', tradeDesc, sender.nickname);
         this.addBidLog({
             type: 'EVENT',
@@ -1640,6 +1763,8 @@ export class GameRoom {
             const updatedRequested = { ...pRequested, team_id: fromTeamId };
             this.teamSquads[toTeamId].push(updatedOffered);
             this.teamSquads[fromTeamId].push(updatedRequested);
+            this.sanitizePlayingXIAfterPlayerDeparture(fromTeamId, pOffered.id);
+            this.sanitizePlayingXIAfterPlayerDeparture(toTeamId, pRequested.id);
         }
         else if (this.activeTrade.type === 'PLAYER_FOR_MONEY') {
             const cost = this.activeTrade.moneyAmount || 0;
@@ -1659,6 +1784,61 @@ export class GameRoom {
             this.teamSquads[toTeamId].push(updatedOffered);
             this.teamPurse[toTeamId] -= cost;
             this.teamPurse[fromTeamId] += cost;
+            this.sanitizePlayingXIAfterPlayerDeparture(fromTeamId, pOffered.id);
+        }
+        else if (this.activeTrade.type === 'PLAYER_PLUS_CASH') {
+            const pRequested = toSquad.find(p => p.id === this.activeTrade.requestedPlayer?.id);
+            if (!pRequested) {
+                this.activeTrade.status = 'REJECTED';
+                this.activeTrade.rejectionReason = 'Requested player is no longer in recipient team squad';
+                this.tradeHistory.unshift({ ...this.activeTrade });
+                const resolved = { ...this.activeTrade };
+                this.activeTrade = null;
+                this.resumeAuctionFromTrade('Trade cancelled due to invalid squad state.');
+                this.broadcastState({ type: 'TRADE_UPDATE', trade: resolved, eventAction: 'REJECTED' });
+                return { success: false, message: 'Requested player is no longer in recipient team squad.' };
+            }
+            const cost = this.activeTrade.moneyAmount || 0;
+            const payer = this.activeTrade.cashPayer || 'OFFERING_TEAM';
+            if (payer === 'OFFERING_TEAM') {
+                const senderPurse = this.teamPurse[fromTeamId] || 0;
+                if (senderPurse < cost) {
+                    return { success: false, message: 'Offering franchise has insufficient purse balance to execute this trade.' };
+                }
+            }
+            else {
+                const targetPurse = this.teamPurse[toTeamId] || 0;
+                if (targetPurse < cost) {
+                    return { success: false, message: 'Recipient franchise has insufficient purse balance to execute this trade.' };
+                }
+            }
+            // Re-verify overseas limits
+            const fromOverseas = fromSquad.filter(p => p.is_overseas && p.id !== pOffered.id).length + (pRequested.is_overseas ? 1 : 0);
+            if (fromOverseas > 8) {
+                return { success: false, message: 'Trade cannot be completed: violates overseas limit of 8 for offering team.' };
+            }
+            const toOverseas = toSquad.filter(p => p.is_overseas && p.id !== pRequested.id).length + (pOffered.is_overseas ? 1 : 0);
+            if (toOverseas > 8) {
+                return { success: false, message: 'Trade cannot be completed: violates overseas limit of 8 for receiving team.' };
+            }
+            // ATOMIC SWAP
+            this.teamSquads[fromTeamId] = fromSquad.filter(p => p.id !== pOffered.id);
+            this.teamSquads[toTeamId] = toSquad.filter(p => p.id !== pRequested.id);
+            const updatedOffered = { ...pOffered, team_id: toTeamId };
+            const updatedRequested = { ...pRequested, team_id: fromTeamId };
+            this.teamSquads[toTeamId].push(updatedOffered);
+            this.teamSquads[fromTeamId].push(updatedRequested);
+            // Purse adjustment based on payer
+            if (payer === 'OFFERING_TEAM') {
+                this.teamPurse[fromTeamId] -= cost;
+                this.teamPurse[toTeamId] += cost;
+            }
+            else {
+                this.teamPurse[toTeamId] -= cost;
+                this.teamPurse[fromTeamId] += cost;
+            }
+            this.sanitizePlayingXIAfterPlayerDeparture(fromTeamId, pOffered.id);
+            this.sanitizePlayingXIAfterPlayerDeparture(toTeamId, pRequested.id);
         }
         this.activeTrade.status = 'ACCEPTED';
         this.activeTrade.resolvedAt = Date.now();
@@ -1666,9 +1846,17 @@ export class GameRoom {
         this.tradeHistory.unshift({ ...this.activeTrade });
         const resolved = { ...this.activeTrade };
         this.activeTrade = null;
-        const desc = resolved.type === 'PLAYER_FOR_PLAYER'
-            ? `TRADE COMPLETED: ${resolved.offeredPlayer.name} transferred to ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) in exchange for ${resolved.requestedPlayer?.name} to ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}).`
-            : `TRADE COMPLETED: ${resolved.offeredPlayer.name} purchased by ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) from ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}) for ₹${((resolved.moneyAmount || 0) / 10000000).toFixed(2)} Cr.`;
+        let desc = '';
+        if (resolved.type === 'PLAYER_FOR_PLAYER') {
+            desc = `TRADE COMPLETED: ${resolved.offeredPlayer.name} transferred to ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) in exchange for ${resolved.requestedPlayer?.name} to ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}).`;
+        }
+        else if (resolved.type === 'PLAYER_FOR_MONEY') {
+            desc = `TRADE COMPLETED: ${resolved.offeredPlayer.name} purchased by ${IPL_FRANCHISES[toTeamId].name} (${toTeamId}) from ${IPL_FRANCHISES[fromTeamId].name} (${fromTeamId}) for ₹${((resolved.moneyAmount || 0) / 10000000).toFixed(2)} Cr.`;
+        }
+        else {
+            const payerName = resolved.cashPayer === 'OFFERING_TEAM' ? IPL_FRANCHISES[fromTeamId].name : IPL_FRANCHISES[toTeamId].name;
+            desc = `TRADE COMPLETED: ${resolved.offeredPlayer.name} exchanged for ${resolved.requestedPlayer?.name} + ₹${((resolved.moneyAmount || 0) / 10000000).toFixed(2)} Cr cash paid by ${payerName}.`;
+        }
         this.addAuditLog('TRADE_ACCEPTED', desc, responder.nickname);
         this.addBidLog({
             type: 'EVENT',
@@ -1776,6 +1964,189 @@ export class GameRoom {
         this.broadcastState();
         return { success: true };
     }
+    /**
+     * Helper to safely remove traded player from Playing XI, Captain, Vice-Captain, or Impact Player
+     */
+    sanitizePlayingXIAfterPlayerDeparture(teamId, playerId) {
+        const xi = this.teamPlayingXI[teamId];
+        if (!xi)
+            return;
+        let modified = false;
+        if (xi.playingXIIds && xi.playingXIIds.includes(playerId)) {
+            xi.playingXIIds = xi.playingXIIds.filter((id) => id !== playerId);
+            modified = true;
+        }
+        if (xi.captainId === playerId) {
+            xi.captainId = null;
+            modified = true;
+        }
+        if (xi.viceCaptainId === playerId) {
+            xi.viceCaptainId = null;
+            modified = true;
+        }
+        if (xi.impactPlayerId === playerId) {
+            xi.impactPlayerId = null;
+            modified = true;
+        }
+        if (modified) {
+            xi.isConfirmed = false;
+            this.addAuditLog('PLAYING_XI_UPDATED', `${IPL_FRANCHISES[teamId].name} Playing XI adjusted due to player trade transfer.`, 'System');
+        }
+    }
+    /**
+     * Save draft selections for a franchise's Playing XI
+     */
+    savePlayingXI(memberId, teamId, selection) {
+        const member = this.members.get(memberId);
+        if (!member)
+            return { success: false, message: 'Participant not found.' };
+        const isOwner = member.teamId === teamId;
+        const isHost = memberId === this.hostId;
+        if (!isOwner && !isHost) {
+            return { success: false, message: 'Unauthorized: You can only edit your own franchise Playing XI.' };
+        }
+        const currentXI = this.teamPlayingXI[teamId] || {
+            teamId,
+            playingXIIds: [],
+            captainId: null,
+            viceCaptainId: null,
+            impactPlayerId: null,
+            isConfirmed: false
+        };
+        if (currentXI.isConfirmed && this.postAuctionTradeStatus === 'CLOSED') {
+            return { success: false, message: 'Playing XI selections are permanently locked after trading window closes.' };
+        }
+        const squad = this.teamSquads[teamId] || [];
+        const squadMap = new Map(squad.map(p => [p.id, p]));
+        const newIds = selection.playingXIIds !== undefined ? selection.playingXIIds : currentXI.playingXIIds;
+        // Validate each player is in squad
+        for (const pid of newIds) {
+            if (!squadMap.has(pid)) {
+                return { success: false, message: `Player is not in ${teamId} squad.` };
+            }
+        }
+        // Check overseas limit in Playing XI (Max 4)
+        const overseasCount = newIds.filter((pid) => squadMap.get(pid)?.is_overseas).length;
+        if (overseasCount > 4) {
+            return { success: false, message: `Playing XI cannot contain more than 4 overseas players (found ${overseasCount}).` };
+        }
+        if (newIds.length > 11) {
+            return { success: false, message: 'Playing XI cannot contain more than 11 players.' };
+        }
+        let capId = selection.captainId !== undefined ? selection.captainId : currentXI.captainId;
+        if (capId && !newIds.includes(capId)) {
+            capId = null;
+        }
+        let vcId = selection.viceCaptainId !== undefined ? selection.viceCaptainId : currentXI.viceCaptainId;
+        if (vcId && (!newIds.includes(vcId) || vcId === capId)) {
+            vcId = null;
+        }
+        let impactId = selection.impactPlayerId !== undefined ? selection.impactPlayerId : currentXI.impactPlayerId;
+        if (impactId && (!squadMap.has(impactId) || newIds.includes(impactId))) {
+            impactId = null;
+        }
+        this.teamPlayingXI[teamId] = {
+            teamId,
+            playingXIIds: newIds,
+            captainId: capId,
+            viceCaptainId: vcId,
+            impactPlayerId: impactId,
+            isConfirmed: false
+        };
+        this.broadcastState({
+            type: 'PLAYING_XI_UPDATED',
+            teamId,
+            selection: this.teamPlayingXI[teamId]
+        });
+        return { success: true, selection: this.teamPlayingXI[teamId] };
+    }
+    /**
+     * Officially lock and confirm Playing XI for a franchise
+     */
+    confirmPlayingXI(memberId, teamId) {
+        const member = this.members.get(memberId);
+        if (!member)
+            return { success: false, message: 'Participant not found.' };
+        const isOwner = member.teamId === teamId;
+        const isHost = memberId === this.hostId;
+        if (!isOwner && !isHost) {
+            return { success: false, message: 'Unauthorized: You can only confirm your own franchise Playing XI.' };
+        }
+        const currentXI = this.teamPlayingXI[teamId];
+        if (!currentXI)
+            return { success: false, message: 'Playing XI not initialized.' };
+        const squad = this.teamSquads[teamId] || [];
+        const squadMap = new Map(squad.map(p => [p.id, p]));
+        if (squad.length < 11) {
+            return { success: false, message: `Your squad has only ${squad.length} players. At least 11 players are required to field a Playing XI.` };
+        }
+        if (currentXI.playingXIIds.length !== 11) {
+            return { success: false, message: `Exactly 11 starting players must be selected (currently ${currentXI.playingXIIds.length}/11).` };
+        }
+        const overseasCount = currentXI.playingXIIds.filter((pid) => squadMap.get(pid)?.is_overseas).length;
+        if (overseasCount > 4) {
+            return { success: false, message: `Playing XI exceeds the 4 overseas player limit (currently ${overseasCount}/4).` };
+        }
+        if (!currentXI.captainId) {
+            return { success: false, message: 'Please select a Captain from your Playing XI.' };
+        }
+        if (!currentXI.playingXIIds.includes(currentXI.captainId)) {
+            return { success: false, message: 'Captain must be one of the 11 starting players.' };
+        }
+        if (!currentXI.viceCaptainId) {
+            return { success: false, message: 'Please select a Vice-Captain from your Playing XI.' };
+        }
+        if (!currentXI.playingXIIds.includes(currentXI.viceCaptainId)) {
+            return { success: false, message: 'Vice-Captain must be one of the 11 starting players.' };
+        }
+        if (currentXI.viceCaptainId === currentXI.captainId) {
+            return { success: false, message: 'Captain and Vice-Captain must be different players.' };
+        }
+        if (squad.length > 11) {
+            if (!currentXI.impactPlayerId) {
+                return { success: false, message: 'Please select an Impact Player from your bench.' };
+            }
+            if (currentXI.playingXIIds.includes(currentXI.impactPlayerId)) {
+                return { success: false, message: 'Impact Player must be chosen from the bench outside the Playing XI.' };
+            }
+        }
+        currentXI.isConfirmed = true;
+        currentXI.confirmedAt = Date.now();
+        const capName = squadMap.get(currentXI.captainId)?.name || 'Captain';
+        this.addAuditLog('PLAYING_XI_CONFIRMED', `${IPL_FRANCHISES[teamId].name} locked their Playing XI (Captain: ${capName}).`, member.nickname);
+        this.broadcastState({
+            type: 'PLAYING_XI_UPDATED',
+            teamId,
+            selection: currentXI
+        });
+        return { success: true, selection: currentXI };
+    }
+    /**
+     * Unlock Playing XI for edits prior to window close
+     */
+    unlockPlayingXI(memberId, teamId) {
+        const member = this.members.get(memberId);
+        if (!member)
+            return { success: false, message: 'Participant not found.' };
+        const isOwner = member.teamId === teamId;
+        const isHost = memberId === this.hostId;
+        if (!isOwner && !isHost) {
+            return { success: false, message: 'Unauthorized.' };
+        }
+        if (this.postAuctionTradeStatus === 'CLOSED') {
+            return { success: false, message: 'Playing XI selections cannot be unlocked after the trading window has closed.' };
+        }
+        const currentXI = this.teamPlayingXI[teamId];
+        if (currentXI) {
+            currentXI.isConfirmed = false;
+            this.broadcastState({
+                type: 'PLAYING_XI_UPDATED',
+                teamId,
+                selection: currentXI
+            });
+        }
+        return { success: true };
+    }
     clearAllTimers() {
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
@@ -1862,6 +2233,7 @@ export class GameRoom {
             teamPurse: { ...this.teamPurse },
             teamSquads: safeSquads,
             teamStats: this.getTeamSummary(),
+            teamPlayingXI: { ...this.teamPlayingXI },
             currentLotIndex: this.currentLotIndex,
             currentLot: currentLot ? { ...currentLot, bids: [...currentLot.bids] } : null,
             deadlineTimestamp: this.deadlineTimestamp,
@@ -1881,6 +2253,8 @@ export class GameRoom {
             activeTrade: this.activeTrade ? { ...this.activeTrade } : null,
             tradeHistory: [...this.tradeHistory],
             pausedByTrade: this.pausedByTrade,
+            postAuctionTradeStatus: this.postAuctionTradeStatus,
+            postAuctionTradeDeadline: this.postAuctionTradeDeadline,
             lots: this.lots
         };
     }
@@ -1909,6 +2283,9 @@ export class GameRoom {
             activeTrade: this.activeTrade,
             tradeHistory: this.tradeHistory,
             pausedByTrade: this.pausedByTrade,
+            teamPlayingXI: { ...this.teamPlayingXI },
+            postAuctionTradeStatus: this.postAuctionTradeStatus,
+            postAuctionTradeDeadline: this.postAuctionTradeDeadline,
             kickedMemberIds: Array.from(this.kickedMemberIds),
             updatedAt: Date.now()
         };
@@ -1932,6 +2309,22 @@ export class GameRoom {
         room.activeTrade = data.activeTrade || null;
         room.tradeHistory = data.tradeHistory || [];
         room.pausedByTrade = Boolean(data.pausedByTrade);
+        if (data.teamPlayingXI) {
+            room.teamPlayingXI = data.teamPlayingXI;
+        }
+        room.postAuctionTradeStatus = data.postAuctionTradeStatus || 'NOT_STARTED';
+        room.postAuctionTradeDeadline = data.postAuctionTradeDeadline || null;
+        if (room.postAuctionTradeStatus === 'ACTIVE' && room.postAuctionTradeDeadline) {
+            const remainingMs = room.postAuctionTradeDeadline - Date.now();
+            if (remainingMs > 0) {
+                room.postAuctionTradeTimeout = setTimeout(() => {
+                    room.closePostAuctionTradeWindow();
+                }, remainingMs);
+            }
+            else {
+                room.closePostAuctionTradeWindow();
+            }
+        }
         room.kickedMemberIds = new Set(data.kickedMemberIds || []);
         room.members.clear();
         if (data.members) {

@@ -10,6 +10,7 @@ import { PlayersView } from './components/PlayersView.js';
 import { AuctionHistoryView } from './components/AuctionHistoryView.js';
 import { LiveChatPanel } from './components/LiveChatPanel.js';
 import { AuctionResults } from './components/AuctionResults.js';
+import { FinalTeamManagement } from './components/FinalTeamManagement.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { PasswordModal } from './components/PasswordModal.js';
 import { socketService } from './services/socket.js';
@@ -21,7 +22,8 @@ import {
   BotStrategy,
   PlayerCategory,
   ChatMessage,
-  TradeType 
+  TradeType,
+  PlayingXISelection
 } from './types.js';
 
 export function App() {
@@ -558,6 +560,7 @@ export function App() {
     offeredPlayerId: string;
     requestedPlayerId?: string;
     moneyAmount?: number;
+    cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM';
   }) => {
     socketService.send({
       type: 'CREATE_TRADE_REQUEST',
@@ -586,6 +589,34 @@ export function App() {
     socketService.send({
       type: 'UPDATE_TRADE_TIMER',
       tradeTimerDuration
+    });
+  };
+
+  const handleSavePlayingXI = (teamId: IPLTeamId, selection: Partial<PlayingXISelection>) => {
+    socketService.send({
+      type: 'SAVE_PLAYING_XI',
+      teamId,
+      selection
+    });
+  };
+
+  const handleConfirmPlayingXI = (teamId: IPLTeamId) => {
+    socketService.send({
+      type: 'CONFIRM_PLAYING_XI',
+      teamId
+    });
+  };
+
+  const handleUnlockPlayingXI = (teamId: IPLTeamId) => {
+    socketService.send({
+      type: 'UNLOCK_PLAYING_XI',
+      teamId
+    });
+  };
+
+  const handleCloseTradeWindow = () => {
+    socketService.send({
+      type: 'CLOSE_POST_AUCTION_TRADE_WINDOW'
     });
   };
 
@@ -748,11 +779,19 @@ export function App() {
               </>
             )}
 
-            {/* AUCTION COMPLETED */}
+            {/* AUCTION COMPLETED — DEDICATED FINAL TEAM MANAGEMENT & PLAYING XI */}
             {roomState.status === 'COMPLETED' && (
-              <AuctionResults
+              <FinalTeamManagement
                 roomState={roomState}
                 myMemberId={myMemberId}
+                onCreateTrade={handleCreateTrade}
+                onRespondTrade={handleRespondTrade}
+                onCancelTrade={handleCancelTrade}
+                onUpdateTradeTimer={handleUpdateTradeTimer}
+                onSavePlayingXI={handleSavePlayingXI}
+                onConfirmPlayingXI={handleConfirmPlayingXI}
+                onUnlockPlayingXI={handleUnlockPlayingXI}
+                onCloseTradeWindow={handleCloseTradeWindow}
                 onReAuctionUnsold={handleReAuctionUnsold}
                 onRestartAuction={handleRestartAuction}
               />
