@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
@@ -10,7 +11,7 @@ import { RoomManager } from './roomManager.js';
 import { getAllPlayers, getPlayerById } from './playerService.js';
 import { tournamentManager } from './tournamentManager.js';
 import { tournamentStorage } from './tournamentStorage.js';
-import './supabase.js';
+import { supabase } from './supabase.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -180,6 +181,183 @@ app.get('/api/players/:id', (req, res) => {
         return res.status(404).json({ error: 'Player not found' });
     }
     res.json({ player });
+});
+// ==========================================
+// 4. USERNAME + PASSWORD AUTHENTICATION API
+// ==========================================
+// Register new account with unique username and secure password
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { username, password, confirmPassword, recoveryEmail } = req.body || {};
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        const cleanUser = String(username).trim();
+        if (cleanUser.length < 3 || cleanUser.length > 20) {
+            return res.status(400).json({ error: 'Username must be between 3 and 20 characters' });
+        }
+        if (!/^[a-zA-Z0-9_-]{3,20}$/.test(cleanUser)) {
+            return res.status(400).json({ error: 'Username can only contain letters, numbers, underscores, and hyphens' });
+        }
+        if (String(password).length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+        }
+        if (confirmPassword && password !== confirmPassword) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
+        // Atomic uniqueness check
+        const isAvailable = await tournamentStorage.isNameAvailable(cleanUser);
+        if (!isAvailable) {
+            return res.status(409).json({ error: `Username "${cleanUser}" is already taken. Please choose another.` });
+        }
+        // Generate secure password salt and hash using crypto.scrypt
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = crypto.scryptSync(password, salt, 64).toString('hex');
+        // Deterministic, unpredictable internal auth identity for Supabase Auth
+        const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
+        const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
+        const internalEmail = `usr_${authHash}@bidwars.com`;
+        let userId = crypto.randomUUID();
+        let supabaseSession = null;
+        if (supabase) {
+            try {
+                const { data: suData, error: suError } = await supabase.auth.signUp({
+                    email: internalEmail,
+                    password: password,
+                    options: {
+                        data: {
+                            username: cleanUser,
+                            in_game_name: cleanUser
+                        }
+                    }
+                });
+                if (!suError && suData?.user) {
+                    userId = suData.user.id;
+                    if (suData.session) {
+                        supabaseSession = {
+                            access_token: suData.session.access_token,
+                            refresh_token: suData.session.refresh_token
+                        };
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('[Auth] Supabase Auth signUp fallback:', err);
+            }
+        }
+        const profile = await tournamentStorage.saveProfile({
+            id: userId,
+            username: cleanUser,
+            inGameName: cleanUser,
+            recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
+            passwordHash,
+            salt,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        });
+        return res.status(201).json({
+            success: true,
+            user: {
+                id: profile.id,
+                username: profile.username || cleanUser,
+                inGameName: profile.inGameName || cleanUser
+            },
+            session: supabaseSession
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Registration failed' });
+    }
+});
+// Login with username and password
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body || {};
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        const cleanUser = String(username).trim();
+        const profile = await tournamentStorage.getProfileByUsername(cleanUser);
+        if (!profile || !profile.passwordHash || !profile.salt) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        // Verify password in constant time using crypto.timingSafeEqual
+        const computedHash = crypto.scryptSync(password, profile.salt, 64).toString('hex');
+        const hashBuf = Buffer.from(computedHash, 'hex');
+        const targetBuf = Buffer.from(profile.passwordHash, 'hex');
+        if (hashBuf.length !== targetBuf.length || !crypto.timingSafeEqual(hashBuf, targetBuf)) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        // Authenticate with Supabase Auth if available
+        let supabaseSession = null;
+        if (supabase) {
+            try {
+                const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
+                const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
+                const internalEmail = `usr_${authHash}@bidwars.com`;
+                const { data: siData } = await supabase.auth.signInWithPassword({
+                    email: internalEmail,
+                    password: password
+                });
+                if (siData?.session) {
+                    supabaseSession = {
+                        access_token: siData.session.access_token,
+                        refresh_token: siData.session.refresh_token
+                    };
+                }
+            }
+            catch (err) {
+                console.warn('[Auth] Supabase signIn fallback:', err);
+            }
+        }
+        return res.json({
+            success: true,
+            user: {
+                id: profile.id,
+                username: profile.username || profile.inGameName,
+                inGameName: profile.inGameName,
+                avatar: profile.avatarUrl
+            },
+            session: supabaseSession
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Login failed' });
+    }
+});
+// Password recovery using registered username and recovery email
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { username, recoveryEmail, newPassword, confirmPassword } = req.body || {};
+        if (!username || !recoveryEmail || !newPassword) {
+            return res.status(400).json({ error: 'Username, recovery email, and new password are required' });
+        }
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
+        if (String(newPassword).length < 6) {
+            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+        }
+        const profile = await tournamentStorage.getProfileByUsername(username);
+        if (!profile) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+        if (!profile.recoveryEmail || profile.recoveryEmail.trim().toLowerCase() !== String(recoveryEmail).trim().toLowerCase()) {
+            return res.status(403).json({ error: 'The provided recovery email does not match our records for this username.' });
+        }
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
+        await tournamentStorage.saveProfile({
+            ...profile,
+            passwordHash,
+            salt,
+            updatedAt: Date.now()
+        });
+        return res.json({ success: true, message: 'Password has been reset successfully. Please log in with your new password.' });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Password reset failed' });
+    }
 });
 // ==========================================
 // USER PROFILES & IN-GAME NAME ENDPOINTS

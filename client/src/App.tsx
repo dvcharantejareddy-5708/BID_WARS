@@ -444,11 +444,11 @@ export function App() {
 
     try {
       const activeUser = authService.getUser();
-      if (!activeUser || !activeUser.isGoogleUser) {
-        setErrorMessage('You must sign in with Google to enter tournament auction.');
+      if (!activeUser || !activeUser.isRegisteredUser) {
+        setErrorMessage('You must sign in with your BidWars account to enter tournament auction.');
         return;
       }
-      const userInGameName = activeUser.inGameName || activeUser.name || 'Manager';
+      const userInGameName = activeUser.username || activeUser.inGameName || 'Manager';
       const userSessionToken = activeUser.id;
 
       const apiBase = (import.meta.env.VITE_API_URL as string) || '';

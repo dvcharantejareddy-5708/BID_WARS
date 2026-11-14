@@ -33,10 +33,11 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
     setError(null);
 
     try {
+      const displayName = user.username || user.inGameName || 'Manager';
       const tournament = await TournamentApi.createTournament({
-        name: name.trim() || `${user.inGameName || user.name}'s IPL Championship`,
+        name: name.trim() || `${displayName}'s IPL Championship`,
         hostId: user.id,
-        hostName: user.inGameName || user.name,
+        hostName: displayName,
         hostEmail: user.email,
         teamsCount,
         matchOvers,

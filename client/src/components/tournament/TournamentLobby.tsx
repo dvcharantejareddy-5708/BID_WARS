@@ -64,7 +64,7 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
     try {
       const res = await TournamentApi.joinTournament(tournament.id, {
         userId: user.id,
-        userName: user.inGameName || user.name,
+        userName: user.username || user.inGameName || 'Player',
         userEmail: user.email,
         franchiseId: selectedFranchise
       });
@@ -293,7 +293,7 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
-                You are registered as <strong className="text-[#C8FF3D]">{user.inGameName || user.name}</strong>. Choose one of the remaining vacant franchises to join this tournament:
+                You are registered as <strong className="text-[#C8FF3D]">{user.username || user.inGameName || 'Player'}</strong>. Choose one of the remaining vacant franchises to join this tournament:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

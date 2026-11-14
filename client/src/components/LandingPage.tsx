@@ -15,6 +15,8 @@ import {
 import { RoomSettings } from '../types.js';
 import { BidWarsLogo } from './BidWarsLogo.js';
 import { CoinsIcon, GavelIcon, TrophyIcon as TrophyBrandIcon } from './BrandIcons.js';
+import { authService, AuthUser } from '../services/auth.js';
+import { AuthModal } from './auth/AuthModal.js';
 
 interface LandingPageProps {
   onCreateRoom: (nickname: string, settings: Partial<RoomSettings>) => void;
@@ -26,6 +28,16 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRoom, onSwitchToTournament, isLoading }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const actionHubRef = useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(authService.getUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  React.useEffect(() => {
+    const unsub = authService.onAuthStateChange(u => {
+      setCurrentUser(u);
+    });
+    return unsub;
+  }, []);
   
   // Create Room Form State
   const [hostNickname, setHostNickname] = useState('');
@@ -137,12 +149,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
         </div>
 
         {/* Right CTA button */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {currentUser && currentUser.isRegisteredUser ? (
+            <div className="flex items-center gap-2 bg-[#12142A] border border-[#23274D] px-3 py-1.5 rounded-full text-xs font-bold text-white">
+              <span className="text-[#C8FF3D] font-mono">👤 {currentUser.username}</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  await authService.signOut();
+                  setCurrentUser(null);
+                }}
+                className="text-[10px] text-gray-400 hover:text-[#FF3B5C] ml-1 uppercase cursor-pointer"
+                title="Sign Out"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setAuthModalMode('login');
+                setIsAuthModalOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-full bg-[#12142A] hover:bg-[#181A36] border border-[#23274D] hover:border-[#C8FF3D] text-white text-xs font-heading font-bold uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Sign In
+            </button>
+          )}
+
           {onSwitchToTournament && (
             <button
               type="button"
-              onClick={onSwitchToTournament}
-              className="px-4 py-2 rounded-full bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] text-white font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(124,92,255,0.35)] hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              onClick={() => {
+                if (!currentUser || !currentUser.isRegisteredUser) {
+                  setAuthModalMode('login');
+                  setIsAuthModalOpen(true);
+                } else {
+                  onSwitchToTournament();
+                }
+              }}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] text-white font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(124,92,255,0.35)] hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <span>🏆</span>
               <span>Tournament Mode</span>
@@ -151,9 +198,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
           <button
             type="button"
             onClick={() => scrollToActions('join')}
-            className="px-5 py-2.5 rounded-full bg-[#C8FF3D] hover:bg-[#AEE620] text-[#0A0B14] font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-lime-glow hover:scale-105 active:scale-95"
+            className="px-5 py-2.5 rounded-full bg-[#C8FF3D] hover:bg-[#AEE620] text-[#0A0B14] font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-lime-glow hover:scale-105 active:scale-95 cursor-pointer"
           >
-            Join an auction
+            Quick Auction
           </button>
         </div>
       </nav>
@@ -682,6 +729,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
           </p>
         </div>
       </footer>
+
+      {/* Account Login / Registration Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialMode={authModalMode}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(u) => {
+          setCurrentUser(u);
+          setIsAuthModalOpen(false);
+          if (onSwitchToTournament) {
+            onSwitchToTournament();
+          }
+        }}
+      />
     </div>
   );
 };

@@ -15,7 +15,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onClose,
   onUpdated
 }) => {
-  const [inGameName, setInGameName] = useState(user.inGameName || user.name || '');
+  const [inGameName, setInGameName] = useState(user.username || user.inGameName || '');
   const [isEditing, setIsEditing] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
@@ -25,7 +25,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [copiedId, setCopiedId] = useState(false);
 
   useEffect(() => {
-    setInGameName(user.inGameName || user.name || '');
+    setInGameName(user.username || user.inGameName || '');
   }, [user, isOpen]);
 
   useEffect(() => {
@@ -117,26 +117,22 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </div>
         )}
 
-        {/* Google Profile Card */}
+        {/* BidWars Profile Card */}
         <div className="bg-[#12142A] border border-[#1E2246] rounded-xl p-4 flex items-center gap-4">
-          {user.avatar ? (
-            <img src={user.avatar} alt={user.name} className="w-14 h-14 rounded-full border-2 border-[#C8FF3D] shrink-0" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-[#7C5CFF]/30 text-[#C8FF3D] font-black text-xl flex items-center justify-center border border-[#7C5CFF] shrink-0">
-              {user.name.charAt(0)}
-            </div>
-          )}
+          <div className="w-14 h-14 rounded-full bg-[#7C5CFF]/30 text-[#C8FF3D] font-black text-xl flex items-center justify-center border border-[#7C5CFF] shrink-0">
+            {(user.username || user.inGameName || 'P').charAt(0).toUpperCase()}
+          </div>
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-heading font-black text-white uppercase">{user.name}</span>
+              <span className="text-sm font-heading font-black text-white uppercase">{user.username || user.inGameName}</span>
               <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30">
-                Google Verified
+                Verified Account
               </span>
             </div>
             {user.email && (
               <p className="text-xs text-gray-400 flex items-center gap-1.5 truncate">
                 <Mail className="w-3.5 h-3.5 text-gray-500" />
-                <span>{user.email}</span>
+                <span>{user.email} (Recovery Email)</span>
               </p>
             )}
             <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
@@ -164,7 +160,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="text-xs font-heading font-bold uppercase text-[#C8FF3D] hover:underline"
+                className="text-xs font-heading font-bold uppercase text-[#C8FF3D] hover:underline cursor-pointer"
               >
                 Edit Name
               </button>
@@ -172,9 +168,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               <button
                 onClick={() => {
                   setIsEditing(false);
-                  setInGameName(user.inGameName || user.name || '');
+                  setInGameName(user.username || user.inGameName || '');
                 }}
-                className="text-xs font-heading font-bold uppercase text-gray-400 hover:text-white"
+                className="text-xs font-heading font-bold uppercase text-gray-400 hover:text-white cursor-pointer"
               >
                 Cancel
               </button>
@@ -184,7 +180,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           {!isEditing ? (
             <div className="flex items-center justify-between p-3 rounded-lg bg-[#0A0B14] border border-[#1E2246]">
               <span className="text-base font-heading font-black text-white">
-                {user.inGameName || user.name}
+                {user.username || user.inGameName}
               </span>
               <span className="text-[10px] uppercase font-bold text-gray-400">
                 Displayed in Tournaments

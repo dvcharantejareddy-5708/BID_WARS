@@ -32,9 +32,13 @@ export type BatterAbilityType = 'COMBINATION_SHOT' | 'SECRET_DOUBLE_SHOT';
 
 export interface UserProfile {
   id: string;
+  username?: string;
   email?: string;
+  recoveryEmail?: string;
   inGameName: string;
   avatarUrl?: string;
+  passwordHash?: string;
+  salt?: string;
   createdAt: number;
   updatedAt: number;
 }

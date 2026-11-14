@@ -21,9 +21,9 @@ export const InGameNameModal: React.FC<InGameNameModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Suggest initial name from Google name
-    if (user.name) {
-      const sanitized = user.name.replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 20).trim();
+    const initialName = user.username || user.inGameName || '';
+    if (initialName) {
+      const sanitized = initialName.replace(/[^a-zA-Z0-9_ -]/g, '').slice(0, 20).trim();
       if (sanitized.length >= 3) {
         setName(sanitized);
       }
@@ -87,18 +87,14 @@ export const InGameNameModal: React.FC<InGameNameModalProps> = ({
 
         {/* User Identity Preview */}
         <div className="flex items-center gap-3.5 bg-[#12142A] p-3.5 rounded-xl border border-[#1E2246]">
-          {user.avatar ? (
-            <img src={user.avatar} alt={user.name} className="w-11 h-11 rounded-full border-2 border-[#C8FF3D]" />
-          ) : (
-            <div className="w-11 h-11 rounded-full bg-[#7C5CFF]/30 text-[#C8FF3D] font-black text-sm flex items-center justify-center border border-[#7C5CFF]">
-              {user.name.charAt(0)}
-            </div>
-          )}
+          <div className="w-11 h-11 rounded-full bg-[#7C5CFF]/30 text-[#C8FF3D] font-black text-sm flex items-center justify-center border border-[#7C5CFF]">
+            {(user.username || user.inGameName || 'P').charAt(0).toUpperCase()}
+          </div>
           <div className="min-w-0">
             <span className="text-[10px] uppercase tracking-widest font-heading font-black text-[#8F9CAE] block">
-              Google Verified Account
+              BidWars Account
             </span>
-            <p className="text-sm font-bold text-white truncate">{user.name}</p>
+            <p className="text-sm font-bold text-white truncate">{user.username || user.inGameName}</p>
             {user.email && <p className="text-xs text-gray-400 truncate">{user.email}</p>}
           </div>
         </div>

@@ -183,9 +183,13 @@ export class TournamentStorageService {
                         if (row.id) {
                             this.profilesCache.set(row.id, {
                                 id: row.id,
+                                username: row.username || row.in_game_name || row.display_name,
+                                inGameName: row.in_game_name || row.username || row.display_name,
                                 email: row.email,
-                                inGameName: row.in_game_name || row.display_name,
+                                recoveryEmail: row.recovery_email,
                                 avatarUrl: row.avatar_url,
+                                passwordHash: row.password_hash,
+                                salt: row.password_salt,
                                 createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
                                 updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now()
                             });
@@ -204,13 +208,25 @@ export class TournamentStorageService {
         await this.loadAllProfiles();
         return this.profilesCache.get(userId);
     }
-    async isNameAvailable(inGameName, excludeUserId) {
+    async getProfileByUsername(username) {
         await this.loadAllProfiles();
-        const cleanLower = inGameName.trim().toLowerCase();
+        const cleanLower = username.trim().toLowerCase();
+        for (const p of this.profilesCache.values()) {
+            const uName = (p.username || p.inGameName || '').trim().toLowerCase();
+            if (uName === cleanLower) {
+                return p;
+            }
+        }
+        return undefined;
+    }
+    async isNameAvailable(name, excludeUserId) {
+        await this.loadAllProfiles();
+        const cleanLower = name.trim().toLowerCase();
         for (const [id, p] of this.profilesCache.entries()) {
             if (excludeUserId && id === excludeUserId)
                 continue;
-            if (p.inGameName.trim().toLowerCase() === cleanLower) {
+            const existingName = (p.username || p.inGameName || '').trim().toLowerCase();
+            if (existingName === cleanLower) {
                 return false;
             }
         }
@@ -218,9 +234,11 @@ export class TournamentStorageService {
     }
     async saveProfile(profile) {
         await this.loadAllProfiles();
+        const cleanUsername = (profile.username || profile.inGameName).trim();
         const updated = {
             ...profile,
-            inGameName: profile.inGameName.trim(),
+            username: cleanUsername,
+            inGameName: cleanUsername,
             updatedAt: Date.now()
         };
         this.profilesCache.set(profile.id, updated);
@@ -241,10 +259,14 @@ export class TournamentStorageService {
                     .from('profiles')
                     .upsert({
                     id: updated.id,
-                    email: updated.email,
-                    display_name: updated.inGameName,
+                    username: updated.username,
                     in_game_name: updated.inGameName,
+                    display_name: updated.inGameName,
+                    email: updated.email,
+                    recovery_email: updated.recoveryEmail,
                     avatar_url: updated.avatarUrl,
+                    password_hash: updated.passwordHash,
+                    password_salt: updated.salt,
                     updated_at: new Date(updated.updatedAt).toISOString()
                 });
             }

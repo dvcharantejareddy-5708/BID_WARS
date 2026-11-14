@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Plus, LogOut, ShieldCheck, Flame, RefreshCw, Settings, AlertCircle, KeyRound, ExternalLink } from 'lucide-react';
+import { Trophy, Plus, LogIn, LogOut, ShieldCheck, Flame, RefreshCw, Settings, AlertCircle, UserPlus, KeyRound } from 'lucide-react';
 import { AuthUser, authService } from '../../services/auth';
 import { Tournament } from '../../tournamentTypes';
 import { TournamentApi } from '../../services/tournamentApi';
@@ -7,9 +7,9 @@ import { CreateTournamentModal } from './CreateTournamentModal';
 import { TournamentLobby } from './TournamentLobby';
 import { TournamentHub } from './TournamentHub';
 import { LiveMatchArena } from './LiveMatchArena';
-import { InGameNameModal } from './InGameNameModal';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import { HeaderBackButton } from '../common/HeaderBackButton';
+import { AuthModal } from '../auth/AuthModal';
 import { LiveMatch } from '../../tournamentTypes';
 
 interface TournamentDashboardProps {
@@ -26,14 +26,13 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isAuthNoticeOpen, setIsAuthNoticeOpen] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [viewState, setViewState] = useState<'DASHBOARD' | 'LOBBY' | 'HUB' | 'MATCH'>('DASHBOARD');
   const [activeLiveMatch, setActiveLiveMatch] = useState<LiveMatch | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
-  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     const unsub = authService.onAuthStateChange(u => {
@@ -43,7 +42,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   }, []);
 
   const loadTournaments = async () => {
-    if (!user || !user.isGoogleUser) {
+    if (!user || !user.isRegisteredUser) {
       setTournaments([]);
       setIsLoading(false);
       return;
@@ -67,21 +66,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
   useEffect(() => {
     loadTournaments();
-  }, [user?.id, user?.isGoogleUser]);
-
-  const handleGoogleSignIn = async () => {
-    setAuthError(null);
-    setIsSigningIn(true);
-    try {
-      const res = await authService.signInWithGoogle();
-      if (res.error) {
-        setAuthError(res.error);
-        setIsAuthNoticeOpen(true);
-      }
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
+  }, [user?.id, user?.isRegisteredUser]);
 
   const handleSignOut = async () => {
     await authService.signOut();
@@ -100,8 +85,9 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
   const handleJoinByCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !user.isGoogleUser) {
-      setJoinError('You must sign in with Google to join tournaments.');
+    if (!user || !user.isRegisteredUser) {
+      setIsAuthModalOpen(true);
+      setAuthModalMode('login');
       return;
     }
     if (!joinCode.trim()) return;
@@ -120,7 +106,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   };
 
   // Sub-views (only accessible when authenticated)
-  if (user && user.isGoogleUser) {
+  if (user && user.isRegisteredUser) {
     if (viewState === 'MATCH' && activeLiveMatch && activeTournament) {
       return (
         <LiveMatchArena
@@ -176,12 +162,10 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   }
 
   // =========================================================================
-  // VIEW 1: UNAUTHENTICATED ACCESS GATE (MANDATORY GOOGLE SIGN-IN)
+  // VIEW 1: UNAUTHENTICATED ACCESS GATE (USERNAME + PASSWORD AUTHENTICATION)
   // Prevents unauthenticated users from entering Tournament Mode
   // =========================================================================
-  if (!user || !user.isGoogleUser) {
-    const configStatus = authService.getConfigStatus();
-
+  if (!user || !user.isRegisteredUser) {
     return (
       <div className="min-h-screen bg-[#0A0B14] py-8 px-4 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Subtle background glow */}
@@ -192,14 +176,14 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           <div className="flex items-center justify-between pb-4 border-b border-[#1E2246]">
             <HeaderBackButton onBack={onSwitchToQuickAuction} label="Quick Auction" />
             <span className="text-[11px] font-mono uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#C8FF3D]" /> Supabase Auth Gate
+              <ShieldCheck className="w-3.5 h-3.5 text-[#C8FF3D]" /> Supabase Security
             </span>
           </div>
 
           {/* Tournament Mode Brand Banner */}
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E2246] border border-[#C8FF3D]/30 text-[#C8FF3D] text-xs font-heading font-black uppercase tracking-widest">
-              <Trophy className="w-4 h-4" /> IPL Multiplayer Tournament Mode
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1E2246] border border-[#C8FF3D]/30 text-[#C8FF3D] text-xs font-heading font-black uppercase tracking-widest shadow-lime-glow-sm">
+              <Trophy className="w-4 h-4" /> IPL Tournament Mode
             </div>
             <h1 className="text-2xl sm:text-3xl font-heading font-black text-white uppercase tracking-wider">
               Lead Your IPL Franchise to Glory
@@ -209,81 +193,62 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
             </p>
           </div>
 
-          {/* Google Sign In Action */}
+          {/* BidWars Username/Password Action Hub */}
           <div className="p-6 bg-[#0A0B14]/80 border border-[#1E2246] rounded-2xl space-y-4">
             <span className="text-xs font-bold text-gray-400 block uppercase tracking-wider">
-              Sign in with your Google account to continue:
+              Sign in with your BidWars account to continue:
             </span>
 
-            {/* Official "Continue with Google" Button */}
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full py-3.5 px-6 rounded-xl bg-white hover:bg-gray-100 text-gray-800 font-bold text-sm tracking-wide flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02] cursor-pointer disabled:opacity-60"
-            >
-              {/* Google 4-Color SVG Icon */}
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>{isSigningIn ? 'Connecting to Google...' : 'Continue with Google'}</span>
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                onClick={() => {
+                  setAuthModalMode('login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full py-3 px-5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(200,255,61,0.25)] hover:scale-[1.02] cursor-pointer"
+              >
+                <LogIn className="w-4 h-4 stroke-[3]" />
+                <span>Sign In</span>
+              </button>
 
-            <div className="flex items-center justify-center gap-2 text-[11px] text-gray-500">
+              <button
+                onClick={() => {
+                  setAuthModalMode('register');
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full py-3 px-5 rounded-xl bg-[#12142A] hover:bg-[#181B38] border border-[#2A2F60] hover:border-[#C8FF3D] text-white font-heading font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4 text-[#C8FF3D]" />
+                <span>Create Account</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-[11px] text-gray-500 pt-2">
               <ShieldCheck className="w-3.5 h-3.5 text-[#C8FF3D]" />
-              <span>Permanent cloud persistence linked to your Google Auth UUID</span>
+              <span>Independent account system with encrypted credentials in Supabase</span>
             </div>
           </div>
-
-          {/* Configuration Notice if Supabase is unconfigured */}
-          {!configStatus.isConfigured && (
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-left space-y-2">
-              <div className="flex items-center gap-2 text-amber-300 font-bold text-xs uppercase tracking-wider">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>Supabase Google OAuth Setup Required</span>
-              </div>
-              <p className="text-[11px] text-gray-300 leading-relaxed">
-                To activate real Google login, add your Supabase credentials to <code className="text-white font-mono bg-[#1E2246] px-1 py-0.5 rounded">.env</code>:
-              </p>
-              <div className="bg-[#0A0B14] p-2.5 rounded-lg border border-[#1E2246] font-mono text-[10px] text-[#C8FF3D] space-y-1">
-                <div>VITE_SUPABASE_URL=https://&lt;your-project&gt;.supabase.co</div>
-                <div>VITE_SUPABASE_ANON_KEY=&lt;your-anon-public-key&gt;</div>
-              </div>
-              <p className="text-[10px] text-gray-400">
-                In Supabase Dashboard, enable Google under <strong>Authentication &rarr; Providers</strong> with your Google Cloud Console Client ID and Secret.
-              </p>
-            </div>
-          )}
-
-          {authError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-xs text-left">
-              ⚠️ {authError}
-            </div>
-          )}
 
           <div className="pt-2">
             <button
               onClick={onSwitchToQuickAuction}
-              className="text-xs text-gray-400 hover:text-[#C8FF3D] underline transition-colors"
+              className="text-xs text-gray-400 hover:text-[#C8FF3D] underline transition-colors cursor-pointer"
             >
               Or play casual Quick Auction without signing in
             </button>
           </div>
         </div>
+
+        {/* Auth Modal (Login / Register / Forgot Password) */}
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          initialMode={authModalMode}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSuccess={(u) => {
+            setUser(u);
+            setIsAuthModalOpen(false);
+          }}
+        />
       </div>
     );
   }
@@ -291,8 +256,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   // =========================================================================
   // VIEW 2: AUTHENTICATED TOURNAMENT DASHBOARD
   // =========================================================================
-  const displayInGameName = user.inGameName || user.name || 'Manager';
-  const needsInGameName = !user.inGameName;
+  const displayInGameName = user.username || user.inGameName || 'Manager';
 
   return (
     <div className="min-h-screen bg-[#0A0B14] text-[#F4F6FA] py-8 px-4 sm:px-6 lg:px-8">
@@ -308,36 +272,34 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
               IPL Tournament Hub
             </h1>
             <p className="text-xs text-gray-400">
-              Multiplayer Tournaments • Live Hand-Cricket • Permanent Cloud Persistence
+              Multiplayer Tournaments • Live Hand-Cricket • Permanent Supabase Cloud Storage
             </p>
           </div>
         </div>
 
-        {/* User Account Bar with In-Game Name & Google Profile */}
+        {/* User Account Bar with In-Game Name */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-[#12142A] border border-[#2A2F60] px-3.5 py-1.5 rounded-xl">
-            {user.avatar ? (
-              <img src={user.avatar} alt={displayInGameName} className="w-8 h-8 rounded-full border border-[#C8FF3D]" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[#1E2246] text-[#C8FF3D] flex items-center justify-center font-bold text-xs border border-[#C8FF3D]">
-                {displayInGameName.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <div className="w-8 h-8 rounded-full bg-[#1E2246] text-[#C8FF3D] flex items-center justify-center font-bold text-xs border border-[#C8FF3D]">
+              {displayInGameName.charAt(0).toUpperCase()}
+            </div>
             <div className="text-left">
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>{displayInGameName}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#C8FF3D]/20 text-[#C8FF3D] border border-[#C8FF3D]/40 font-mono">
-                  {user.inGameName ? 'PLAYER' : 'NEW'}
+                  PLAYER
                 </span>
               </div>
-              <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{user.email}</div>
+              <div className="text-[10px] text-gray-400 truncate max-w-[150px]">
+                {user.email || 'Verified Account'}
+              </div>
             </div>
 
             {/* Profile Settings Icon */}
             <button
               onClick={() => setIsProfileModalOpen(true)}
               className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#1E2246] transition-colors ml-1 cursor-pointer"
-              title="Profile Settings & In-Game Name"
+              title="Profile Settings"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -502,25 +464,13 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
         )}
       </div>
 
-      {/* Mandatory In-Game Name Registration Modal for first-time Google Sign In */}
-      {needsInGameName && (
-        <InGameNameModal
-          isOpen={true}
-          user={user}
-          onSuccess={(inGameName) => {
-            setUser({ ...user, inGameName });
-            loadTournaments();
-          }}
-        />
-      )}
-
       {/* Profile Settings Modal */}
       <ProfileSettingsModal
         isOpen={isProfileModalOpen}
         user={user}
         onClose={() => setIsProfileModalOpen(false)}
         onUpdated={(newName) => {
-          setUser({ ...user, inGameName: newName });
+          setUser({ ...user, username: newName, inGameName: newName });
           loadTournaments();
         }}
       />
