@@ -12,6 +12,7 @@ import { getAllPlayers, getPlayerById } from './playerService.js';
 import { tournamentManager } from './tournamentManager.js';
 import { tournamentStorage } from './tournamentStorage.js';
 import { supabase, supabaseAdmin } from './supabase.js';
+import { sanitizeMatchForViewer } from './matchEngine.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -970,7 +971,8 @@ app.get('/api/matches/:matchId', (req, res) => {
     if (!match) {
         return res.status(404).json({ error: 'Match not found' });
     }
-    return res.json({ success: true, match });
+    const viewerFranchiseId = req.query.franchiseId || undefined;
+    return res.json({ success: true, match: sanitizeMatchForViewer(match, viewerFranchiseId) });
 });
 // Match Toss
 app.post('/api/matches/:matchId/toss', (req, res) => {
@@ -980,7 +982,11 @@ app.post('/api/matches/:matchId/toss', (req, res) => {
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
-        return res.json({ success: true, match: result.match });
+        const viewerFranchiseId = tossWinnerFranchiseId || undefined;
+        return res.json({
+            success: true,
+            match: result.match ? sanitizeMatchForViewer(result.match, viewerFranchiseId) : undefined
+        });
     }
     catch (err) {
         return res.status(500).json({ error: err.message || 'Error handling toss' });
@@ -994,7 +1000,12 @@ app.post('/api/matches/:matchId/choice', (req, res) => {
         if (result.error) {
             return res.status(400).json({ error: result.error });
         }
-        return res.json({ success: true, resolved: result.resolved, ballEvent: result.ballEvent, match: result.match });
+        return res.json({
+            success: true,
+            resolved: result.resolved,
+            ballEvent: result.ballEvent,
+            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+        });
     }
     catch (err) {
         return res.status(500).json({ error: err.message || 'Error submitting choice' });
@@ -1003,8 +1014,14 @@ app.post('/api/matches/:matchId/choice', (req, res) => {
 // Handle turn timeout
 app.post('/api/matches/:matchId/timeout', (req, res) => {
     try {
+        const { franchiseId } = req.body || {};
         const result = tournamentManager.handleTimeout(req.params.matchId);
-        return res.json({ success: true, resolved: result.resolved, ballEvent: result.ballEvent, match: result.match });
+        return res.json({
+            success: true,
+            resolved: result.resolved,
+            ballEvent: result.ballEvent,
+            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+        });
     }
     catch (err) {
         return res.status(500).json({ error: err.message || 'Error handling timeout' });

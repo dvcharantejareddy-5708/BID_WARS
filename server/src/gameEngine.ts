@@ -932,6 +932,11 @@ export class GameRoom {
     const lot = this.lots[this.currentLotIndex];
     if (!lot) return;
 
+    // Idempotency: Prevent duplicate finalization of already processed lot
+    if (lot.status === 'SOLD' || lot.status === 'UNSOLD') {
+      return;
+    }
+
     if (lot.currentBid > 0 && lot.currentBidder) {
       const winningTeam = lot.currentBidder;
       const winningPrice = lot.currentBid;
@@ -971,13 +976,23 @@ export class GameRoom {
         // 2. Deduct purse
         this.teamPurse[winningTeam] -= winningPrice;
 
-        // 3. Add cloned player to squad
+        // 3. Squad integrity: Ensure player can belong to only 1 team and no duplicates
+        const allTeams: IPLTeamId[] = ['CSK', 'MI', 'RCB', 'KKR', 'SRH', 'RR', 'PBKS', 'DC', 'GT', 'LSG'];
+        for (const t of allTeams) {
+          if (this.teamSquads[t]) {
+            this.teamSquads[t] = this.teamSquads[t].filter(p => p.id !== lot.player.id);
+          }
+        }
+
         const purchasedPlayer: Player = {
           ...lot.player,
           auction_status: 'SOLD',
           sold_price_inr: winningPrice,
           team_id: winningTeam
         };
+        if (!this.teamSquads[winningTeam]) {
+          this.teamSquads[winningTeam] = [];
+        }
         this.teamSquads[winningTeam].push(purchasedPlayer);
 
         this.addAuditLog(
@@ -2235,11 +2250,15 @@ export class GameRoom {
     this.teamSquads[toTeamId] = toSquad.filter(p => !reqIds.includes(p.id));
 
     for (const p of this.activeTrade.offeredPlayers) {
-      this.teamSquads[toTeamId].push({ ...p, team_id: toTeamId });
+      if (!this.teamSquads[toTeamId].some(existing => existing.id === p.id)) {
+        this.teamSquads[toTeamId].push({ ...p, team_id: toTeamId });
+      }
       this.sanitizePlayingXIAfterPlayerDeparture(fromTeamId, p.id);
     }
     for (const p of this.activeTrade.requestedPlayers) {
-      this.teamSquads[fromTeamId].push({ ...p, team_id: fromTeamId });
+      if (!this.teamSquads[fromTeamId].some(existing => existing.id === p.id)) {
+        this.teamSquads[fromTeamId].push({ ...p, team_id: fromTeamId });
+      }
       this.sanitizePlayingXIAfterPlayerDeparture(toTeamId, p.id);
     }
 

@@ -18,6 +18,9 @@ export class TournamentManager {
                     console.error(`[TournamentManager] Auto fixture generation error for room ${roomCode}:`, err);
                 });
             });
+            roomManager.addPlayingXIUpdatedListener((roomCode, tournamentId, teamId, selection) => {
+                this.syncRoomPlayingXI(tournamentId, teamId, selection);
+            });
         }
         catch (err) {
             console.warn('[TournamentManager] Could not register auction listener:', err);
@@ -84,6 +87,12 @@ export class TournamentManager {
         }
         return tournament;
     }
+    isUserTournamentMember(tournamentId, userId) {
+        const tournament = this.tournaments.get(tournamentId);
+        if (!tournament)
+            return false;
+        return tournament.hostId === userId || tournament.members.some(m => m.userId === userId);
+    }
     /**
      * Automatic fixture generation triggered authoritatively by backend auction completion
      */
@@ -109,19 +118,19 @@ export class TournamentManager {
                 const teamPurses = state.teamPurse;
                 for (const member of tournament.members) {
                     const fid = member.franchiseId;
-                    const squad = teamSquads[fid] || [];
+                    const rawSquad = teamSquads[fid] || [];
                     const purse = teamPurses[fid] !== undefined ? teamPurses[fid] / 10000000 : 0;
+                    // Deduplicate squad by player ID
+                    const seenPids = new Set();
+                    const squad = rawSquad.filter(p => {
+                        if (!p || !p.id || seenPids.has(p.id))
+                            return false;
+                        seenPids.add(p.id);
+                        return true;
+                    });
+                    // Generate default Playing XI strictly from team's actual squad
                     const sorted = [...squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
                     const playingXI = sorted.slice(0, 11).map(p => p.id);
-                    if (playingXI.length < 11) {
-                        for (const pid of this.allPlayersMap.keys()) {
-                            if (!playingXI.includes(pid)) {
-                                playingXI.push(pid);
-                                if (playingXI.length === 11)
-                                    break;
-                            }
-                        }
-                    }
                     const captainId = playingXI[0] || '';
                     const viceCaptainId = playingXI[1] || '';
                     const impactPlayerId = sorted[11]?.id;
@@ -403,14 +412,36 @@ export class TournamentManager {
         const teamPurses = state.teamPurse;
         for (const member of tournament.members) {
             const fid = member.franchiseId;
-            const squad = teamSquads[fid] || [];
+            const rawSquad = teamSquads[fid] || [];
             const purse = teamPurses[fid] !== undefined ? teamPurses[fid] / 10000000 : 0; // Convert to Crores
-            // Generate default Playing XI (top 11 players by OVR)
-            const sorted = [...squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
-            const playingXI = sorted.slice(0, 11).map(p => p.id);
-            const captainId = playingXI[0] || '';
-            const viceCaptainId = playingXI[1] || '';
-            const impactPlayerId = sorted[11]?.id;
+            // Deduplicate squad by player ID
+            const seenPids = new Set();
+            const squad = rawSquad.filter(p => {
+                if (!p || !p.id || seenPids.has(p.id))
+                    return false;
+                seenPids.add(p.id);
+                return true;
+            });
+            // Check if room already has a saved Playing XI for this franchise
+            const roomXI = state.teamPlayingXI ? state.teamPlayingXI[fid] : null;
+            let playingXI = [];
+            let captainId = '';
+            let viceCaptainId = '';
+            let impactPlayerId = undefined;
+            if (roomXI && Array.isArray(roomXI.playingXIIds) && roomXI.playingXIIds.length === 11) {
+                playingXI = [...roomXI.playingXIIds];
+                captainId = roomXI.captainId || playingXI[0] || '';
+                viceCaptainId = roomXI.viceCaptainId || playingXI[1] || '';
+                impactPlayerId = roomXI.impactPlayerId || undefined;
+            }
+            else {
+                // Generate default Playing XI strictly from team's actual squad
+                const sorted = [...squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
+                playingXI = sorted.slice(0, 11).map(p => p.id);
+                captainId = playingXI[0] || '';
+                viceCaptainId = playingXI[1] || '';
+                impactPlayerId = sorted[11]?.id;
+            }
             tournament.teams[fid] = {
                 franchiseId: fid,
                 ownerUserId: member.userId,
@@ -484,10 +515,55 @@ export class TournamentManager {
         if (!lineup.playingXI || lineup.playingXI.length !== 11) {
             return { success: false, message: 'Playing XI must contain exactly 11 players' };
         }
+        // Validate that all players belong to actual squad and no duplicates
+        const squadMap = new Map(team.squad.map(p => [p.id, p]));
+        const uniqueIds = new Set(lineup.playingXI);
+        if (uniqueIds.size !== 11) {
+            return { success: false, message: 'Playing XI cannot contain duplicate players' };
+        }
+        let overseasCount = 0;
+        for (const pid of lineup.playingXI) {
+            const p = squadMap.get(pid);
+            if (!p) {
+                return { success: false, message: `Player ${pid} does not belong to ${franchiseId} squad` };
+            }
+            if (p.is_overseas)
+                overseasCount++;
+        }
+        if (overseasCount > 4) {
+            return { success: false, message: `Playing XI cannot contain more than 4 overseas players (found ${overseasCount})` };
+        }
+        if (!lineup.captainId || !uniqueIds.has(lineup.captainId)) {
+            return { success: false, message: 'Captain must be selected from the 11 starting players' };
+        }
+        if (!lineup.viceCaptainId || !uniqueIds.has(lineup.viceCaptainId) || lineup.viceCaptainId === lineup.captainId) {
+            return { success: false, message: 'Vice-Captain must be a distinct player selected from the 11 starting players' };
+        }
         team.defaultPlayingXI = { ...lineup };
         tournament.updatedAt = Date.now();
         tournamentStorage.saveTournament(tournament);
         return { success: true };
+    }
+    /**
+     * Sync Playing XI saved from auction/squad finalization screen
+     */
+    syncRoomPlayingXI(tournamentId, franchiseId, selection) {
+        const tournament = this.tournaments.get(tournamentId);
+        if (!tournament)
+            return;
+        const team = tournament.teams[franchiseId];
+        if (!team)
+            return;
+        if (selection && Array.isArray(selection.playingXIIds)) {
+            team.defaultPlayingXI = {
+                playingXI: [...selection.playingXIIds],
+                captainId: selection.captainId || selection.playingXIIds[0] || '',
+                viceCaptainId: selection.viceCaptainId || selection.playingXIIds[1] || '',
+                impactPlayerId: selection.impactPlayerId
+            };
+            tournament.updatedAt = Date.now();
+            tournamentStorage.saveTournament(tournament);
+        }
     }
     /**
      * Start a scheduled match
@@ -515,29 +591,24 @@ export class TournamentManager {
         }
         // Build lineups
         const getLineup = (team, fid) => {
-            if (team.defaultPlayingXI && team.defaultPlayingXI.playingXI.length === 11) {
+            const squadIds = new Set(team.squad.map(p => p.id));
+            if (team.defaultPlayingXI &&
+                Array.isArray(team.defaultPlayingXI.playingXI) &&
+                team.defaultPlayingXI.playingXI.length === 11 &&
+                team.defaultPlayingXI.playingXI.every(pid => squadIds.has(pid))) {
                 return {
                     franchiseId: fid,
                     playingXI: [...team.defaultPlayingXI.playingXI],
-                    captainId: team.defaultPlayingXI.captainId,
-                    viceCaptainId: team.defaultPlayingXI.viceCaptainId,
+                    captainId: team.defaultPlayingXI.captainId || team.defaultPlayingXI.playingXI[0] || '',
+                    viceCaptainId: team.defaultPlayingXI.viceCaptainId || team.defaultPlayingXI.playingXI[1] || '',
                     impactPlayerId: team.defaultPlayingXI.impactPlayerId,
                     isLocked: true,
                     submittedAt: Date.now()
                 };
             }
-            // Auto-fallback: top 11 by OVR
+            // Auto-fallback: top 11 by OVR strictly from team squad
             const sorted = [...team.squad].sort((a, b) => (b.ovr || 75) - (a.ovr || 75));
             const pXI = sorted.slice(0, 11).map(p => p.id);
-            if (pXI.length < 11) {
-                for (const pid of this.allPlayersMap.keys()) {
-                    if (!pXI.includes(pid)) {
-                        pXI.push(pid);
-                        if (pXI.length === 11)
-                            break;
-                    }
-                }
-            }
             return {
                 franchiseId: fid,
                 playingXI: pXI,
@@ -609,12 +680,14 @@ export class TournamentManager {
         if (!tournament)
             return;
         const fixture = tournament.fixtures.find(f => f.id === match.fixtureId);
-        if (fixture) {
-            fixture.status = 'COMPLETED';
-            fixture.winnerFranchiseId = match.winnerFranchiseId;
-            fixture.matchResultSummary = match.resultSummary;
-            fixture.completedAt = Date.now();
+        if (!fixture || fixture.status === 'COMPLETED') {
+            // Idempotent: prevent double processing or duplicate points calculation
+            return;
         }
+        fixture.status = 'COMPLETED';
+        fixture.winnerFranchiseId = match.winnerFranchiseId;
+        fixture.matchResultSummary = match.resultSummary;
+        fixture.completedAt = Date.now();
         // Update Points Table
         const inn1 = match.innings1;
         const inn2 = match.innings2;

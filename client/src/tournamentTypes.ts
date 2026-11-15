@@ -121,6 +121,8 @@ export interface InningsState {
   activeBatterId: string;
   nonStrikerId?: string;
   activeBowlerId: string;
+  previousOverBowlerId?: string;
+  batterAbilityUsedInCurrentOver?: boolean;
   battingOrder: string[];
   nextBatterIndex: number;
   batters: Record<string, BatterInningsScore>;

@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 import { GameRoom } from './gameEngine.js';
-import { RoomSettings, ClientMessage, ServerMessage, RoomState } from './types.js';
+import { RoomSettings, ClientMessage, ServerMessage, RoomState, IPLTeamId } from './types.js';
 import { storageService } from './storageService.js';
 
 interface ClientConnection {
@@ -14,11 +14,26 @@ export class RoomManager {
   private connections: Map<WebSocket, ClientConnection> = new Map();
 
   public onAuctionCompletedListeners: Array<(roomCode: string) => void> = [];
+  public onPlayingXIUpdatedListeners: Array<(roomCode: string, tournamentId: string, teamId: IPLTeamId, selection: any) => void> = [];
 
   constructor() {}
 
   public addAuctionCompletedListener(listener: (roomCode: string) => void): void {
     this.onAuctionCompletedListeners.push(listener);
+  }
+
+  public addPlayingXIUpdatedListener(listener: (roomCode: string, tournamentId: string, teamId: IPLTeamId, selection: any) => void): void {
+    this.onPlayingXIUpdatedListeners.push(listener);
+  }
+
+  public triggerPlayingXIUpdated(roomCode: string, tournamentId: string, teamId: IPLTeamId, selection: any): void {
+    for (const listener of this.onPlayingXIUpdatedListeners) {
+      try {
+        listener(roomCode, tournamentId, teamId, selection);
+      } catch (err) {
+        console.error(`[RoomManager] PlayingXI listener error:`, err);
+      }
+    }
   }
 
   private triggerAuctionCompleted(roomCode: string): void {
@@ -412,6 +427,8 @@ export class RoomManager {
         const res = room.savePlayingXI(conn.memberId, msg.teamId, msg.selection);
         if (!res.success) {
           this.sendError(ws, res.message || 'Failed to save Playing XI draft');
+        } else if (room.settings.tournamentId) {
+          this.triggerPlayingXIUpdated(room.roomCode, room.settings.tournamentId, msg.teamId, res.selection);
         }
         break;
       }
@@ -419,6 +436,8 @@ export class RoomManager {
         const res = room.confirmPlayingXI(conn.memberId, msg.teamId);
         if (!res.success) {
           this.sendError(ws, res.message || 'Failed to confirm Playing XI');
+        } else if (room.settings.tournamentId) {
+          this.triggerPlayingXIUpdated(room.roomCode, room.settings.tournamentId, msg.teamId, res.selection);
         }
         break;
       }

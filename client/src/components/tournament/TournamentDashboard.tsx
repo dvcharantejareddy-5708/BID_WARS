@@ -15,11 +15,13 @@ import { LiveMatch } from '../../tournamentTypes';
 interface TournamentDashboardProps {
   onSwitchToQuickAuction: () => void;
   onEnterAuctionRoom: (roomCode: string) => void;
+  initialTournamentId?: string | null;
 }
 
 export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   onSwitchToQuickAuction,
-  onEnterAuctionRoom
+  onEnterAuctionRoom,
+  initialTournamentId
 }) => {
   const [user, setUser] = useState<AuthUser | null>(authService.getUser());
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -41,6 +43,18 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
     return unsub;
   }, []);
 
+  const handleOpenTournament = (t: Tournament) => {
+    setActiveTournament(t);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('bidwars_active_tournament_id', t.id);
+    }
+    if (['TOURNAMENT_LIVE', 'PLAYOFFS', 'COMPLETED', 'SQUAD_FINALIZATION'].includes(t.status)) {
+      setViewState('HUB');
+    } else {
+      setViewState('LOBBY');
+    }
+  };
+
   const loadTournaments = async () => {
     if (!user || !user.isRegisteredUser) {
       setTournaments([]);
@@ -53,7 +67,23 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
       // STRICT PRIVACY: Only fetch tournaments belonging to this authenticated user
       const list = await TournamentApi.getTournaments(user.id);
       setTournaments(list);
-      if (activeTournament) {
+
+      const targetId =
+        activeTournament?.id ||
+        initialTournamentId ||
+        (typeof window !== 'undefined' ? sessionStorage.getItem('bidwars_active_tournament_id') : null);
+
+      if (targetId) {
+        let target: Tournament | null | undefined = list.find(t => t.id === targetId);
+        if (!target) {
+          try {
+            target = await TournamentApi.getTournament(targetId, user.id);
+          } catch {}
+        }
+        if (target) {
+          handleOpenTournament(target);
+        }
+      } else if (activeTournament) {
         const updated = list.find(t => t.id === activeTournament.id);
         if (updated) setActiveTournament(updated);
       }
@@ -66,21 +96,16 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
   useEffect(() => {
     loadTournaments();
-  }, [user?.id, user?.isRegisteredUser]);
+  }, [user?.id, user?.isRegisteredUser, initialTournamentId]);
 
   const handleSignOut = async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('bidwars_active_tournament_id');
+    }
     await authService.signOut();
     setUser(null);
+    setActiveTournament(null);
     setTournaments([]);
-  };
-
-  const handleOpenTournament = (t: Tournament) => {
-    setActiveTournament(t);
-    if (['TOURNAMENT_LIVE', 'PLAYOFFS', 'COMPLETED'].includes(t.status)) {
-      setViewState('HUB');
-    } else {
-      setViewState('LOBBY');
-    }
   };
 
   const handleJoinByCode = async (e: React.FormEvent) => {
@@ -128,6 +153,10 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           tournament={activeTournament}
           user={user}
           onBack={() => {
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('bidwars_active_tournament_id');
+            }
+            setActiveTournament(null);
             setViewState('DASHBOARD');
             loadTournaments();
           }}
@@ -146,6 +175,10 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           tournament={activeTournament}
           user={user}
           onBack={() => {
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('bidwars_active_tournament_id');
+            }
+            setActiveTournament(null);
             setViewState('DASHBOARD');
             loadTournaments();
           }}

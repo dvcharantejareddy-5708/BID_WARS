@@ -139,8 +139,11 @@ export class TournamentApi {
     return data.match;
   }
 
-  public static async getLiveMatch(matchId: string): Promise<LiveMatch | null> {
-    const res = await fetch(`${API_BASE}/matches/${matchId}`);
+  public static async getLiveMatch(matchId: string, franchiseId?: string): Promise<LiveMatch | null> {
+    const url = franchiseId
+      ? `${API_BASE}/matches/${matchId}?franchiseId=${encodeURIComponent(franchiseId)}`
+      : `${API_BASE}/matches/${matchId}`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
     return data.match || null;
@@ -181,12 +184,13 @@ export class TournamentApi {
   }
 
   public static async triggerTimeout(
-    matchId: string
+    matchId: string,
+    franchiseId?: string
   ): Promise<{ resolved: boolean; ballEvent?: BallEvent; match?: LiveMatch }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/timeout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({ franchiseId })
     });
     return await res.json();
   }

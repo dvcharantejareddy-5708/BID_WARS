@@ -41,6 +41,10 @@ export function App() {
   // 'landing' | 'onboarding' | 'in_room'
   const [view, setView] = useState<'landing' | 'onboarding' | 'in_room'>('landing');
   const [gameMode, setGameMode] = useState<'QUICK_AUCTION' | 'TOURNAMENT'>('QUICK_AUCTION');
+  const [tournamentIdToOpen, setTournamentIdToOpen] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('bidwars_active_tournament_id');
+  });
   const [activeTab, setActiveTab] = useState<'auction' | 'my-team' | 'all-teams' | 'players' | 'history' | 'settings'>('auction');
 
   // Live Chat State
@@ -796,8 +800,13 @@ export function App() {
         {/* VIEW 1: LANDING PAGE & TOURNAMENT DASHBOARD */}
         {view === 'landing' && gameMode === 'TOURNAMENT' && (
           <TournamentDashboard
-            onSwitchToQuickAuction={() => setGameMode('QUICK_AUCTION')}
+            onSwitchToQuickAuction={() => {
+              sessionStorage.removeItem('bidwars_active_tournament_id');
+              setTournamentIdToOpen(null);
+              setGameMode('QUICK_AUCTION');
+            }}
             onEnterAuctionRoom={(roomCode) => handleEnterTournamentAuction(roomCode)}
+            initialTournamentId={tournamentIdToOpen}
           />
         )}
 
@@ -909,6 +918,11 @@ export function App() {
                 roomState={roomState}
                 myMemberId={myMemberId}
                 onViewTournamentFixtures={() => {
+                  const tid = roomState?.settings?.tournamentId;
+                  if (tid) {
+                    sessionStorage.setItem('bidwars_active_tournament_id', tid);
+                    setTournamentIdToOpen(tid);
+                  }
                   setGameMode('TOURNAMENT');
                   setView('landing');
                 }}

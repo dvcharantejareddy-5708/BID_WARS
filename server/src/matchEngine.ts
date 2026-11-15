@@ -13,6 +13,24 @@ import {
 
 export const LEGAL_CHOICES: HandCricketChoice[] = [0, 1, 2, 3, 4, 6];
 
+/**
+ * Bowling Limits explicitly per tournament match overs:
+ * 1 Over: 1 max
+ * 2 Overs: 1 max
+ * 5 Overs: 1 max
+ * 10 Overs: 2 max
+ * 15 Overs: 3 max
+ * 20 Overs: 4 max
+ */
+export function getMaxBowlerOvers(matchOvers: number): number {
+  if (matchOvers <= 1) return 1;
+  if (matchOvers <= 2) return 1;
+  if (matchOvers <= 5) return 1;
+  if (matchOvers <= 10) return 2;
+  if (matchOvers <= 15) return 3;
+  return 4; // 20 overs
+}
+
 export class MatchEngine {
   /**
    * Initializes a new live match from fixture and confirmed lineups
@@ -27,7 +45,7 @@ export class MatchEngine {
     awayLineup: MatchLineup,
     playersMap: Map<string, Player>
   ): LiveMatch {
-    const maxBowlerOvers = Math.max(1, Math.ceil(matchOvers / 5));
+    const maxBowlerOvers = getMaxBowlerOvers(matchOvers);
 
     const match: LiveMatch = {
       id: `MATCH-${fixtureId}`,
@@ -123,6 +141,7 @@ export class MatchEngine {
       activeBatterId,
       nonStrikerId,
       activeBowlerId,
+      batterAbilityUsedInCurrentOver: false,
       battingOrder,
       nextBatterIndex: 2,
       batters,
@@ -177,6 +196,10 @@ export class MatchEngine {
     const innings = match.currentInnings === 1 ? match.innings1 : match.innings2;
     if (!innings) return { success: false, message: 'Invalid innings state' };
 
+    if (innings.ballsInCurrentOver > 0) {
+      return { success: false, message: 'Cannot change bowler in the middle of an over' };
+    }
+
     const bowlerFig = innings.bowlers[bowlerId];
     if (!bowlerFig) return { success: false, message: 'Player is not in the bowling lineup' };
 
@@ -184,7 +207,7 @@ export class MatchEngine {
       return { success: false, message: `Bowler has already bowled their quota of ${bowlerFig.maxOversAllowed} overs` };
     }
 
-    if (innings.ballsInCurrentOver === 0 && innings.oversCompleted > 0 && innings.activeBowlerId === bowlerId) {
+    if (innings.oversCompleted > 0 && innings.previousOverBowlerId === bowlerId) {
       // Check if team has other bowlers who can bowl
       const otherEligible = Object.values(innings.bowlers).some(
         b => b.playerId !== bowlerId && b.overs < b.maxOversAllowed
@@ -252,10 +275,12 @@ export class MatchEngine {
 
     // Batter check: diff is bowler - batter, so batter - bowler = -diff
     const batterAdv = batterOvr - bowlerOvr;
-    if (batterAdv >= 8) {
-      batterAbilities.push('SECRET_DOUBLE_SHOT');
-    } else if (batterAdv >= 3) {
-      batterAbilities.push('COMBINATION_SHOT');
+    if (!innings.batterAbilityUsedInCurrentOver) {
+      if (batterAdv >= 8) {
+        batterAbilities.push('SECRET_DOUBLE_SHOT');
+      } else if (batterAdv >= 3) {
+        batterAbilities.push('COMBINATION_SHOT');
+      }
     }
 
     return { batterAbilities, bowlerAbilities, batterOvr, bowlerOvr, diff };
@@ -284,34 +309,87 @@ export class MatchEngine {
       return { resolved: false, error: 'Team is not part of this match' };
     }
 
+    const batter = innings.batters[innings.activeBatterId];
+    const bowler = innings.bowlers[innings.activeBowlerId];
+    const batterOvr = batter?.ovr || 75;
+    const bowlerOvr = bowler?.ovr || 75;
+    const bowlerAdv = bowlerOvr - batterOvr;
+    const batterAdv = batterOvr - bowlerOvr;
+
     // Validate bowler ability & blocked numbers
     if (isBowlingTeam) {
+      if (match.pendingInputs.bowlerChoice !== undefined) {
+        return { resolved: false, error: 'Bowler choice already submitted and locked for this delivery.' };
+      }
+
+      if (!LEGAL_CHOICES.includes(choice)) {
+        return { resolved: false, error: 'Invalid delivery choice' };
+      }
+
       match.pendingInputs.bowlerChoice = choice;
+
       if (ability === 'NUMBER_BLOCK' || ability === 'ELITE_NUMBER_BLOCK') {
         const bowlerFig = innings.bowlers[innings.activeBowlerId];
-        if (bowlerFig && !bowlerFig.abilityUsedInCurrentOver) {
-          match.pendingInputs.bowlerAbility = ability;
-          if (ability === 'ELITE_NUMBER_BLOCK') {
-            match.pendingInputs.blockedNumbers = [0, 1, 2, 3]; // Batter can only select 4 or 6
-          } else if (blockedNumbers && blockedNumbers.length === 3) {
-            match.pendingInputs.blockedNumbers = blockedNumbers;
+        if (!bowlerFig || bowlerFig.abilityUsedInCurrentOver) {
+          return { resolved: false, error: 'Bowler special ability already used in current over' };
+        }
+
+        if (ability === 'ELITE_NUMBER_BLOCK') {
+          if (bowlerAdv < 8) {
+            return { resolved: false, error: 'Elite Number Block requires at least 8 OVR advantage' };
           }
+          match.pendingInputs.bowlerAbility = 'ELITE_NUMBER_BLOCK';
+          match.pendingInputs.blockedNumbers = [0, 1, 2, 3]; // Batter can only select 4 or 6!
+        } else if (ability === 'NUMBER_BLOCK') {
+          if (bowlerAdv < 3) {
+            return { resolved: false, error: 'Number Block requires 3–7 OVR advantage' };
+          }
+          if (
+            !blockedNumbers ||
+            blockedNumbers.length !== 3 ||
+            new Set(blockedNumbers).size !== 3 ||
+            !blockedNumbers.every(n => LEGAL_CHOICES.includes(n as any))
+          ) {
+            return { resolved: false, error: 'Bowler must select exactly 3 unique scoring options to block from [0, 1, 2, 3, 4, 6]' };
+          }
+          match.pendingInputs.bowlerAbility = 'NUMBER_BLOCK';
+          match.pendingInputs.blockedNumbers = blockedNumbers;
         }
       }
     }
 
     // Validate batter input and choice
     if (isBattingTeam) {
+      if (match.pendingInputs.batterChoice !== undefined) {
+        return { resolved: false, error: 'Batter choice already submitted and locked for this delivery.' };
+      }
+
+      if (!LEGAL_CHOICES.includes(choice)) {
+        return { resolved: false, error: 'Invalid scoring choice' };
+      }
+
       // Check if choice is restricted by an active bowler block
       if (match.pendingInputs.blockedNumbers && match.pendingInputs.blockedNumbers.includes(choice)) {
         return { resolved: false, error: `Selection ${choice} is blocked by bowler's special ability!` };
       }
 
       match.pendingInputs.batterChoice = choice;
+
       if (ability === 'COMBINATION_SHOT' || ability === 'SECRET_DOUBLE_SHOT') {
-        // Only allowed if bowler hasn't blocked and ability is valid
-        if (!match.pendingInputs.bowlerAbility) {
-          match.pendingInputs.batterAbility = ability;
+        if (innings.batterAbilityUsedInCurrentOver) {
+          return { resolved: false, error: 'Batter special ability already used in current over' };
+        }
+
+        if (ability === 'SECRET_DOUBLE_SHOT') {
+          if (batterAdv < 8) {
+            return { resolved: false, error: 'Secret Double Shot requires at least 8 OVR advantage' };
+          }
+          match.pendingInputs.batterAbility = 'SECRET_DOUBLE_SHOT';
+        } else if (ability === 'COMBINATION_SHOT') {
+          if (batterAdv < 3) {
+            return { resolved: false, error: 'Combination Shot requires 3–7 OVR advantage' };
+          }
+          match.pendingInputs.batterAbility = 'COMBINATION_SHOT';
         }
       }
     }
@@ -419,6 +497,9 @@ export class MatchEngine {
 
     if (bowlerAbility) {
       bowler.abilityUsedInCurrentOver = true;
+    }
+    if (batterAbility) {
+      innings.batterAbilityUsedInCurrentOver = true;
     }
 
     const isWicket = batterChoice === bowlerChoice;
@@ -555,6 +636,8 @@ export class MatchEngine {
     if (overFinished) {
       innings.oversCompleted += 1;
       innings.ballsInCurrentOver = 0;
+      innings.batterAbilityUsedInCurrentOver = false;
+      innings.previousOverBowlerId = innings.activeBowlerId;
       const bowler = innings.bowlers[innings.activeBowlerId];
       if (bowler) {
         bowler.overs += 1;
@@ -753,4 +836,39 @@ export class MatchEngine {
     match.updatedAt = Date.now();
     return { success: true, message: `Impact Player ${playerIn.name} brought on for ${playerOutId}` };
   }
+}
+
+/**
+ * Strips secret, uncommitted opponent choices from LiveMatch payload
+ * Ensures simultaneous commit integrity: Batter cannot see bowler's choice,
+ * Bowler cannot see batter's choice or secret 2x activation.
+ */
+export function sanitizeMatchForViewer(match: LiveMatch, viewerFranchiseId?: string): LiveMatch {
+  if (!match) return match;
+  const clone: LiveMatch = JSON.parse(JSON.stringify(match));
+  const inputs = clone.pendingInputs;
+  if (!inputs) return clone;
+
+  const inn = clone.currentInnings === 1 ? clone.innings1 : clone.innings2;
+  const battingTeam = inn?.battingFranchiseId;
+  const bowlingTeam = inn?.bowlingFranchiseId;
+
+  const hasBatterSubmitted = inputs.batterChoice !== undefined;
+  const hasBowlerSubmitted = inputs.bowlerChoice !== undefined;
+
+  (inputs as any).hasBatterSubmitted = hasBatterSubmitted;
+  (inputs as any).hasBowlerSubmitted = hasBowlerSubmitted;
+
+  // Conceal batter choices from bowler or spectators until delivery resolves
+  if (viewerFranchiseId !== battingTeam) {
+    delete inputs.batterChoice;
+    delete inputs.batterAbility;
+  }
+
+  // Conceal bowler choices from batter or spectators until delivery resolves
+  if (viewerFranchiseId !== bowlingTeam) {
+    delete inputs.bowlerChoice;
+  }
+
+  return clone;
 }

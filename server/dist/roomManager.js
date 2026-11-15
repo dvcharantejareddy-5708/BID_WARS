@@ -5,9 +5,23 @@ export class RoomManager {
     rooms = new Map();
     connections = new Map();
     onAuctionCompletedListeners = [];
+    onPlayingXIUpdatedListeners = [];
     constructor() { }
     addAuctionCompletedListener(listener) {
         this.onAuctionCompletedListeners.push(listener);
+    }
+    addPlayingXIUpdatedListener(listener) {
+        this.onPlayingXIUpdatedListeners.push(listener);
+    }
+    triggerPlayingXIUpdated(roomCode, tournamentId, teamId, selection) {
+        for (const listener of this.onPlayingXIUpdatedListeners) {
+            try {
+                listener(roomCode, tournamentId, teamId, selection);
+            }
+            catch (err) {
+                console.error(`[RoomManager] PlayingXI listener error:`, err);
+            }
+        }
     }
     triggerAuctionCompleted(roomCode) {
         for (const listener of this.onAuctionCompletedListeners) {
@@ -376,12 +390,18 @@ export class RoomManager {
                 if (!res.success) {
                     this.sendError(ws, res.message || 'Failed to save Playing XI draft');
                 }
+                else if (room.settings.tournamentId) {
+                    this.triggerPlayingXIUpdated(room.roomCode, room.settings.tournamentId, msg.teamId, res.selection);
+                }
                 break;
             }
             case 'CONFIRM_PLAYING_XI': {
                 const res = room.confirmPlayingXI(conn.memberId, msg.teamId);
                 if (!res.success) {
                     this.sendError(ws, res.message || 'Failed to confirm Playing XI');
+                }
+                else if (room.settings.tournamentId) {
+                    this.triggerPlayingXIUpdated(room.roomCode, room.settings.tournamentId, msg.teamId, res.selection);
                 }
                 break;
             }
