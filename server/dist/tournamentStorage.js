@@ -436,7 +436,9 @@ export class TournamentStorageService {
                     updated_at: new Date().toISOString()
                 });
             }
-            catch { }
+            catch (err) {
+                console.error('[tournamentStorage] updateCredentials error:', err);
+            }
         }
     }
     async isNameAvailable(name, excludeUserId) {

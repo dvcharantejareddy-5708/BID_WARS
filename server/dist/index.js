@@ -484,32 +484,21 @@ app.post('/api/auth/login', async (req, res) => {
 // Change Password in user profile / account settings
 app.post('/api/auth/change-password', async (req, res) => {
     try {
-        const { userId, username, currentPassword, newPassword, confirmPassword } = req.body || {};
-        if ((!userId && !username) || !currentPassword || !newPassword) {
+        const { userId, currentPassword, newPassword, confirmPassword } = req.body || {};
+        if (!userId || !currentPassword || !newPassword) {
             return res.status(400).json({ error: 'Current password and new password are required.' });
         }
         if (newPassword !== confirmPassword) {
             return res.status(400).json({ error: 'New passwords do not match.' });
         }
-        if (newPassword === currentPassword) {
-            return res.status(400).json({ error: 'New password cannot be the same as your current password.' });
-        }
         if (String(newPassword).length < 6) {
             return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
         }
-        let profile = userId ? await tournamentStorage.getProfile(userId) : null;
-        if (!profile && username) {
-            profile = await tournamentStorage.getProfileByUsername(username);
-        }
+        const profile = await tournamentStorage.getProfile(userId);
         if (!profile) {
             return res.status(404).json({ error: 'User profile not found.' });
         }
-        let userEmail = profile.email || profile.recoveryEmail;
-        if (!userEmail && profile.username) {
-            const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
-            const authHash = crypto.createHmac('sha256', authSecret).update(profile.username.toLowerCase()).digest('hex').slice(0, 32);
-            userEmail = `usr_${authHash}@bidwars.com`;
-        }
+        const userEmail = profile.email || profile.recoveryEmail;
         if (!userEmail) {
             return res.status(400).json({ error: 'Account does not have a registered email address.' });
         }
@@ -524,10 +513,9 @@ app.post('/api/auth/change-password', async (req, res) => {
         if (verifyError || !verifyData?.user) {
             return res.status(401).json({ error: 'Current password is incorrect.' });
         }
-        const targetUserId = profile.id || verifyData.user.id;
         // Update password using Supabase Auth Admin API
         if (supabaseAdmin) {
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
                 password: String(newPassword)
             });
             if (updateError) {
@@ -537,7 +525,7 @@ app.post('/api/auth/change-password', async (req, res) => {
         // Also update backup credentials in auth_secrets
         const salt = crypto.randomBytes(16).toString('hex');
         const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
-        await tournamentStorage.updateCredentials(targetUserId, passwordHash, salt).catch(() => { });
+        await tournamentStorage.updateCredentials(userId, passwordHash, salt).catch(() => { });
         return res.json({ success: true, message: 'Password updated successfully!' });
     }
     catch (err) {

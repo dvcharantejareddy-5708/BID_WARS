@@ -468,12 +468,16 @@ export class TournamentStorageService {
 
   public async updateCredentials(userId: string, passwordHash: string, salt: string): Promise<void> {
     if (supabaseAdmin) {
-      await supabaseAdmin.from('auth_secrets').upsert({
-        user_id: userId,
-        password_hash: passwordHash,
-        password_salt: salt,
-        updated_at: new Date().toISOString()
-      }).catch(() => {});
+      try {
+        await supabaseAdmin.from('auth_secrets').upsert({
+          user_id: userId,
+          password_hash: passwordHash,
+          password_salt: salt,
+          updated_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('[tournamentStorage] updateCredentials error:', err);
+      }
     }
   }
 
