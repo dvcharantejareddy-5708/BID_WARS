@@ -241,12 +241,15 @@ export interface PlayerTournamentStats {
   mvpPoints: number;
 }
 
+export type TournamentAuctionType = 'MEGA' | 'MINI';
+
 export interface Tournament {
   id: string;
   name: string;
   hostId: string;
   hostName: string;
   status: TournamentStatus;
+  auctionType?: TournamentAuctionType; // 'MEGA' (532 players) | 'MINI' (359 players)
   teamsCount: 4 | 6 | 8 | 10;
   matchOvers: 1 | 2 | 5 | 10 | 15 | 20;
   roomCode: string; // Links directly to existing Auction room

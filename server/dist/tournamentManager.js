@@ -205,14 +205,15 @@ export class TournamentManager {
      * 1. Create a new persistent tournament
      * Enforces 1 user account = 1 team constraint from the start
      */
-    async createTournament(name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId) {
+    async createTournament(name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId, auctionType = 'MEGA') {
         await this.init();
         const tournamentId = this.generateTournamentId();
         const now = Date.now();
+        const poolMode = auctionType === 'MINI' ? 'auction_pool' : 'mega_all';
         // Create an underlying Quick Auction room in roomManager to guarantee 100% auction reuse
         const roomSettings = {
             season: '2026',
-            poolMode: 'mega_all',
+            poolMode,
             startingPurse: 1200000000,
             timerDuration: 15,
             isPrivate: false,
@@ -245,6 +246,7 @@ export class TournamentManager {
             hostId,
             hostName,
             status: 'REGISTRATION',
+            auctionType,
             teamsCount,
             matchOvers,
             roomCode: auctionRoom.roomCode,

@@ -146,7 +146,7 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              Tournament ID: <span className="font-mono text-white font-bold">{tournament.id}</span> • Overs: {tournament.matchOvers} • Teams: {tournament.members.length}/{tournament.teamsCount} • Host: <span className="text-[#C8FF3D] font-bold">{tournament.hostName}</span>
+              Tournament ID: <span className="font-mono text-white font-bold">{tournament.id}</span> • Format: <span className="text-[#C8FF3D] font-bold">{tournament.auctionType === 'MINI' ? 'Mini Auction (359 Players)' : 'Mega Auction (532 Players)'}</span> • Overs: {tournament.matchOvers} • Teams: {tournament.members.length}/{tournament.teamsCount} • Host: <span className="text-[#C8FF3D] font-bold">{tournament.hostName}</span>
             </p>
           </div>
         </div>

@@ -141,40 +141,51 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
               </div>
             </div>
             <span className="text-[10px] font-heading font-extrabold px-2 py-0.5 rounded bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30 uppercase">
-              Offering
+              Offering ({((activeTrade.offeredPlayers && activeTrade.offeredPlayers.length > 0) ? activeTrade.offeredPlayers : [activeTrade.offeredPlayer]).length})
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-heading font-black text-sm text-white truncate">
-                  {activeTrade.offeredPlayer.name}
-                </p>
-                <OvrBadge ovr={activeTrade.offeredPlayer.ovr} size="xs" />
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-[#8F9CAE] mt-0.5">
-                <span>{activeTrade.offeredPlayer.category}</span>
-                {activeTrade.offeredPlayer.is_overseas && (
-                  <span className="text-[#FFC93D] flex items-center gap-0.5 font-bold">
-                    <Globe2 className="w-3 h-3" /> Overseas
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {((activeTrade.offeredPlayers && activeTrade.offeredPlayers.length > 0)
+              ? activeTrade.offeredPlayers
+              : (activeTrade.offeredPlayer ? [activeTrade.offeredPlayer] : [])
+            ).map((player) => (
+              <div key={player.id} className="p-2.5 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-heading font-black text-xs text-white truncate">
+                      {player.name}
+                    </p>
+                    <OvrBadge ovr={player.ovr} size="xs" />
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-[#8F9CAE] mt-0.5">
+                    <span>{player.category}</span>
+                    {player.is_overseas && (
+                      <span className="text-[#FFC93D] flex items-center gap-0.5 font-bold">
+                        <Globe2 className="w-2.5 h-2.5" /> Overseas
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-number font-bold text-xs text-[#C8FF3D]">
+                    {player.sold_price_inr
+                      ? `₹${(player.sold_price_inr / 10000000).toFixed(2)} Cr`
+                      : player.base_price_display}
                   </span>
-                )}
+                </div>
               </div>
-              {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'OFFERING_TEAM' && (
-                <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#C8FF3D] bg-[#C8FF3D]/10 px-2 py-0.5 rounded border border-[#C8FF3D]/30">
-                  + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
-                </span>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <span className="font-number font-bold text-xs text-[#C8FF3D]">
-                {activeTrade.offeredPlayer.sold_price_inr
-                  ? `₹${(activeTrade.offeredPlayer.sold_price_inr / 10000000).toFixed(2)} Cr`
-                  : activeTrade.offeredPlayer.base_price_display}
+            ))}
+          </div>
+
+          {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'OFFERING_TEAM' && (
+            <div className="px-3 py-1.5 rounded-xl bg-[#C8FF3D]/10 border border-[#C8FF3D]/30 flex items-center justify-between">
+              <span className="text-[11px] font-heading font-bold text-white">Cash Transfer:</span>
+              <span className="font-number font-extrabold text-xs text-[#C8FF3D]">
+                + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr
               </span>
             </div>
-          </div>
+          )}
         </div>
 
         {/* CENTER SWAP DIRECTION INDICATOR (2 cols) */}
@@ -183,7 +194,7 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
             <ArrowLeftRight className="w-6 h-6 stroke-[2.5]" />
           </div>
           <span className="text-[11px] font-heading font-black text-white uppercase tracking-wider">
-            {activeTrade.type === 'PLAYER_FOR_PLAYER'
+            {activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'MULTI_PLAYER'
               ? 'Player Swap'
               : activeTrade.type === 'PLAYER_PLUS_CASH'
               ? 'Player + Cash'
@@ -205,40 +216,42 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
               </div>
             </div>
             <span className="text-[10px] font-heading font-extrabold px-2 py-0.5 rounded bg-[#7C5CFF]/20 text-[#7C5CFF] border border-[#7C5CFF]/40 uppercase">
-              Requested
+              Requested {activeTrade.type !== 'PLAYER_FOR_MONEY' ? `(${((activeTrade.requestedPlayers && activeTrade.requestedPlayers.length > 0) ? activeTrade.requestedPlayers : (activeTrade.requestedPlayer ? [activeTrade.requestedPlayer] : [])).length})` : ''}
             </span>
           </div>
 
-          {(activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'PLAYER_PLUS_CASH') && activeTrade.requestedPlayer ? (
-            <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-heading font-black text-sm text-white truncate">
-                    {activeTrade.requestedPlayer.name}
-                  </p>
-                  <OvrBadge ovr={activeTrade.requestedPlayer.ovr} size="xs" />
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-[#8F9CAE] mt-0.5">
-                  <span>{activeTrade.requestedPlayer.category}</span>
-                  {activeTrade.requestedPlayer.is_overseas && (
-                    <span className="text-[#FFC93D] flex items-center gap-0.5 font-bold">
-                      <Globe2 className="w-3 h-3" /> Overseas
+          {(activeTrade.type === 'PLAYER_FOR_PLAYER' || activeTrade.type === 'MULTI_PLAYER' || activeTrade.type === 'PLAYER_PLUS_CASH') ? (
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {((activeTrade.requestedPlayers && activeTrade.requestedPlayers.length > 0)
+                ? activeTrade.requestedPlayers
+                : (activeTrade.requestedPlayer ? [activeTrade.requestedPlayer] : [])
+              ).map((player) => (
+                <div key={player.id} className="p-2.5 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-heading font-black text-xs text-white truncate">
+                        {player.name}
+                      </p>
+                      <OvrBadge ovr={player.ovr} size="xs" />
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-[#8F9CAE] mt-0.5">
+                      <span>{player.category}</span>
+                      {player.is_overseas && (
+                        <span className="text-[#FFC93D] flex items-center gap-0.5 font-bold">
+                          <Globe2 className="w-2.5 h-2.5" /> Overseas
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-number font-bold text-xs text-[#7C5CFF]">
+                      {player.sold_price_inr
+                        ? `₹${(player.sold_price_inr / 10000000).toFixed(2)} Cr`
+                        : player.base_price_display}
                     </span>
-                  )}
+                  </div>
                 </div>
-                {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'RECEIVING_TEAM' && (
-                  <span className="inline-block mt-1 font-number font-extrabold text-[10px] text-[#FFC93D] bg-[#FFC93D]/10 px-2 py-0.5 rounded border border-[#FFC93D]/30">
-                    + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr Cash
-                  </span>
-                )}
-              </div>
-              <div className="text-right shrink-0">
-                <span className="font-number font-bold text-xs text-[#7C5CFF]">
-                  {activeTrade.requestedPlayer.sold_price_inr
-                    ? `₹${(activeTrade.requestedPlayer.sold_price_inr / 10000000).toFixed(2)} Cr`
-                    : activeTrade.requestedPlayer.base_price_display}
-                </span>
-              </div>
+              ))}
             </div>
           ) : (
             <div className="p-3 rounded-xl bg-[#12142A] border border-[#23274D] flex items-center justify-between gap-2">
@@ -248,6 +261,15 @@ export const TradeProposalDashboardPanel = React.memo<TradeProposalDashboardPane
               </div>
               <span className="font-number font-black text-base text-[#FFC93D]">
                 ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr
+              </span>
+            </div>
+          )}
+
+          {activeTrade.type === 'PLAYER_PLUS_CASH' && activeTrade.cashPayer === 'RECEIVING_TEAM' && (
+            <div className="px-3 py-1.5 rounded-xl bg-[#FFC93D]/10 border border-[#FFC93D]/30 flex items-center justify-between">
+              <span className="text-[11px] font-heading font-bold text-white">Cash Transfer:</span>
+              <span className="font-number font-extrabold text-xs text-[#FFC93D]">
+                + ₹{((activeTrade.moneyAmount || 0) / 10000000).toFixed(2)} Cr
               </span>
             </div>
           )}

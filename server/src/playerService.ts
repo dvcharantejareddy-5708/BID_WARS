@@ -84,198 +84,62 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * Official IPL Mega Auction Set Progression for Tournament Mode
- * 1. Set 1: Marquee Players (M1 / M-RET)
- * 2. Set 2: Batters Set 1 (BA1)
- * 3. Set 3: Wicket-Keepers Set 1 (WK1)
- * 4. Set 4: All-Rounders Set 1 (AL1)
- * 5. Set 5: Bowlers Set 1 (BO1)
- * 6. Set 6: Batters Set 2 (BA2)
- * 7. Set 7: Wicket-Keepers Set 2 (WK2)
- * 8. Set 8: All-Rounders Set 2 (AL2)
- * 9. Set 9: Bowlers Set 2 (BO2)
- * 10. Set 10: Batters Set 3 (BA3)
- * 11. Set 11: Wicket-Keepers Set 3 (WK3)
- * 12. Set 12: All-Rounders Set 3 (AL3)
- * 13. Set 13: Bowlers Set 3 (BO3)
- *
- * Each set is shuffled uniformly at random for impartial distribution.
- * Every one of the 532 players appears exactly once in the sequence.
- */
-export function buildTournamentAuctionLots(season: '2026' | '2025' = '2026'): AuctionLot[] {
-  const allPlayers = getAllPlayers(season);
-
-  const SET_DEFINITIONS: Array<{
-    setOrder: number;
-    setCode: string;
-    setName: string;
-    filter: (p: Player) => boolean;
-  }> = [
-    {
-      setOrder: 1,
-      setCode: 'M1',
-      setName: 'Set 1 — Marquee Players',
-      filter: p => p.set_code === 'M1' || p.set_code === 'M-RET' || Boolean(p.is_marquee)
-    },
-    {
-      setOrder: 2,
-      setCode: 'BA1',
-      setName: 'Set 2 — Batters Set 1',
-      filter: p => p.set_code === 'BA1'
-    },
-    {
-      setOrder: 3,
-      setCode: 'WK1',
-      setName: 'Set 3 — Wicket-Keepers Set 1',
-      filter: p => p.set_code === 'WK1'
-    },
-    {
-      setOrder: 4,
-      setCode: 'AL1',
-      setName: 'Set 4 — All-Rounders Set 1',
-      filter: p => p.set_code === 'AL1'
-    },
-    {
-      setOrder: 5,
-      setCode: 'BO1',
-      setName: 'Set 5 — Bowlers Set 1',
-      filter: p => p.set_code === 'BO1'
-    },
-    {
-      setOrder: 6,
-      setCode: 'BA2',
-      setName: 'Set 6 — Batters Set 2',
-      filter: p => p.set_code === 'BA2'
-    },
-    {
-      setOrder: 7,
-      setCode: 'WK2',
-      setName: 'Set 7 — Wicket-Keepers Set 2',
-      filter: p => p.set_code === 'WK2'
-    },
-    {
-      setOrder: 8,
-      setCode: 'AL2',
-      setName: 'Set 8 — All-Rounders Set 2',
-      filter: p => p.set_code === 'AL2'
-    },
-    {
-      setOrder: 9,
-      setCode: 'BO2',
-      setName: 'Set 9 — Bowlers Set 2',
-      filter: p => p.set_code === 'BO2'
-    },
-    {
-      setOrder: 10,
-      setCode: 'BA3',
-      setName: 'Set 10 — Batters Set 3',
-      filter: p => p.set_code === 'BA3'
-    },
-    {
-      setOrder: 11,
-      setCode: 'WK3',
-      setName: 'Set 11 — Wicket-Keepers Set 3',
-      filter: p => p.set_code === 'WK3'
-    },
-    {
-      setOrder: 12,
-      setCode: 'AL3',
-      setName: 'Set 12 — All-Rounders Set 3',
-      filter: p => p.set_code === 'AL3'
-    },
-    {
-      setOrder: 13,
-      setCode: 'BO3',
-      setName: 'Set 13 — Bowlers Set 3',
-      filter: p => p.set_code === 'BO3'
-    }
-  ];
-
-  const orderedPlayers: Player[] = [];
-  const assignedIds = new Set<string>();
-
-  for (const setDef of SET_DEFINITIONS) {
-    const playersInSet = allPlayers.filter(p => !assignedIds.has(p.id) && setDef.filter(p));
-    const randomizedSet = shuffleArray(playersInSet);
-    for (const player of randomizedSet) {
-      assignedIds.add(player.id);
-      orderedPlayers.push({
-        ...player,
-        set_code: setDef.setCode,
-        set_name: setDef.setName,
-        set_order: setDef.setOrder,
-        auction_status: 'AVAILABLE'
-      });
-    }
-  }
-
-  // Defensive fallback: append any remaining players not matching the explicit set codes
-  const remaining = allPlayers.filter(p => !assignedIds.has(p.id));
-  if (remaining.length > 0) {
-    const randomizedRemaining = shuffleArray(remaining);
-    for (const player of randomizedRemaining) {
-      assignedIds.add(player.id);
-      orderedPlayers.push({
-        ...player,
-        set_code: player.set_code || 'EXTRA',
-        set_name: player.set_name || 'Additional Players',
-        set_order: SET_DEFINITIONS.length + 1,
-        auction_status: 'AVAILABLE'
-      });
-    }
-  }
-
-  const total = orderedPlayers.length;
-  return orderedPlayers.map((player, idx) => ({
-    lotNumber: idx + 1,
-    totalLots: total,
-    player,
-    status: 'PENDING',
-    currentBid: 0,
-    currentBidder: null,
-    currentBidderName: null,
-    bids: []
-  }));
-}
-
-/**
- * Builds the official auction lots for a room based on the strict specification:
+ * Official IPL Mega & Mini Auction Lot Generator
+ * Base-Price-First Ordering with Role-Wise Categories:
  * 1. Price brackets in descending order:
- *    ₹2 Crore -> ₹1.5 Crore -> ₹1.25 Crore -> ₹1 Crore -> ₹75 Lakh -> ₹50 Lakh -> ₹40 Lakh -> ₹30 Lakh
+ *    ₹2.00 Cr -> ₹1.50 Cr -> ₹1.25 Cr -> ₹1.00 Cr -> ₹75 Lakh -> ₹50 Lakh -> ₹40 Lakh -> ₹30 Lakh
  * 2. In each price bracket, fixed category sequence:
- *    Batsmen -> All-Rounders -> Bowlers
- * 3. Wicket-keepers have primary_role 'BATTER' and are included in the Batsmen category (never omitted).
- * 4. Within each price bracket & category, the eligible players are randomly shuffled for that auction session.
+ *    Batters (including Wicket-Keepers) -> All-Rounders -> Bowlers
+ * 3. Players are randomized uniformly within each individual base-price and role category.
+ * 4. Never mix players from different base prices or roles.
  * 5. Empty categories are automatically skipped.
- * 6. The resulting sequence is persisted for the session.
+ * 6. Every eligible player appears exactly once (532 players in Mega Auction, 359 in Mini Auction).
  */
 export function buildAuctionLots(
   season: '2026' | '2025' = '2026',
   poolMode: 'auction_pool' | 'mega_all' = 'auction_pool',
   customMarqueeIds: string[] = []
 ): AuctionLot[] {
-  if (poolMode === 'mega_all') {
-    return buildTournamentAuctionLots(season);
-  }
-
   let pool = getAllPlayers(season);
 
   if (poolMode === 'auction_pool') {
-    // Only auction-eligible (non-retained) players
+    // Mini Auction: Only auction-eligible (non-retained) players
     pool = pool.filter(p => !p.is_retained || customMarqueeIds.includes(p.id));
   }
 
   // 1. Get all unique base price brackets present in pool, sorted descending
   const priceBrackets = Array.from(new Set(pool.map(p => p.base_price_inr))).sort((a, b) => b - a);
 
-  // 2. Fixed category sequence: Batsmen -> All-Rounders -> Bowlers
+  // 2. Fixed category sequence: Batters -> All-Rounders -> Bowlers
   const CATEGORY_SEQUENCE: Array<{
-    category: 'Batsmen' | 'All-rounders' | 'Bowlers';
+    category: 'Batters' | 'All-rounders' | 'Bowlers';
     label: string;
+    matcher: (p: Player) => boolean;
   }> = [
-    { category: 'Batsmen', label: 'Batsmen' },
-    { category: 'All-rounders', label: 'All-Rounders' },
-    { category: 'Bowlers', label: 'Bowlers' }
+    {
+      category: 'Batters',
+      label: 'Batters',
+      matcher: p => {
+        if (p.is_wicketkeeper || p.category === 'Wicket-keepers') return true;
+        return p.primary_role === 'BATTER' || p.role === 'BATTER' || p.category === 'Batsmen';
+      }
+    },
+    {
+      category: 'All-rounders',
+      label: 'All-Rounders',
+      matcher: p => {
+        if (p.is_wicketkeeper || p.category === 'Wicket-keepers') return false;
+        return p.primary_role === 'ALL_ROUNDER' || p.role === 'ALL_ROUNDER' || p.category === 'All-rounders';
+      }
+    },
+    {
+      category: 'Bowlers',
+      label: 'Bowlers',
+      matcher: p => {
+        if (p.is_wicketkeeper || p.category === 'Wicket-keepers') return false;
+        return p.primary_role === 'BOWLER' || p.role === 'BOWLER' || p.category === 'Bowlers';
+      }
+    }
   ];
 
   const orderedPlayers: Player[] = [];
@@ -290,16 +154,7 @@ export function buildAuctionLots(
       // Filter players in this price bracket and category
       const categoryPlayers = pool.filter(p => {
         if (p.base_price_inr !== price) return false;
-        if (cat.category === 'Batsmen') {
-          return p.category === 'Batsmen' || p.primary_role === 'BATTER' || p.category === 'Wicket-keepers' || p.is_wicketkeeper;
-        }
-        if (cat.category === 'All-rounders') {
-          return (p.category === 'All-rounders' || p.primary_role === 'ALL_ROUNDER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
-        }
-        if (cat.category === 'Bowlers') {
-          return (p.category === 'Bowlers' || p.primary_role === 'BOWLER') && !p.is_wicketkeeper && p.category !== 'Wicket-keepers';
-        }
-        return false;
+        return cat.matcher(p);
       });
 
       // Automatically skip if no players in this category
@@ -317,7 +172,8 @@ export function buildAuctionLots(
         orderedPlayers.push({
           ...player,
           set_name: setName,
-          set_order: setOrderCounter
+          set_order: setOrderCounter,
+          auction_status: 'AVAILABLE'
         });
       });
     }
@@ -334,4 +190,11 @@ export function buildAuctionLots(
     currentBidderName: null,
     bids: []
   }));
+}
+
+export function buildTournamentAuctionLots(
+  season: '2026' | '2025' = '2026',
+  poolMode: 'auction_pool' | 'mega_all' = 'mega_all'
+): AuctionLot[] {
+  return buildAuctionLots(season, poolMode);
 }

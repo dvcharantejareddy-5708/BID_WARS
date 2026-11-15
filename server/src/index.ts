@@ -934,12 +934,13 @@ app.delete('/api/tournaments/:id', async (req, res) => {
 // Create tournament
 app.post('/api/tournaments', async (req, res) => {
   try {
-    const { name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId } = req.body || {};
+    const { name, hostId, hostName, hostEmail, teamsCount, matchOvers, hostFranchiseId, auctionType } = req.body || {};
     if (!hostId || !hostName || !hostFranchiseId) {
       return res.status(400).json({ error: 'hostId, hostName, and hostFranchiseId are required' });
     }
     const tCount = [4, 6, 8, 10].includes(Number(teamsCount)) ? Number(teamsCount) as 4 | 6 | 8 | 10 : 8;
     const mOvers = [1, 2, 5, 10, 15, 20].includes(Number(matchOvers)) ? Number(matchOvers) as 1 | 2 | 5 | 10 | 15 | 20 : 5;
+    const aType = auctionType === 'MINI' ? 'MINI' : 'MEGA';
 
     const tournament = await tournamentManager.createTournament(
       name || 'IPL Tournament',
@@ -948,7 +949,8 @@ app.post('/api/tournaments', async (req, res) => {
       hostEmail,
       tCount,
       mOvers,
-      hostFranchiseId
+      hostFranchiseId,
+      aType
     );
 
     return res.status(201).json({ success: true, tournament });

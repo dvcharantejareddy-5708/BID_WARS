@@ -48,6 +48,7 @@ export class TournamentApi {
     teamsCount: 4 | 6 | 8 | 10;
     matchOvers: 1 | 2 | 5 | 10 | 15 | 20;
     hostFranchiseId: IPLTeamId;
+    auctionType?: 'MEGA' | 'MINI';
   }): Promise<Tournament> {
     const res = await fetch(`${API_BASE}/tournaments`, {
       method: 'POST',

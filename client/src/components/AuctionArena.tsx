@@ -64,7 +64,9 @@ interface AuctionArenaProps {
     toTeamId: IPLTeamId;
     tradeType: TradeType;
     offeredPlayerId: string;
+    offeredPlayerIds?: string[];
     requestedPlayerId?: string;
+    requestedPlayerIds?: string[];
     moneyAmount?: number;
     cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM';
   }) => void;

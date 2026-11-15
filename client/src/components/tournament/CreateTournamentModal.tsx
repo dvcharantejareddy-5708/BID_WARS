@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trophy, Users, Clock, ShieldCheck, Flame } from 'lucide-react';
+import { X, Trophy, Users, Clock, ShieldCheck, Flame, Gavel } from 'lucide-react';
 import { IPLTeamId, IPL_FRANCHISES } from '../../types';
 import { AuthUser } from '../../services/auth';
 import { TournamentApi } from '../../services/tournamentApi';
@@ -19,6 +19,7 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
   onCreated
 }) => {
   const [name, setName] = useState('');
+  const [auctionType, setAuctionType] = useState<'MEGA' | 'MINI'>('MEGA');
   const [teamsCount, setTeamsCount] = useState<4 | 6 | 8 | 10>(8);
   const [matchOvers, setMatchOvers] = useState<1 | 2 | 5 | 10 | 15 | 20>(5);
   const [selectedFranchise, setSelectedFranchise] = useState<IPLTeamId>('CSK');
@@ -41,7 +42,8 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
         hostEmail: user.email,
         teamsCount,
         matchOvers,
-        hostFranchiseId: selectedFranchise
+        hostFranchiseId: selectedFranchise,
+        auctionType
       });
 
       onCreated(tournament);
@@ -101,6 +103,59 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
                 placeholder="e.g. Dream11 Super League 2026"
                 className="w-full px-4 py-3 bg-[#12142A] border border-[#2A2F60] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#C8FF3D] transition-colors text-sm"
               />
+            </div>
+
+            {/* Auction Format Selection */}
+            <div>
+              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Gavel className="w-3.5 h-3.5 text-[#C8FF3D]" />
+                Auction Format
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAuctionType('MEGA')}
+                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                    auctionType === 'MEGA'
+                      ? 'border-[#C8FF3D] bg-[#C8FF3D]/10 shadow-[0_0_15px_rgba(200,255,61,0.2)]'
+                      : 'border-[#2A2F60] bg-[#12142A] hover:border-gray-500'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`font-bold text-sm ${auctionType === 'MEGA' ? 'text-[#C8FF3D]' : 'text-white'}`}>
+                      Mega Auction
+                    </span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#C8FF3D]/20 text-[#C8FF3D]">
+                      532 Players
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Full verified 532-player pool. Descending base-price order with role-wise categories.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAuctionType('MINI')}
+                  className={`p-3.5 rounded-xl border text-left transition-all ${
+                    auctionType === 'MINI'
+                      ? 'border-[#7C5CFF] bg-[#7C5CFF]/10 shadow-[0_0_15px_rgba(124,92,255,0.2)]'
+                      : 'border-[#2A2F60] bg-[#12142A] hover:border-gray-500'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`font-bold text-sm ${auctionType === 'MINI' ? 'text-[#7C5CFF]' : 'text-white'}`}>
+                      Mini Auction
+                    </span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#7C5CFF]/20 text-[#7C5CFF]">
+                      359 Players
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Streamlined non-retained auction pool. Descending base-price order with role categories.
+                  </p>
+                </button>
+              </div>
             </div>
 
             {/* Teams Count */}

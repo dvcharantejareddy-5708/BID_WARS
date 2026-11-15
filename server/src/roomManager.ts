@@ -377,6 +377,8 @@ export class RoomManager {
           type: msg.tradeType,
           offeredPlayerId: msg.offeredPlayerId,
           requestedPlayerId: msg.requestedPlayerId,
+          offeredPlayerIds: (msg as any).offeredPlayerIds,
+          requestedPlayerIds: (msg as any).requestedPlayerIds,
           moneyAmount: msg.moneyAmount,
           cashPayer: msg.cashPayer
         });

@@ -3,6 +3,7 @@ import {
   Tournament,
   TournamentMember,
   TournamentTeam,
+  TournamentAuctionType,
   Fixture,
   MatchLineup,
   LiveMatch,
@@ -248,17 +249,19 @@ export class TournamentManager {
     hostEmail: string | undefined,
     teamsCount: 4 | 6 | 8 | 10,
     matchOvers: 1 | 2 | 5 | 10 | 15 | 20,
-    hostFranchiseId: IPLTeamId
+    hostFranchiseId: IPLTeamId,
+    auctionType: TournamentAuctionType = 'MEGA'
   ): Promise<Tournament> {
     await this.init();
 
     const tournamentId = this.generateTournamentId();
     const now = Date.now();
+    const poolMode = auctionType === 'MINI' ? 'auction_pool' : 'mega_all';
 
     // Create an underlying Quick Auction room in roomManager to guarantee 100% auction reuse
     const roomSettings: Partial<RoomSettings> = {
       season: '2026',
-      poolMode: 'mega_all',
+      poolMode,
       startingPurse: 1200000000,
       timerDuration: 15,
       isPrivate: false,
@@ -295,6 +298,7 @@ export class TournamentManager {
       hostId,
       hostName,
       status: 'REGISTRATION',
+      auctionType,
       teamsCount,
       matchOvers,
       roomCode: auctionRoom.roomCode,

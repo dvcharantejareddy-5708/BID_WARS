@@ -349,7 +349,7 @@ export interface BidLogEntry {
   eventMessage?: string;
 }
 
-export type TradeType = 'PLAYER_FOR_PLAYER' | 'PLAYER_FOR_MONEY' | 'PLAYER_PLUS_CASH';
+export type TradeType = 'PLAYER_FOR_PLAYER' | 'PLAYER_FOR_MONEY' | 'PLAYER_PLUS_CASH' | 'MULTI_PLAYER';
 export type TradeStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
 
 export interface PlayingXISelection {
@@ -372,8 +372,10 @@ export interface TradeRequest {
   toTeamId: IPLTeamId;
   toMemberId?: string;
   toMemberName?: string;
-  offeredPlayer: Player;
-  requestedPlayer?: Player;
+  offeredPlayer?: Player; // Legacy single-player compatibility
+  requestedPlayer?: Player; // Legacy single-player compatibility
+  offeredPlayers: Player[]; // Multi-player support (1 or more)
+  requestedPlayers: Player[]; // Multi-player support (0 or more)
   moneyAmount?: number;
   cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM' | null;
   createdAt: number;
@@ -438,7 +440,18 @@ export type ClientMessage =
   | { type: 'KICK_MEMBER'; targetMemberId: string }
   | { type: 'UPDATE_TIMER'; timerDuration: number }
   | { type: 'UPDATE_TRADE_TIMER'; tradeTimerDuration: number }
-  | { type: 'CREATE_TRADE_REQUEST'; toTeamId: IPLTeamId; tradeType: TradeType; offeredPlayerId: string; requestedPlayerId?: string; moneyAmount?: number; cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM'; durationSec?: number }
+  | { 
+      type: 'CREATE_TRADE_REQUEST'; 
+      toTeamId: IPLTeamId; 
+      tradeType?: TradeType; 
+      offeredPlayerId?: string; 
+      requestedPlayerId?: string; 
+      offeredPlayerIds?: string[]; 
+      requestedPlayerIds?: string[]; 
+      moneyAmount?: number; 
+      cashPayer?: 'OFFERING_TEAM' | 'RECEIVING_TEAM'; 
+      durationSec?: number; 
+    }
   | { type: 'RESPOND_TRADE_REQUEST'; tradeId: string; action: 'ACCEPT' | 'REJECT'; rejectionReason?: string }
   | { type: 'CANCEL_TRADE_REQUEST'; tradeId: string; reason?: string }
   | { type: 'SAVE_PLAYING_XI'; teamId: IPLTeamId; selection: Partial<PlayingXISelection> }
