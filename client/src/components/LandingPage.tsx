@@ -36,6 +36,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onCreateRoom, onJoinRo
     const unsub = authService.onAuthStateChange(u => {
       setCurrentUser(u);
     });
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('bidwars_open_login_after_reset') === 'true') {
+      sessionStorage.removeItem('bidwars_open_login_after_reset');
+      setAuthModalMode('login');
+      setIsAuthModalOpen(true);
+    }
+
     return unsub;
   }, []);
   

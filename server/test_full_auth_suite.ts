@@ -80,26 +80,26 @@ async function runTestSuite() {
   assert(!tErr && Array.isArray(tournaments), 'Successfully queried Supabase tournaments table without error');
   console.log(`  Supabase tournaments count: ${tournaments?.length}`);
 
-  // --- TEST 3: Supabase Auth as Single Source of Truth & Wrong-Password Fix ---
-  console.log('\n--- TEST GROUP 3: Supabase Auth & Wrong-Password Bug Fix ---');
+  // --- TEST 3: Supabase Auth Direct Account Creation & Immediate Login (No Email Verification) ---
+  console.log('\n--- TEST GROUP 3: Supabase Auth Direct Registration & Immediate Login ---');
   const testUserEmail = `test_player_${Date.now()}@gmail.com`;
   const testUsername = `user_${Date.now().toString().slice(-6)}`;
   const validPassword = 'SecurePassword123!';
   const wrongPassword = 'WrongPassword999!';
 
-  // Create user in Supabase Auth with unconfirmed status to test verification requirement
+  // Create user in Supabase Auth with email_confirm: true (immediate activation)
   console.log(`Creating test user in Supabase Auth: ${testUserEmail} (${testUsername})...`);
   const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email: testUserEmail,
     password: validPassword,
-    email_confirm: false, // simulating real sign-up awaiting email verification
+    email_confirm: true, // No Gmail verification required
     user_metadata: {
       username: testUsername,
       in_game_name: testUsername
     }
   });
 
-  assert(!createError && Boolean(createData.user), 'Created test user in auth.users with real @gmail.com address');
+  assert(!createError && Boolean(createData.user), 'Created test user in auth.users with real @gmail.com address and immediate confirmation');
   const createdUserId = createData?.user?.id;
 
   // Insert profile in public.profiles
@@ -121,28 +121,12 @@ async function runTestSuite() {
   });
   assert(Boolean(wrongPwError) && !wrongPwData.session, 'Login with wrong password correctly REJECTED by Supabase Auth (no false positive)');
 
-  // Attempt login with CORRECT password when UNCONFIRMED
-  // In Supabase, unconfirmed emails cannot sign in unless email confirmation is disabled or confirmed
-  const { data: unconfirmedData, error: unconfirmedError } = await supabaseAnon.auth.signInWithPassword({
-    email: testUserEmail,
-    password: validPassword
-  });
-  const isUnconfirmedBlocked = Boolean(unconfirmedError) || (unconfirmedData.user && !unconfirmedData.user.email_confirmed_at);
-  assert(isUnconfirmedBlocked, 'Unconfirmed Gmail account is blocked from active login until verified');
-
-  // Now confirm the email (simulating clicking the email verification link)
-  console.log('Simulating user clicking verification link in Gmail...');
-  const { data: confirmData, error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(createdUserId!, {
-    email_confirm: true
-  });
-  assert(!confirmError && Boolean(confirmData.user?.email_confirmed_at), 'Account successfully marked confirmed after email verification');
-
-  // Attempt login with CORRECT password when CONFIRMED
+  // Attempt IMMEDIATE login with CORRECT password (no verification needed)
   const { data: loginData, error: loginError } = await supabaseAnon.auth.signInWithPassword({
     email: testUserEmail,
     password: validPassword
   });
-  assert(!loginError && Boolean(loginData.session), 'Login with correct password SUCCEEDS after email verification (wrong-password bug resolved)');
+  assert(!loginError && Boolean(loginData.session), 'Immediate login with correct password SUCCEEDS without requiring email verification');
 
   // --- TEST 4: Change Password Flow ---
   console.log('\n--- TEST GROUP 4: Change Password Flow ---');

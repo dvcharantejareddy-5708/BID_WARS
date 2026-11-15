@@ -30,6 +30,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
 
+  // Forgot password cooldown (prevents email spam)
+  const [forgotCooldown, setForgotCooldown] = useState<number>(0);
+
+  useEffect(() => {
+    if (forgotCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setForgotCooldown(c => c - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [forgotCooldown]);
+
   // Live username availability check during registration
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -151,27 +162,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         const res = await authService.register(username, password, confirmPassword, gmail);
-        if (res.unverified) {
-          setUnverifiedEmail(gmail.trim().toLowerCase());
-          setSuccessMsg(res.message || 'Verification email sent to your Gmail address! Please verify your email before logging in.');
-        } else if (res.success) {
+        if (res.success) {
           const user = authService.getUser();
-          if (user) onSuccess(user);
+          if (user) {
+            onSuccess(user);
+            onClose();
+          }
         } else {
           setError(res.error || 'Registration failed');
         }
       } else if (mode === 'login') {
         const res = await authService.login(username, password);
-        if (res.unverified) {
-          setUnverifiedEmail(res.email || null);
-          setError(res.error || 'Please verify your Gmail address before logging in.');
-        } else if (res.success) {
+        if (res.success) {
           const user = authService.getUser();
-          if (user) onSuccess(user);
+          if (user) {
+            onSuccess(user);
+            onClose();
+          }
         } else {
           setError(res.error || 'Invalid username or password');
         }
       } else if (mode === 'forgot') {
+        if (forgotCooldown > 0) {
+          setError(`Please wait ${forgotCooldown} seconds before requesting another reset link.`);
+          setIsLoading(false);
+          return;
+        }
+
         const emailValidation = AuthService.validateGmail(gmail);
         if (!emailValidation.valid) {
           setError(emailValidation.error || 'Invalid Gmail address');
@@ -181,7 +198,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const res = await authService.forgotPassword(gmail);
         if (res.success) {
-          setSuccessMsg(res.message || 'If an account exists with this Gmail address, a password-reset link has been sent to your inbox.');
+          setForgotCooldown(60);
+          setSuccessMsg('If an account exists for this email, a password reset link has been sent.');
         } else {
           setError(res.error || 'Failed to send password reset request');
         }
@@ -468,7 +486,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isLoading || (mode === 'register' && usernameAvailable === false)}
+              disabled={isLoading || (mode === 'register' && usernameAvailable === false) || (mode === 'forgot' && forgotCooldown > 0)}
               className="w-full py-3 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(200,255,61,0.25)] hover:scale-[1.02] cursor-pointer disabled:opacity-50"
             >
               {isLoading
@@ -477,7 +495,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ? 'Sign In to BidWars'
                 : mode === 'register'
                 ? 'Create BidWars Account'
-                : 'Send Password Reset Link'}
+                : forgotCooldown > 0
+                ? `Resend in ${forgotCooldown}s`
+                : 'Send Reset Link'}
             </button>
           </div>
 

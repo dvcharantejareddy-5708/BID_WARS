@@ -261,12 +261,12 @@ app.post('/api/auth/register', async (req, res) => {
     let emailConfirmed = false;
     let supabaseSession = null;
 
-    // 5. Create confirmed / unconfirmed user in Supabase Auth using the real Gmail address
+    // 5. Create confirmed user in Supabase Auth using the real Gmail address (No verification required)
     if (supabaseAdmin) {
       const { data: suData, error: suError } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
         password: password,
-        email_confirm: false, // Enforce Gmail verification
+        email_confirm: true, // Immediate account activation
         user_metadata: {
           username: cleanUser,
           in_game_name: cleanUser
@@ -286,17 +286,20 @@ app.post('/api/auth/register', async (req, res) => {
       }
 
       userId = suData.user.id;
-      emailConfirmed = Boolean(suData.user.email_confirmed_at);
+      emailConfirmed = true;
 
-      // Trigger verification email through Supabase Auth
+      // Issue active session immediately upon registration
       if (supabase) {
-        await supabase.auth.resend({
-          type: 'signup',
+        const { data: siData } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
-          options: {
-            emailRedirectTo: clientUrl
-          }
-        }).catch((err) => console.warn('[Auth] Verification email notice:', err.message));
+          password: password
+        });
+        if (siData?.session) {
+          supabaseSession = {
+            access_token: siData.session.access_token,
+            refresh_token: siData.session.refresh_token
+          };
+        }
       }
     } else if (supabase) {
       const { data: suData, error: suError } = await supabase.auth.signUp({
@@ -324,7 +327,7 @@ app.post('/api/auth/register', async (req, res) => {
       }
 
       userId = suData.user.id;
-      emailConfirmed = Boolean(suData.user.email_confirmed_at);
+      emailConfirmed = true;
       if (suData.session) {
         supabaseSession = {
           access_token: suData.session.access_token,
@@ -360,17 +363,15 @@ app.post('/api/auth/register', async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      emailConfirmed,
-      message: emailConfirmed
-        ? 'Account created successfully!'
-        : 'Registration successful! A verification email has been sent to your Gmail address. Please check your inbox and verify your email before logging in.',
+      emailConfirmed: true,
+      message: 'Account created successfully!',
       user: {
         id: profile.id,
         username: profile.username || cleanUser,
         inGameName: profile.inGameName || cleanUser,
         email: cleanEmail
       },
-      session: emailConfirmed ? supabaseSession : null
+      session: supabaseSession
     });
   } catch (err: any) {
     console.error('[Auth] Registration error:', err);
@@ -436,17 +437,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
 
       if (siData?.session && siData.user) {
-        // Enforce Gmail verification
-        const isGmailAccount = userEmail.endsWith('@gmail.com');
-        if (isGmailAccount && !siData.user.email_confirmed_at) {
-          return res.status(403).json({
-            success: false,
-            unverified: true,
-            email: userEmail,
-            error: 'Please verify your Gmail address before logging in. Check your inbox for the activation link.'
-          });
-        }
-
         if (!profile) {
           profile = await tournamentStorage.getProfile(siData.user.id);
         }
@@ -585,6 +575,9 @@ app.post('/api/auth/change-password', async (req, res) => {
   }
 });
 
+// In-memory cooldown tracking for Forgot Password (prevents email spam / enumeration)
+const forgotPasswordCooldowns = new Map<string, number>();
+
 // Forgot Password — Account-Specific Reset Link to Registered Gmail
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
@@ -597,13 +590,26 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       return res.status(400).json({ error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' });
     }
 
-    // Generic response message to prevent email enumeration
-    const genericSuccessMsg = 'If an account exists with this Gmail address, a password-reset link has been sent to your inbox.';
+    // Cooldown check (60 seconds)
+    const now = Date.now();
+    const lastRequest = forgotPasswordCooldowns.get(cleanEmail) || 0;
+    if (now - lastRequest < 60000) {
+      const waitSeconds = Math.ceil((60000 - (now - lastRequest)) / 1000);
+      return res.status(429).json({
+        error: `Please wait ${waitSeconds} seconds before requesting another password reset email.`
+      });
+    }
 
-    // Check if account exists
+    // Set cooldown timestamp
+    forgotPasswordCooldowns.set(cleanEmail, now);
+
+    // Neutral confirmation message (exact requested string)
+    const neutralMsg = 'If an account exists for this email, a password reset link has been sent.';
+
+    // Check if account exists in database
     const profile = await tournamentStorage.getProfileByEmail(cleanEmail);
     if (!profile) {
-      return res.json({ success: true, message: genericSuccessMsg });
+      return res.json({ success: true, message: neutralMsg });
     }
 
     const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
@@ -615,7 +621,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       }).catch((err) => console.warn('[Auth] resetPasswordForEmail warning:', err.message));
     }
 
-    return res.json({ success: true, message: genericSuccessMsg });
+    return res.json({ success: true, message: neutralMsg });
   } catch (err: any) {
     console.error('[Auth] forgot-password error:', err);
     return res.status(500).json({ error: err.message || 'Error processing password reset' });

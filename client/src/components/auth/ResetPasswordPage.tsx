@@ -44,6 +44,16 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
         const refreshToken = params.get('refresh_token') || '';
         const type = params.get('type');
 
+        // 3. Check query param code if PKCE was used (?code=...)
+        const searchParams = new URLSearchParams(window.location.search);
+        const code = searchParams.get('code');
+        const queryType = searchParams.get('type');
+
+        // Flag recovery mode if URL indicates recovery link
+        if (type === 'recovery' || queryType === 'recovery' || Boolean(code)) {
+          sessionStorage.setItem('bidwars_recovery_mode', 'true');
+        }
+
         if (accessToken && type === 'recovery') {
           try {
             await supabaseClient.auth.setSession({
@@ -55,9 +65,6 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
           }
         }
 
-        // 3. Check query param code if PKCE was used (?code=...)
-        const searchParams = new URLSearchParams(window.location.search);
-        const code = searchParams.get('code');
         if (code) {
           try {
             await supabaseClient.auth.exchangeCodeForSession(code);
@@ -66,11 +73,14 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
           }
         }
 
+        // Validate that this is an authentic recovery session (not a random logged-in session browsing to /reset-password)
+        const isRecoveryActive = sessionStorage.getItem('bidwars_recovery_mode') === 'true';
+
         // 4. Retrieve current active session
         const { data } = await supabaseClient.auth.getSession();
         const user = data?.session?.user;
 
-        if (user && mounted) {
+        if (user && isRecoveryActive && mounted) {
           setSessionValid(true);
           setUserId(user.id);
           setAccountEmail(user.email || '');
@@ -105,7 +115,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
 
     // Listen to PASSWORD_RECOVERY auth state event
     const { data: authListener } = supabaseClient?.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (session?.user && !sessionValid)) {
+      if (event === 'PASSWORD_RECOVERY') {
+        sessionStorage.setItem('bidwars_recovery_mode', 'true');
         if (mounted && session?.user) {
           setSessionValid(true);
           setUserId(session.user.id);
@@ -176,6 +187,14 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
       if (userId) {
         await authService.syncPasswordCredentials(userId, newPassword);
       }
+
+      // Clear recovery mode and queue login modal opening
+      sessionStorage.removeItem('bidwars_recovery_mode');
+      sessionStorage.setItem('bidwars_open_login_after_reset', 'true');
+
+      // Cleanly sign out from recovery session so user signs in with new password
+      await supabaseClient.auth.signOut().catch(() => {});
+      authService.setUser(null);
 
       setIsSuccess(true);
     } catch (err: any) {

@@ -154,15 +154,6 @@ export class AuthService {
         return { success: false, error: data.error || 'Registration failed' };
       }
 
-      // If email verification is required and account is unconfirmed
-      if (data.emailConfirmed === false) {
-        return {
-          success: true,
-          unverified: true,
-          message: data.message || 'Registration successful! A verification email has been sent to your Gmail address. Please verify your email before logging in.'
-        };
-      }
-
       // If Supabase session tokens were returned, set session on client
       if (data.session && supabaseClient) {
         try {
