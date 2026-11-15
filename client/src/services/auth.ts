@@ -349,7 +349,14 @@ export class AuthService {
       const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
       const params = new URLSearchParams({ name: username.trim() });
       const res = await fetch(`${apiBase}/api/profiles/check-name?${params.toString()}`);
-      return await res.json();
+      if (!res.ok) {
+        return { available: true, message: 'Available' };
+      }
+      const data = await res.json();
+      return {
+        available: Boolean(data.available),
+        message: data.message || (data.available ? 'Username is available' : 'This username is already taken')
+      };
     } catch {
       return { available: true, message: 'Available' };
     }

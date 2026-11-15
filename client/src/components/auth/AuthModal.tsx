@@ -68,7 +68,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       try {
         const res = await authService.checkUsernameAvailable(clean);
         setUsernameAvailable(res.available);
-        setUsernameFeedback(res.available ? 'Username is available' : 'This username is already taken');
+        setUsernameFeedback(res.message || (res.available ? 'Username is available' : 'This username is already taken'));
       } catch {
         setUsernameAvailable(null);
       } finally {

@@ -221,22 +221,7 @@ export class TournamentStorageService {
 
     this.profilesCache.clear();
 
-    // 1. Read from local disk store (preserves all existing accounts)
-    try {
-      if (fs.existsSync(profilesFilePath)) {
-        const raw = fs.readFileSync(profilesFilePath, 'utf-8');
-        if (raw.trim()) {
-          const list: UserProfile[] = JSON.parse(raw);
-          for (const p of list) {
-            if (p.id) this.profilesCache.set(p.id, p);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[TournamentStorage] Disk profile read fallback:', err);
-    }
-
-    // 2. Read from Supabase PostgreSQL database if configured
+    // 1. Read from Supabase PostgreSQL database (authoritative source of truth)
     const clientToUse = supabaseAdmin || supabase;
     if (clientToUse) {
       try {
@@ -245,7 +230,7 @@ export class TournamentStorageService {
           .select('*')
           .limit(1000);
 
-        if (!error && data) {
+        if (!error && Array.isArray(data)) {
           for (const row of data) {
             if (row.id) {
               this.profilesCache.set(row.id, {
@@ -263,10 +248,27 @@ export class TournamentStorageService {
             }
           }
           console.log(`[TournamentStorage] Synced ${data.length} profiles from Supabase database`);
+          this.isProfilesLoaded = true;
+          return Array.from(this.profilesCache.values());
         }
       } catch (err) {
         console.warn('[TournamentStorage] Supabase profile sync fallback:', err);
       }
+    }
+
+    // 2. Fallback to local disk store only if Supabase database is unreachable or unconfigured
+    try {
+      if (fs.existsSync(profilesFilePath)) {
+        const raw = fs.readFileSync(profilesFilePath, 'utf-8');
+        if (raw.trim()) {
+          const list: UserProfile[] = JSON.parse(raw);
+          for (const p of list) {
+            if (p.id) this.profilesCache.set(p.id, p);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[TournamentStorage] Disk profile read fallback:', err);
     }
 
     this.isProfilesLoaded = true;
@@ -350,23 +352,27 @@ export class TournamentStorageService {
 
   public async isEmailAvailable(email: string, excludeUserId?: string): Promise<boolean> {
     const cleanLower = email.trim().toLowerCase();
+    if (!cleanLower) return false;
     const clientToUse = supabaseAdmin || supabase;
 
+    // Supabase PostgreSQL is the single authoritative source of truth for email uniqueness
     if (clientToUse) {
       try {
         const { data, error } = await clientToUse
           .from('profiles')
-          .select('id, email')
-          .ilike('email', cleanLower);
+          .select('id, email, recovery_email')
+          .or(`email.ilike.${cleanLower},recovery_email.ilike.${cleanLower}`);
 
-        if (!error && data && data.length > 0) {
-          if (!excludeUserId || data.some(row => row.id !== excludeUserId)) {
-            return false;
-          }
+        if (!error && Array.isArray(data)) {
+          const conflict = data.find(row => !excludeUserId || row.id !== excludeUserId);
+          return !conflict;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[TournamentStorage] Supabase isEmailAvailable check fallback:', err);
+      }
     }
 
+    // Fallback: only if Supabase database query failed or client is unconfigured
     await this.loadAllProfiles();
     for (const [id, p] of this.profilesCache.entries()) {
       if (excludeUserId && id === excludeUserId) continue;
@@ -483,24 +489,27 @@ export class TournamentStorageService {
 
   public async isNameAvailable(name: string, excludeUserId?: string): Promise<boolean> {
     const cleanLower = name.trim().toLowerCase();
+    if (!cleanLower) return false;
     const clientToUse = supabaseAdmin || supabase;
 
-    // Check Supabase database table with case-insensitive match
+    // Supabase PostgreSQL is the single authoritative source of truth for username uniqueness
     if (clientToUse) {
       try {
         const { data, error } = await clientToUse
           .from('profiles')
-          .select('id, username')
-          .ilike('username', cleanLower);
+          .select('id, username, in_game_name')
+          .or(`username.ilike.${cleanLower},in_game_name.ilike.${cleanLower}`);
 
-        if (!error && data && data.length > 0) {
-          if (!excludeUserId || data.some(row => row.id !== excludeUserId)) {
-            return false;
-          }
+        if (!error && Array.isArray(data)) {
+          const conflict = data.find(row => !excludeUserId || row.id !== excludeUserId);
+          return !conflict;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[TournamentStorage] Supabase isNameAvailable check fallback:', err);
+      }
     }
 
+    // Fallback: only if Supabase database query failed or client is unconfigured
     await this.loadAllProfiles();
     for (const [id, p] of this.profilesCache.entries()) {
       if (excludeUserId && id === excludeUserId) continue;
