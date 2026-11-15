@@ -643,7 +643,37 @@ export class TournamentManager {
         return { success: true, match: liveMatch };
     }
     /**
-     * Handle toss decision
+     * Resolve interactive coin flip toss
+     */
+    resolveToss(matchId, callerFranchiseId, call) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.resolveToss(match, callerFranchiseId, call);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return {
+            success: true,
+            match,
+            tossWinnerFranchiseId: res.tossWinnerFranchiseId,
+            tossResult: res.tossResult,
+            message: res.message
+        };
+    }
+    /**
+     * Handle toss decision: Bat or Bowl first
+     */
+    handleTossDecision(matchId, tossWinnerFranchiseId, decision) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return { success: true, match, message: res.message };
+    }
+    /**
+     * Handle toss decision (legacy fallback)
      */
     handleToss(matchId, tossWinnerFranchiseId, decision) {
         const match = this.liveMatches.get(matchId);
@@ -651,6 +681,54 @@ export class TournamentManager {
             return { success: false, message: 'Match not found' };
         MatchEngine.handleToss(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
         return { success: true, match };
+    }
+    /**
+     * Batting team selects opening striker & non-striker
+     */
+    selectOpeningBatters(matchId, franchiseId, strikerId, nonStrikerId) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return { success: true, match, message: res.message };
+    }
+    /**
+     * Bowling team selects opening bowler
+     */
+    selectOpeningBowler(matchId, franchiseId, bowlerId) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return { success: true, match, message: res.message };
+    }
+    /**
+     * Batting team selects replacement batter after wicket
+     */
+    selectReplacementBatter(matchId, franchiseId, replacementBatterId) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return { success: true, match, message: res.message };
+    }
+    /**
+     * Bowling team selects bowler for the new over
+     */
+    selectBowler(matchId, bowlerId) {
+        const match = this.liveMatches.get(matchId);
+        if (!match)
+            return { success: false, message: 'Match not found' };
+        const res = MatchEngine.selectBowler(match, bowlerId);
+        if (!res.success)
+            return { success: false, message: res.message };
+        return { success: true, match, message: res.message };
     }
     /**
      * Submit hand-cricket selection for active delivery

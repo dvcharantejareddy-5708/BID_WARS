@@ -55,7 +55,8 @@ export class MatchEngine {
       awayFranchiseId,
       matchOvers,
       maxBowlerOvers,
-      status: 'TOSS',
+      status: 'TOSS_PENDING',
+      tossCallerFranchiseId: homeFranchiseId,
       currentInnings: 1,
       innings1: this.initializeInnings(1, homeFranchiseId, awayFranchiseId, homeLineup, awayLineup, playersMap, maxBowlerOvers),
       lineups: {
@@ -152,14 +153,61 @@ export class MatchEngine {
   }
 
   /**
-   * Resolves the toss and determines who bats and bowls first
+   * Interactive Toss: Caller selects HEADS or TAILS, outcome generated randomly,
+   * winner announced, and transitions to TOSS_DECISION_PENDING.
    */
-  public static handleToss(
+  public static resolveToss(
+    match: LiveMatch,
+    callerFranchiseId: IPLTeamId,
+    call: 'HEADS' | 'TAILS'
+  ): { success: boolean; tossWinnerFranchiseId?: IPLTeamId; tossResult?: 'HEADS' | 'TAILS'; message: string } {
+    if (match.status !== 'TOSS' && match.status !== 'TOSS_PENDING') {
+      return { success: false, message: 'Toss is already completed or not active' };
+    }
+
+    if (callerFranchiseId !== match.homeFranchiseId && callerFranchiseId !== match.awayFranchiseId) {
+      return { success: false, message: 'Invalid toss caller team' };
+    }
+
+    const tossResult: 'HEADS' | 'TAILS' = Math.random() < 0.5 ? 'HEADS' : 'TAILS';
+    const isWinner = call === tossResult;
+    const opponentFranchiseId = callerFranchiseId === match.homeFranchiseId ? match.awayFranchiseId : match.homeFranchiseId;
+    const tossWinnerFranchiseId = isWinner ? callerFranchiseId : opponentFranchiseId;
+
+    match.tossCallerFranchiseId = callerFranchiseId;
+    match.tossCall = call;
+    match.tossResult = tossResult;
+    match.tossWinnerFranchiseId = tossWinnerFranchiseId;
+    match.status = 'TOSS_DECISION_PENDING';
+    match.selectionDeadline = Date.now() + 15000;
+    match.updatedAt = Date.now();
+
+    return {
+      success: true,
+      tossWinnerFranchiseId,
+      tossResult,
+      message: `${tossWinnerFranchiseId} won the toss (${tossResult} landed, call was ${call})!`
+    };
+  }
+
+  /**
+   * Toss Decision: Toss winner decides to BAT or BOWL first.
+   * Transitions match to OPENING_BATTERS_SELECTION.
+   */
+  public static handleTossDecision(
     match: LiveMatch,
     tossWinnerFranchiseId: IPLTeamId,
     decision: 'BAT' | 'BOWL',
     playersMap: Map<string, Player>
-  ): void {
+  ): { success: boolean; message: string } {
+    if (match.status !== 'TOSS_DECISION_PENDING' && match.status !== 'TOSS' && match.status !== 'TOSS_PENDING') {
+      return { success: false, message: 'Match is not awaiting a toss decision' };
+    }
+
+    if (match.tossWinnerFranchiseId && match.tossWinnerFranchiseId !== tossWinnerFranchiseId) {
+      return { success: false, message: 'Only the toss winning team can choose Bat/Bowl' };
+    }
+
     match.tossWinnerFranchiseId = tossWinnerFranchiseId;
     match.tossDecision = decision;
 
@@ -183,10 +231,147 @@ export class MatchEngine {
       match.maxBowlerOvers
     );
 
-    match.status = 'INNINGS_1';
+    match.status = 'OPENING_BATTERS_SELECTION';
     match.currentInnings = 1;
+    match.selectionDeadline = Date.now() + 15000;
+    match.updatedAt = Date.now();
+
+    return {
+      success: true,
+      message: `${tossWinnerFranchiseId} chose to ${decision} first. Select opening batters.`
+    };
+  }
+
+  /**
+   * Resolves the toss and determines who bats and bowls first (Legacy fallback)
+   */
+  public static handleToss(
+    match: LiveMatch,
+    tossWinnerFranchiseId: IPLTeamId,
+    decision: 'BAT' | 'BOWL',
+    playersMap: Map<string, Player>
+  ): void {
+    this.handleTossDecision(match, tossWinnerFranchiseId, decision, playersMap);
+  }
+
+  /**
+   * Batting team selects opening 2 batters (Striker & Non-Striker) from confirmed Playing XI.
+   * Transitions to OPENING_BOWLER_SELECTION.
+   */
+  public static selectOpeningBatters(
+    match: LiveMatch,
+    franchiseId: IPLTeamId,
+    strikerId: string,
+    nonStrikerId: string
+  ): { success: boolean; message: string } {
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    if (!inn) return { success: false, message: 'Invalid innings' };
+
+    if (match.status !== 'OPENING_BATTERS_SELECTION') {
+      return { success: false, message: 'Match is not in opening batters selection phase' };
+    }
+
+    if (franchiseId !== inn.battingFranchiseId) {
+      return { success: false, message: 'Only batting team can select opening batters' };
+    }
+
+    if (!strikerId || !nonStrikerId || strikerId === nonStrikerId) {
+      return { success: false, message: 'Striker and Non-Striker must be two distinct players' };
+    }
+
+    const lineup = match.lineups[franchiseId]?.playingXI || [];
+    if (!lineup.includes(strikerId) || !lineup.includes(nonStrikerId)) {
+      return { success: false, message: 'Both openers must be in the confirmed Playing XI' };
+    }
+
+    inn.activeBatterId = strikerId;
+    inn.nonStrikerId = nonStrikerId;
+
+    // Rearrange batting order: striker at 0, nonStriker at 1, rest preserved
+    const remaining = lineup.filter(pid => pid !== strikerId && pid !== nonStrikerId);
+    inn.battingOrder = [strikerId, nonStrikerId, ...remaining];
+    inn.nextBatterIndex = 2;
+
+    match.status = 'OPENING_BOWLER_SELECTION';
+    match.selectionDeadline = Date.now() + 15000;
+    match.updatedAt = Date.now();
+
+    return { success: true, message: 'Opening batters confirmed. Select opening bowler.' };
+  }
+
+  /**
+   * Bowling team selects opening bowler from confirmed Playing XI.
+   * Transitions to DELIVERY_ACTIVE and starts 10-second delivery timer.
+   */
+  public static selectOpeningBowler(
+    match: LiveMatch,
+    franchiseId: IPLTeamId,
+    bowlerId: string
+  ): { success: boolean; message: string } {
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    if (!inn) return { success: false, message: 'Invalid innings' };
+
+    if (match.status !== 'OPENING_BOWLER_SELECTION') {
+      return { success: false, message: 'Match is not in opening bowler selection phase' };
+    }
+
+    if (franchiseId !== inn.bowlingFranchiseId) {
+      return { success: false, message: 'Only bowling team can select opening bowler' };
+    }
+
+    const lineup = match.lineups[franchiseId]?.playingXI || [];
+    if (!lineup.includes(bowlerId)) {
+      return { success: false, message: 'Selected bowler must be in the confirmed Playing XI' };
+    }
+
+    inn.activeBowlerId = bowlerId;
+    match.status = 'DELIVERY_ACTIVE';
     this.startTurnTimer(match);
     match.updatedAt = Date.now();
+
+    return { success: true, message: 'Opening bowler confirmed. Match delivery is active!' };
+  }
+
+  /**
+   * Batting team selects replacement batter after a wicket fell.
+   * Transitions from BATTER_SELECTION back to DELIVERY_ACTIVE.
+   */
+  public static selectReplacementBatter(
+    match: LiveMatch,
+    franchiseId: IPLTeamId,
+    replacementBatterId: string
+  ): { success: boolean; message: string } {
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    if (!inn) return { success: false, message: 'Invalid innings' };
+
+    if (match.status !== 'BATTER_SELECTION') {
+      return { success: false, message: 'Match is not currently waiting for a batter replacement' };
+    }
+
+    if (franchiseId !== inn.battingFranchiseId) {
+      return { success: false, message: 'Only batting team can select replacement batter' };
+    }
+
+    const lineup = match.lineups[franchiseId]?.playingXI || [];
+    if (!lineup.includes(replacementBatterId)) {
+      return { success: false, message: 'Selected batter must be in the confirmed Playing XI' };
+    }
+
+    if (replacementBatterId === inn.nonStrikerId) {
+      return { success: false, message: 'Player is already batting at the non-striker end' };
+    }
+
+    const batterFig = inn.batters[replacementBatterId];
+    if (batterFig?.isOut) {
+      return { success: false, message: 'Dismissed batter cannot re-enter to bat' };
+    }
+
+    inn.activeBatterId = replacementBatterId;
+    match.status = 'DELIVERY_ACTIVE';
+    this.startTurnTimer(match);
+    match.updatedAt = Date.now();
+
+    return { success: true, message: `${batterFig?.name || replacementBatterId} has taken strike!` };
   }
 
   /**
@@ -219,17 +404,19 @@ export class MatchEngine {
 
     innings.activeBowlerId = bowlerId;
     bowlerFig.abilityUsedInCurrentOver = false;
+    match.status = 'DELIVERY_ACTIVE';
+    this.startTurnTimer(match);
     match.updatedAt = Date.now();
     return { success: true, message: 'Bowler selected successfully' };
   }
 
   /**
-   * Starts or resets the 15-second turn timer
+   * Starts or resets the 10-second synchronized turn timer
    */
   public static startTurnTimer(match: LiveMatch): void {
     match.pendingInputs = {
       turnStartTime: Date.now(),
-      turnExpiresAt: Date.now() + 15000,
+      turnExpiresAt: Date.now() + 10000, // 10s synchronized turn timer
       batterChoice: undefined,
       bowlerChoice: undefined,
       batterAbility: undefined,
@@ -369,6 +556,10 @@ export class MatchEngine {
       }
 
       // Check if choice is restricted by an active bowler block
+      if (match.pendingInputs.bowlerAbility === 'ELITE_NUMBER_BLOCK' && (choice === 0 || choice === 1 || choice === 2 || choice === 3)) {
+        return { resolved: false, error: 'Pace Barrage active! You can only select 4 or 6.' };
+      }
+
       if (match.pendingInputs.blockedNumbers && match.pendingInputs.blockedNumbers.includes(choice)) {
         return { resolved: false, error: `Selection ${choice} is blocked by bowler's special ability!` };
       }
@@ -404,14 +595,63 @@ export class MatchEngine {
   }
 
   /**
-   * Resolves a turn on timeout:
-   * Batter timeout = OUT (Timed Out)
-   * Bowler timeout = random legal choice
+   * Resolves a turn or selection on timeout:
+   * - In BATTER_SELECTION: auto-picks next available batter
+   * - In BOWLER_SELECTION: auto-picks next eligible bowler
+   * - In OPENING_BATTERS_SELECTION: auto-picks default top 2 batters
+   * - In OPENING_BOWLER_SELECTION: auto-picks default bowler
+   * - In active delivery:
+   *   Batter timeout = OUT (Timed Out)
+   *   Bowler timeout = random legal choice
    */
   public static handleTimeout(match: LiveMatch, playersMap?: Map<string, Player>): BallEvent | null {
     const innings = match.currentInnings === 1 ? match.innings1 : match.innings2;
     if (!innings || innings.isCompleted || match.status === 'COMPLETED') return null;
 
+    if (match.status === 'OPENING_BATTERS_SELECTION') {
+      const lineup = match.lineups[innings.battingFranchiseId]?.playingXI || [];
+      const sId = lineup[0] || '';
+      const nsId = lineup[1] || '';
+      this.selectOpeningBatters(match, innings.battingFranchiseId, sId, nsId);
+      return null;
+    }
+
+    if (match.status === 'OPENING_BOWLER_SELECTION') {
+      const lineup = match.lineups[innings.bowlingFranchiseId]?.playingXI || [];
+      const bId = lineup[lineup.length - 1] || lineup[0] || '';
+      this.selectOpeningBowler(match, innings.bowlingFranchiseId, bId);
+      return null;
+    }
+
+    if (match.status === 'BATTER_SELECTION') {
+      const eligible = innings.battingOrder.find(
+        pid => !innings.batters[pid]?.isOut && pid !== innings.nonStrikerId
+      );
+      if (eligible) {
+        this.selectReplacementBatter(match, innings.battingFranchiseId, eligible);
+      } else {
+        innings.isCompleted = true;
+        if (innings.inningsNumber === 1) {
+          this.transitionToInnings2(match, playersMap);
+        } else {
+          this.finalizeMatch(match);
+        }
+      }
+      return null;
+    }
+
+    if (match.status === 'BOWLER_SELECTION') {
+      const eligible =
+        Object.values(innings.bowlers).find(
+          b => b.playerId !== innings.previousOverBowlerId && b.overs < b.maxOversAllowed
+        ) || Object.values(innings.bowlers).find(b => b.overs < b.maxOversAllowed);
+      if (eligible) {
+        this.selectBowler(match, eligible.playerId);
+      }
+      return null;
+    }
+
+    // Active delivery timeout handling
     // If bowler didn't submit, pick random legal choice
     if (match.pendingInputs.bowlerChoice === undefined) {
       const randIdx = Math.floor(Math.random() * LEGAL_CHOICES.length);
@@ -435,7 +675,7 @@ export class MatchEngine {
     const bowler = innings.bowlers[innings.activeBowlerId];
 
     batter.isOut = true;
-    batter.dismissal = 'Timed Out (15s exceeded)';
+    batter.dismissal = 'Timed Out (10s exceeded)';
     batter.balls += 1;
 
     innings.ballsInCurrentOver += 1;
@@ -472,7 +712,20 @@ export class MatchEngine {
       runsScored: 0,
       totalRunsAfter: innings.totalRuns,
       wicketsAfter: innings.totalWickets,
-      commentary: `⏱️ TIMED OUT! ${batter.name} exceeded the 15-second decision window. Dismissed!`,
+      commentary: `⏱️ TIMED OUT! ${batter.name} exceeded the 10-second decision window. Dismissed!`,
+      timestamp: Date.now()
+    };
+
+    match.lastDeliveryResult = {
+      ballNumber: innings.ballsInCurrentOver,
+      overNumber: innings.oversCompleted,
+      batterName: batter.name,
+      bowlerName: bowler.name,
+      batterInput: 0,
+      bowlerInput: match.pendingInputs.bowlerChoice || 0,
+      runsScored: 0,
+      isWicket: true,
+      commentary: ballEvent.commentary,
       timestamp: Date.now()
     };
 
@@ -589,6 +842,19 @@ export class MatchEngine {
       timestamp: Date.now()
     };
 
+    match.lastDeliveryResult = {
+      ballNumber: innings.ballsInCurrentOver,
+      overNumber: innings.oversCompleted,
+      batterName: batter.name,
+      bowlerName: bowler.name,
+      batterInput: batterChoice,
+      bowlerInput: bowlerChoice,
+      runsScored,
+      isWicket,
+      commentary,
+      timestamp: Date.now()
+    };
+
     match.ballHistory.push(ballEvent);
     this.postBallProcessing(match, innings, runsScored, isWicket, playersMap);
     return ballEvent;
@@ -616,23 +882,18 @@ export class MatchEngine {
       }
     }
 
-    // Next batter if wicket fell
-    if (isWicket && !allOut) {
-      if (innings.nextBatterIndex < innings.battingOrder.length) {
-        const nextId = innings.battingOrder[innings.nextBatterIndex];
-        innings.activeBatterId = nextId;
-        innings.nextBatterIndex++;
+    // Check if all out
+    if (allOut) {
+      innings.isCompleted = true;
+      if (innings.inningsNumber === 1) {
+        this.transitionToInnings2(match, playersMap);
+      } else {
+        this.finalizeMatch(match);
       }
+      return;
     }
 
-    // Strike rotation on odd runs (if not out)
-    if (!isWicket && (runsScored === 1 || runsScored === 3) && innings.nonStrikerId) {
-      const temp = innings.activeBatterId;
-      innings.activeBatterId = innings.nonStrikerId;
-      innings.nonStrikerId = temp;
-    }
-
-    // Over finished processing
+    // Check if over finished
     if (overFinished) {
       innings.oversCompleted += 1;
       innings.ballsInCurrentOver = 0;
@@ -652,28 +913,43 @@ export class MatchEngine {
         innings.nonStrikerId = temp;
       }
 
-      // Automatically advance active bowler to another eligible bowler
-      const eligibleBowlers = Object.values(innings.bowlers).filter(
-        b => b.playerId !== innings.activeBowlerId && b.overs < b.maxOversAllowed
-      );
-      if (eligibleBowlers.length > 0) {
-        innings.activeBowlerId = eligibleBowlers[0].playerId;
+      // Check if innings overs finished
+      if (innings.oversCompleted >= match.matchOvers) {
+        innings.isCompleted = true;
+        if (innings.inningsNumber === 1) {
+          this.transitionToInnings2(match, playersMap);
+        } else {
+          this.finalizeMatch(match);
+        }
+        return;
       }
-    }
 
-    // Check if innings is complete
-    const oversComplete = innings.oversCompleted >= match.matchOvers;
-    if (allOut || oversComplete) {
-      innings.isCompleted = true;
-      if (innings.inningsNumber === 1) {
-        this.transitionToInnings2(match, playersMap);
-      } else {
-        this.finalizeMatch(match);
-      }
+      // Over completed, waiting for bowling team to select next bowler (5s timer)
+      match.status = 'BOWLER_SELECTION';
+      match.selectionDeadline = Date.now() + 5000;
+      match.updatedAt = Date.now();
       return;
     }
 
-    // Continue innings: restart 15s turn timer
+    // If wicket fell (and not all out and not over finished) -> BATTER_SELECTION (5s timer)
+    if (isWicket) {
+      match.status = 'BATTER_SELECTION';
+      match.selectionDeadline = Date.now() + 5000;
+      match.updatedAt = Date.now();
+      return;
+    }
+
+    // Strike rotation on odd runs (if not out)
+    if (runsScored === 1 || runsScored === 3) {
+      if (innings.nonStrikerId) {
+        const temp = innings.activeBatterId;
+        innings.activeBatterId = innings.nonStrikerId;
+        innings.nonStrikerId = temp;
+      }
+    }
+
+    // Continue innings: restart 10s turn timer
+    match.status = 'DELIVERY_ACTIVE';
     this.startTurnTimer(match);
     match.updatedAt = Date.now();
   }
@@ -685,7 +961,6 @@ export class MatchEngine {
     const inn1 = match.innings1;
     const targetRuns = inn1.totalRuns + 1;
     match.targetRuns = targetRuns;
-    match.status = 'INNINGS_2';
     match.currentInnings = 2;
 
     const battingSecond = inn1.bowlingFranchiseId;
@@ -703,7 +978,8 @@ export class MatchEngine {
       targetRuns
     );
 
-    this.startTurnTimer(match);
+    match.status = 'OPENING_BATTERS_SELECTION';
+    match.selectionDeadline = Date.now() + 15000;
     match.updatedAt = Date.now();
   }
 
@@ -868,6 +1144,8 @@ export function sanitizeMatchForViewer(match: LiveMatch, viewerFranchiseId?: str
   // Conceal bowler choices from batter or spectators until delivery resolves
   if (viewerFranchiseId !== bowlingTeam) {
     delete inputs.bowlerChoice;
+    delete inputs.bowlerAbility;
+    delete inputs.blockedNumbers;
   }
 
   return clone;

@@ -55,10 +55,16 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [isSquadPanelOpen, setIsSquadPanelOpen] = useState(false);
   const [activeSquadTab, setActiveSquadTab] = useState<'HOME' | 'AWAY'>('HOME');
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(15);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Opening & Replacement selections state
+  const [selectedStrikerId, setSelectedStrikerId] = useState<string>('');
+  const [selectedNonStrikerId, setSelectedNonStrikerId] = useState<string>('');
+  const [selectedOpeningBowlerId, setSelectedOpeningBowlerId] = useState<string>('');
+  const [isFlippingCoin, setIsFlippingCoin] = useState(false);
 
   const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
 
@@ -90,7 +96,6 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
   const isBowlingOwner = user.id === bowlingOwnerId;
   const isParticipant = isHomeOwner || isAwayOwner || isHost || !tournament;
   const isSpectator = !isParticipant;
-  const canMakeTossDecision = isHomeOwner || isHost || !tournament;
 
   // My current franchise in this match
   const myFranchiseId: IPLTeamId = useMemo(() => {
@@ -100,6 +105,8 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
     if (isAwayOwner) return match.awayFranchiseId;
     return inn?.battingFranchiseId || match.homeFranchiseId;
   }, [isBattingOwner, isBowlingOwner, isHomeOwner, isAwayOwner, inn, match]);
+
+  const canMakeTossDecision = (match.tossWinnerFranchiseId ? (myFranchiseId === match.tossWinnerFranchiseId) : isHomeOwner) || isHost || !tournament;
 
   // Real-time polling / sync with server for live match state
   useEffect(() => {
@@ -118,10 +125,10 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
 
   // Turn Timer countdown
   useEffect(() => {
-    if (match.status === 'COMPLETED' || match.status === 'TOSS') return;
+    if (match.status === 'COMPLETED' || match.status === 'TOSS_PENDING' || match.status === 'TOSS') return;
 
     const timer = setInterval(() => {
-      const expiresAt = match.pendingInputs?.turnExpiresAt || 0;
+      const expiresAt = match.pendingInputs?.turnExpiresAt || match.selectionDeadline || 0;
       if (expiresAt > 0) {
         const diff = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
         setSecondsRemaining(diff);
@@ -138,7 +145,7 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
     }, 500);
 
     return () => clearInterval(timer);
-  }, [match.id, match.pendingInputs?.turnExpiresAt, match.status, isSubmitting, myFranchiseId]);
+  }, [match.id, match.pendingInputs?.turnExpiresAt, match.selectionDeadline, match.status, isSubmitting, myFranchiseId]);
 
   // Trigger celebration on match completed
   useEffect(() => {
@@ -186,13 +193,93 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
     }
   };
 
-  // Toss Handler
-  const handleTossDecision = async (decision: 'BAT' | 'BOWL') => {
+  // Toss Handlers
+  const handleTossCoinFlip = async (call: 'HEADS' | 'TAILS') => {
+    setIsFlippingCoin(true);
+    setError(null);
     try {
-      const res = await TournamentApi.submitToss(match.id, match.homeFranchiseId, decision);
-      setMatch(res);
+      const res = await TournamentApi.submitTossCoinFlip(match.id, myFranchiseId, call);
+      if (res.match) {
+        setMatch(res.match);
+      }
     } catch (err: any) {
       setError(err.message || 'Toss error');
+    } finally {
+      setIsFlippingCoin(false);
+    }
+  };
+
+  const handleTossDecision = async (decision: 'BAT' | 'BOWL') => {
+    const winnerFid = match.tossWinnerFranchiseId || match.homeFranchiseId;
+    setError(null);
+    try {
+      const res = await TournamentApi.submitTossDecision(match.id, winnerFid, decision);
+      if (res.match) {
+        setMatch(res.match);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Toss decision error');
+    }
+  };
+
+  // Opening Selections Handlers
+  const handleSelectOpeningBatters = async () => {
+    if (!inn) return;
+    if (!selectedStrikerId || !selectedNonStrikerId || selectedStrikerId === selectedNonStrikerId) {
+      setError('Please select two distinct players for Striker and Non-Striker');
+      return;
+    }
+    setError(null);
+    try {
+      const res = await TournamentApi.selectOpeningBatters(match.id, inn.battingFranchiseId, selectedStrikerId, selectedNonStrikerId);
+      if (res.match) {
+        setMatch(res.match);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Opening batters selection error');
+    }
+  };
+
+  const handleSelectOpeningBowler = async () => {
+    if (!inn) return;
+    if (!selectedOpeningBowlerId) {
+      setError('Please select an opening bowler');
+      return;
+    }
+    setError(null);
+    try {
+      const res = await TournamentApi.selectOpeningBowler(match.id, inn.bowlingFranchiseId, selectedOpeningBowlerId);
+      if (res.match) {
+        setMatch(res.match);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Opening bowler selection error');
+    }
+  };
+
+  // Replacement Batter & Bowler Handlers
+  const handleSelectReplacementBatter = async (batterId: string) => {
+    if (!inn) return;
+    setError(null);
+    try {
+      const res = await TournamentApi.selectReplacementBatter(match.id, inn.battingFranchiseId, batterId);
+      if (res.match) {
+        setMatch(res.match);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Replacement batter selection error');
+    }
+  };
+
+  const handleSelectBowler = async (bowlerId: string) => {
+    setError(null);
+    try {
+      const res = await TournamentApi.selectBowler(match.id, bowlerId);
+      if (res.match) {
+        setMatch(res.match);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Bowler selection error');
     }
   };
 
@@ -290,27 +377,89 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
 
       {/* 2. MAIN MATCH CONTENT CONTAINER */}
       <div className="grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-between space-y-6">
-        {/* TOSS STATE OVERLAY */}
-        {match.status === 'TOSS' && (
-          <div className="my-auto bg-[#12142A] border border-[#2A2F60] rounded-3xl p-8 text-center max-w-lg mx-auto shadow-2xl animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-[#FFC93D]/10 border border-[#FFC93D]/30 text-[#FFC93D] flex items-center justify-center mx-auto mb-4">
+        {/* 1. INTERACTIVE TOSS PENDING OVERLAY */}
+        {(match.status === 'TOSS_PENDING' || match.status === 'TOSS') && (
+          <div className="my-auto bg-[#12142A] border border-[#2A2F60] rounded-3xl p-8 text-center max-w-lg mx-auto shadow-2xl animate-fade-in space-y-6">
+            <div className="w-20 h-20 rounded-full bg-[#FFC93D]/10 border-2 border-[#FFC93D]/40 text-[#FFC93D] flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(255,201,61,0.25)] relative">
+              <span className={`text-3xl font-heading font-black ${isFlippingCoin ? 'animate-spin' : ''}`}>
+                🪙
+              </span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-heading font-black uppercase tracking-wider text-white">
+                WicketPulse Match Toss
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                {homeF.name} vs {awayF.name} • Calling the Coin Toss
+              </p>
+            </div>
+
+            {canMakeTossDecision ? (
+              <div className="space-y-3">
+                <span className="text-xs text-[#FFC93D] font-bold block uppercase tracking-wider">
+                  Select Heads or Tails to Flip
+                </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    disabled={isFlippingCoin}
+                    onClick={() => handleTossCoinFlip('HEADS')}
+                    className="py-4 rounded-2xl bg-[#0D0E1A] border-2 border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-black uppercase text-base tracking-wider hover:scale-102 transition-all cursor-pointer shadow-lg"
+                  >
+                    👑 HEADS
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isFlippingCoin}
+                    onClick={() => handleTossCoinFlip('TAILS')}
+                    className="py-4 rounded-2xl bg-[#0D0E1A] border-2 border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-black uppercase text-base tracking-wider hover:scale-102 transition-all cursor-pointer shadow-lg"
+                  >
+                    🪙 TAILS
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-1">
+                <span className="text-xs font-bold text-[#FFC93D] uppercase tracking-wider block">
+                  Coin Flip in Progress
+                </span>
+                <p className="text-xs text-gray-400">
+                  Waiting for team managers to call Heads or Tails.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. TOSS DECISION PENDING OVERLAY */}
+        {match.status === 'TOSS_DECISION_PENDING' && (
+          <div className="my-auto bg-[#12142A] border border-[#2A2F60] rounded-3xl p-8 text-center max-w-lg mx-auto shadow-2xl animate-fade-in space-y-5">
+            <div className="w-16 h-16 rounded-full bg-[#C8FF3D]/10 border border-[#C8FF3D]/30 text-[#C8FF3D] flex items-center justify-center mx-auto">
               <Sparkles className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-heading font-black uppercase tracking-wider mb-2 text-white">
-              Match Toss Ceremony
-            </h2>
-            <p className="text-xs text-gray-400 mb-6">
-              <span className="text-[#FFC93D] font-bold">{IPL_FRANCHISES[match.homeFranchiseId].name}</span> has won the toss.
-            </p>
+            <div>
+              <span className="text-[10px] uppercase font-black tracking-widest text-[#FFC93D] px-2.5 py-1 bg-[#FFC93D]/10 rounded-full border border-[#FFC93D]/30">
+                Coin Landed: {match.tossResult || 'HEADS'}
+              </span>
+              <h2 className="text-2xl font-heading font-black uppercase tracking-wider mt-3 text-white">
+                {IPL_FRANCHISES[match.tossWinnerFranchiseId || match.homeFranchiseId].name} Won Toss!
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Choose to Bat First or Bowl First to begin the match.
+              </p>
+            </div>
+
             {canMakeTossDecision ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 pt-2">
                 <button
+                  type="button"
                   onClick={() => handleTossDecision('BAT')}
                   className="py-4 rounded-2xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black uppercase text-sm tracking-wider shadow-[0_0_20px_rgba(200,255,61,0.3)] hover:scale-102 transition-all cursor-pointer"
                 >
                   Bat First 🏏
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleTossDecision('BOWL')}
                   className="py-4 rounded-2xl bg-[#7C5CFF] hover:bg-[#6A48F5] text-white font-heading font-black uppercase text-sm tracking-wider shadow-[0_0_20px_rgba(124,92,255,0.3)] hover:scale-102 transition-all cursor-pointer"
                 >
@@ -320,10 +469,227 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
             ) : (
               <div className="p-4 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-1">
                 <span className="text-xs font-bold text-[#FFC93D] uppercase tracking-wider block">
-                  Awaiting Host Decision
+                  Awaiting Captain Decision
                 </span>
                 <p className="text-xs text-gray-400">
-                  Waiting for {IPL_FRANCHISES[match.homeFranchiseId].name} captain to choose to Bat or Bowl first.
+                  Waiting for {IPL_FRANCHISES[match.tossWinnerFranchiseId || match.homeFranchiseId].name} captain to choose to Bat or Bowl first.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. OPENING BATTERS SELECTION OVERLAY */}
+        {match.status === 'OPENING_BATTERS_SELECTION' && (
+          <div className="my-auto bg-[#12142A] border border-[#2A2F60] rounded-3xl p-6 md:p-8 max-w-2xl mx-auto shadow-2xl animate-fade-in space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#C8FF3D] block">
+                  Stage 4 • Playing XI Opening Selection
+                </span>
+                <h2 className="text-xl md:text-2xl font-heading font-black uppercase text-white">
+                  Select Opening Batters (Striker & Non-Striker)
+                </h2>
+              </div>
+              <div className="px-3 py-1 bg-[#1E2246] border border-[#2A2F60] rounded-xl text-xs font-heading font-bold text-[#C8FF3D]">
+                {battingF.shortName} Batting
+              </div>
+            </div>
+
+            {isBattingOwner || isHost ? (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-300">
+                  Select two different batters from your confirmed Playing XI to open the innings:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto p-1">
+                  {(match.lineups[inn.battingFranchiseId]?.playingXI || []).map(pid => {
+                    const p = playerMap.get(pid);
+                    const isStriker = selectedStrikerId === pid;
+                    const isNonStriker = selectedNonStrikerId === pid;
+
+                    return (
+                      <div
+                        key={pid}
+                        className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                          isStriker
+                            ? 'bg-[#C8FF3D]/10 border-[#C8FF3D]'
+                            : isNonStriker
+                            ? 'bg-[#0078FF]/10 border-[#0078FF]'
+                            : 'bg-[#0D0E1A] border-[#2A2F60]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div className="w-10 h-10 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
+                            {p?.image_url ? (
+                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                            ) : (
+                              <span className="font-heading font-black text-xs text-gray-400">{(p?.name || pid).slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <div className="truncate">
+                            <span className="font-bold text-xs text-white block truncate">{p?.name || pid}</span>
+                            <span className="text-[10px] text-gray-400">{p?.primary_role || 'Batter'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isStriker) setSelectedStrikerId('');
+                              else {
+                                setSelectedStrikerId(pid);
+                                if (selectedNonStrikerId === pid) setSelectedNonStrikerId('');
+                              }
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-heading font-black uppercase cursor-pointer ${
+                              isStriker ? 'bg-[#C8FF3D] text-[#0A0B14]' : 'bg-[#1E2246] text-gray-300 hover:text-white'
+                            }`}
+                          >
+                            Striker
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isNonStriker) setSelectedNonStrikerId('');
+                              else {
+                                setSelectedNonStrikerId(pid);
+                                if (selectedStrikerId === pid) setSelectedStrikerId('');
+                              }
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-heading font-black uppercase cursor-pointer ${
+                              isNonStriker ? 'bg-[#0078FF] text-white' : 'bg-[#1E2246] text-gray-300 hover:text-white'
+                            }`}
+                          >
+                            Non-Striker
+                          </button>
+                          <OvrBadge ovr={p?.ovr || 75} size="xs" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">
+                    Selected: Striker ({selectedStrikerId ? (playerMap.get(selectedStrikerId)?.name || 'Selected') : 'None'}), Non-Striker ({selectedNonStrikerId ? (playerMap.get(selectedNonStrikerId)?.name || 'Selected') : 'None'})
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!selectedStrikerId || !selectedNonStrikerId || selectedStrikerId === selectedNonStrikerId}
+                    onClick={handleSelectOpeningBatters}
+                    className={`px-6 py-3 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                      selectedStrikerId && selectedNonStrikerId && selectedStrikerId !== selectedNonStrikerId
+                        ? 'bg-[#C8FF3D] text-[#0A0B14] shadow-[0_0_20px_rgba(200,255,61,0.3)] hover:scale-102'
+                        : 'bg-[#1E2246] text-gray-600 border border-gray-800 cursor-not-allowed'
+                    }`}
+                  >
+                    Confirm Openers 🏏
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-2">
+                <span className="text-xs font-bold text-[#C8FF3D] uppercase tracking-wider block">
+                  Waiting for {battingF.name} Captain
+                </span>
+                <p className="text-xs text-gray-400">
+                  The batting team is picking their opening 2 batters from their Playing XI.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. OPENING BOWLER SELECTION OVERLAY */}
+        {match.status === 'OPENING_BOWLER_SELECTION' && (
+          <div className="my-auto bg-[#12142A] border border-[#2A2F60] rounded-3xl p-6 md:p-8 max-w-2xl mx-auto shadow-2xl animate-fade-in space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#FF3B5C] block">
+                  Stage 4 • Playing XI Opening Selection
+                </span>
+                <h2 className="text-xl md:text-2xl font-heading font-black uppercase text-white">
+                  Select Opening Bowler (Over 1)
+                </h2>
+              </div>
+              <div className="px-3 py-1 bg-[#1E2246] border border-[#2A2F60] rounded-xl text-xs font-heading font-bold text-[#FF3B5C]">
+                {bowlingF.shortName} Bowling
+              </div>
+            </div>
+
+            {isBowlingOwner || isHost ? (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-300">
+                  Select which player from your confirmed Playing XI will bowl the first over:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto p-1">
+                  {(match.lineups[inn.bowlingFranchiseId]?.playingXI || []).map(pid => {
+                    const p = playerMap.get(pid);
+                    const isSelected = selectedOpeningBowlerId === pid;
+
+                    return (
+                      <div
+                        key={pid}
+                        onClick={() => setSelectedOpeningBowlerId(pid)}
+                        className={`p-3 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#FF3B5C]/15 border-[#FF3B5C] shadow-[0_0_15px_rgba(255,59,92,0.3)]'
+                            : 'bg-[#0D0E1A] border-[#2A2F60] hover:border-[#FF3B5C]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div className="w-10 h-10 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
+                            {p?.image_url ? (
+                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                            ) : (
+                              <span className="font-heading font-black text-xs text-gray-400">{(p?.name || pid).slice(0, 2)}</span>
+                            )}
+                          </div>
+                          <div className="truncate">
+                            <span className="font-bold text-xs text-white block truncate">{p?.name || pid}</span>
+                            <span className="text-[10px] text-gray-400">{p?.primary_role || 'Bowler'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <OvrBadge ovr={p?.ovr || 75} size="xs" />
+                          <span className={`text-[10px] font-heading font-black uppercase px-2 py-1 rounded-lg ${
+                            isSelected ? 'bg-[#FF3B5C] text-white' : 'bg-[#1E2246] text-gray-400'
+                          }`}>
+                            {isSelected ? '✓ Picked' : 'Select'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">
+                    Selected Bowler: <span className="text-white font-bold">{selectedOpeningBowlerId ? (playerMap.get(selectedOpeningBowlerId)?.name || 'Selected') : 'None'}</span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!selectedOpeningBowlerId}
+                    onClick={handleSelectOpeningBowler}
+                    className={`px-6 py-3 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                      selectedOpeningBowlerId
+                        ? 'bg-[#FF3B5C] text-white shadow-[0_0_20px_rgba(255,59,92,0.3)] hover:scale-102'
+                        : 'bg-[#1E2246] text-gray-600 border border-gray-800 cursor-not-allowed'
+                    }`}
+                  >
+                    Start Match 🚀
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-2">
+                <span className="text-xs font-bold text-[#FF3B5C] uppercase tracking-wider block">
+                  Waiting for {bowlingF.name} Captain
+                </span>
+                <p className="text-xs text-gray-400">
+                  The bowling team is picking their opening bowler from their Playing XI.
                 </p>
               </div>
             )}
@@ -375,7 +741,13 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
         )}
 
         {/* ACTIVE INNINGS BOARD */}
-        {(match.status === 'INNINGS_1' || match.status === 'INNINGS_2') && (
+        {match.status !== 'TOSS' &&
+          match.status !== 'TOSS_PENDING' &&
+          match.status !== 'TOSS_DECISION_PENDING' &&
+          match.status !== 'OPENING_BATTERS_SELECTION' &&
+          match.status !== 'OPENING_BOWLER_SELECTION' &&
+          match.status !== 'COMPLETED' &&
+          match.status !== 'ABANDONED' && (
           <>
             {/* 3. BROADCAST SCOREBOARD RIBBON */}
             <div className="bg-[#12142A] border border-[#2A2F60] rounded-3xl p-5 shadow-2xl relative overflow-hidden">
@@ -684,6 +1056,185 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
               </div>
             </div>
 
+            {/* LATEST DELIVERY RESULT BANNER */}
+            {match.lastDeliveryResult && (
+              <div
+                className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-heading font-black shadow-lg animate-fade-in ${
+                  match.lastDeliveryResult.isWicket
+                    ? 'bg-red-950/40 border-red-500/60 text-red-300'
+                    : match.lastDeliveryResult.runsScored === 6
+                    ? 'bg-purple-950/40 border-purple-500/60 text-purple-300'
+                    : match.lastDeliveryResult.runsScored === 4
+                    ? 'bg-blue-950/40 border-blue-500/60 text-blue-300'
+                    : 'bg-[#12142A] border-[#2A2F60] text-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`w-9 h-9 rounded-full flex items-center justify-center font-black shrink-0 ${
+                      match.lastDeliveryResult.isWicket ? 'bg-red-500 text-white' : 'bg-[#C8FF3D] text-[#0A0B14]'
+                    }`}
+                  >
+                    {match.lastDeliveryResult.isWicket ? 'W' : match.lastDeliveryResult.runsScored}
+                  </span>
+                  <div>
+                    <span className="block text-white uppercase text-xs">
+                      {match.lastDeliveryResult.commentary}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-normal">
+                      Ball {match.lastDeliveryResult.overNumber}.{match.lastDeliveryResult.ballNumber} • {match.lastDeliveryResult.batterName} [{match.lastDeliveryResult.batterInput}] vs {match.lastDeliveryResult.bowlerName} [{match.lastDeliveryResult.bowlerInput}]
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* WICKET: REPLACEMENT BATTER SELECTION MODAL */}
+            {match.status === 'BATTER_SELECTION' && (
+              <div className="bg-[#12142A] border-2 border-red-500/50 rounded-3xl p-6 shadow-2xl space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                    <h3 className="font-heading font-black text-base uppercase text-white">
+                      🚨 Wicket! Choose Replacement Batter ({secondsRemaining}s)
+                    </h3>
+                  </div>
+                  <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl text-xs font-heading font-black">
+                    {secondsRemaining}s remaining
+                  </span>
+                </div>
+
+                {isBattingOwner || isHost ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-300">
+                      Select which batter will take the crease next:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {(match.lineups[inn.battingFranchiseId]?.playingXI || [])
+                        .filter(pid => !inn.batters[pid]?.isOut && pid !== inn.nonStrikerId && pid !== inn.activeBatterId)
+                        .map(pid => {
+                          const p = playerMap.get(pid);
+                          return (
+                            <button
+                              key={pid}
+                              type="button"
+                              onClick={() => handleSelectReplacementBatter(pid)}
+                              className="p-3 rounded-2xl bg-[#0D0E1A] border border-[#2A2F60] hover:border-[#C8FF3D] hover:bg-[#1E2246] transition-all flex items-center justify-between cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
+                                  {p?.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                                  ) : (
+                                    <span className="font-heading font-black text-xs text-gray-400">{(p?.name || pid).slice(0, 2)}</span>
+                                  )}
+                                </div>
+                                <div className="text-left truncate">
+                                  <span className="font-bold text-xs text-white block truncate">{p?.name || pid}</span>
+                                  <span className="text-[10px] text-gray-400">{p?.primary_role || 'Batter'}</span>
+                                </div>
+                              </div>
+                              <OvrBadge ovr={p?.ovr || 75} size="xs" />
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-1">
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider block">
+                      Batting Team Selecting Batter
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      {battingF.name} has {secondsRemaining} seconds to choose who takes strike.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* OVER COMPLETED: NEXT BOWLER SELECTION MODAL */}
+            {(match.status === 'BOWLER_SELECTION' || match.status === 'OVER_COMPLETED') && (
+              <div className="bg-[#12142A] border-2 border-[#7C5CFF]/50 rounded-3xl p-6 shadow-2xl space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#7C5CFF] animate-ping" />
+                    <h3 className="font-heading font-black text-base uppercase text-white">
+                      🔔 Over Completed! Select Bowler for Over {inn.oversCompleted + 1} ({secondsRemaining}s)
+                    </h3>
+                  </div>
+                  <span className="px-3 py-1 bg-[#7C5CFF]/10 text-[#7C5CFF] border border-[#7C5CFF]/30 rounded-xl text-xs font-heading font-black">
+                    {secondsRemaining}s remaining
+                  </span>
+                </div>
+
+                {isBowlingOwner || isHost ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-gray-300">
+                      Select which bowler will deliver the upcoming over (Quota max {match.maxBowlerOvers} overs):
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {(match.lineups[inn.bowlingFranchiseId]?.playingXI || []).map(pid => {
+                        const p = playerMap.get(pid);
+                        const bFig = inn.bowlers[pid];
+                        const oversBowled = bFig?.overs || 0;
+                        const maxAllowed = bFig?.maxOversAllowed || match.maxBowlerOvers;
+                        const isPreviousBowler = pid === inn.previousOverBowlerId;
+                        const isQuotaReached = oversBowled >= maxAllowed;
+
+                        // Check if team has other bowlers who can bowl
+                        const otherEligible = Object.values(inn.bowlers).some(
+                          b => b.playerId !== pid && b.overs < b.maxOversAllowed
+                        );
+                        const isConsecutiveForbidden = isPreviousBowler && otherEligible;
+                        const isDisabled = isQuotaReached || isConsecutiveForbidden;
+
+                        return (
+                          <button
+                            key={pid}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => handleSelectBowler(pid)}
+                            className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
+                              isDisabled
+                                ? 'bg-[#0A0B14] border-gray-800 text-gray-600 opacity-50 cursor-not-allowed'
+                                : 'bg-[#0D0E1A] border-[#2A2F60] hover:border-[#7C5CFF] hover:bg-[#1E2246] cursor-pointer'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              <div className="w-9 h-9 rounded-xl bg-[#0A0B14] border border-[#23274D] overflow-hidden flex items-center justify-center shrink-0">
+                                {p?.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  <span className="font-heading font-black text-xs text-gray-400">{(p?.name || pid).slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div className="text-left truncate">
+                                <span className="font-bold text-xs text-white block truncate">{p?.name || pid}</span>
+                                <span className="text-[10px] text-gray-400">
+                                  {oversBowled}/{maxAllowed} ov {isPreviousBowler ? '• Last Over' : ''}
+                                </span>
+                              </div>
+                            </div>
+                            <OvrBadge ovr={p?.ovr || 75} size="xs" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-[#0A0B14] border border-[#1E2246] rounded-2xl text-center space-y-1">
+                    <span className="text-xs font-bold text-[#7C5CFF] uppercase tracking-wider block">
+                      Bowling Team Selecting Bowler
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      {bowlingF.name} has {secondsRemaining} seconds to choose bowler for over {inn.oversCompleted + 1}.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 5. HAND-CRICKET SCORING CONTROLS */}
             {isSpectator ? (
               <div className="bg-[#12142A] border border-[#2A2F60] rounded-3xl p-6 text-center space-y-2 shadow-2xl">
@@ -718,17 +1269,25 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                 {/* 6 Scoring Option Buttons */}
                 <div className="grid grid-cols-6 gap-3">
                   {([0, 1, 2, 3, 4, 6] as WicketPulseChoice[]).map(num => {
-                    const isBlocked = match.pendingInputs?.blockedNumbers?.includes(num);
+                    const isSelectionPending =
+                      match.status === 'BATTER_SELECTION' ||
+                      match.status === 'BOWLER_SELECTION' ||
+                      match.status === 'OVER_COMPLETED';
+                    const isPaceBarrageActive =
+                      match.pendingInputs?.bowlerAbility === 'ELITE_NUMBER_BLOCK' ||
+                      activeBowlerAbility === 'ELITE_NUMBER_BLOCK';
+                    const isRestrictedByPaceBarrage = isBattingOwner && isPaceBarrageActive && num !== 4 && num !== 6;
+                    const isBlocked = match.pendingInputs?.blockedNumbers?.includes(num) || isRestrictedByPaceBarrage;
                     const isSelected = selectedChoice === num;
 
                     return (
                       <button
                         key={num}
                         type="button"
-                        disabled={isBlocked || isSubmitting || hasMyChoiceLocked}
+                        disabled={isBlocked || isSubmitting || hasMyChoiceLocked || isSelectionPending}
                         onClick={() => handleSubmitPick(num)}
                         className={`h-22 rounded-2xl font-heading font-black text-2xl md:text-3xl border transition-all flex flex-col items-center justify-center relative cursor-pointer ${
-                          isBlocked
+                          isBlocked || isSelectionPending
                             ? 'bg-red-950/20 border-red-900/40 text-red-500/40 cursor-not-allowed opacity-60'
                             : isSelected
                             ? 'bg-[#C8FF3D] border-[#C8FF3D] text-[#0A0B14] shadow-[0_0_25px_rgba(200,255,61,0.5)] scale-105'
@@ -741,7 +1300,7 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                         </span>
                         {isBlocked && (
                           <span className="absolute top-1.5 right-1.5 text-[8px] font-black uppercase text-red-500 px-1 py-0.5 bg-red-950/60 rounded">
-                            BLOCKED
+                            {isRestrictedByPaceBarrage ? 'DISABLED' : 'BLOCKED'}
                           </span>
                         )}
                       </button>

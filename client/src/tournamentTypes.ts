@@ -18,10 +18,24 @@ export type TournamentFormatStage =
   | 'FINAL';
 
 export type MatchStatus =
+  | 'WAITING_FOR_PLAYERS'
   | 'TOSS'
+  | 'TOSS_PENDING'
+  | 'TOSS_RESOLVED'
+  | 'TOSS_DECISION_PENDING'
+  | 'OPENING_BATTERS_SELECTION'
+  | 'OPENING_BOWLER_SELECTION'
+  | 'DELIVERY_ACTIVE'
+  | 'WAITING_FOR_OPPONENT'
+  | 'DELIVERY_RESOLVING'
+  | 'DELIVERY_RESULT'
+  | 'BATTER_SELECTION'
+  | 'OVER_COMPLETED'
+  | 'BOWLER_SELECTION'
   | 'INNINGS_1'
   | 'INNINGS_BREAK'
   | 'INNINGS_2'
+  | 'INNINGS_COMPLETED'
   | 'COMPLETED'
   | 'ABANDONED';
 
@@ -159,6 +173,19 @@ export interface BallEvent {
   timestamp: number;
 }
 
+export interface DeliveryResultSummary {
+  ballNumber: number;
+  overNumber: number;
+  batterName: string;
+  bowlerName: string;
+  batterInput: number;
+  bowlerInput: number;
+  runsScored: number;
+  isWicket: boolean;
+  commentary: string;
+  timestamp: number;
+}
+
 export interface LiveMatch {
   id: string;
   tournamentId: string;
@@ -168,8 +195,13 @@ export interface LiveMatch {
   matchOvers: number;
   maxBowlerOvers: number;
   status: MatchStatus;
+  tossCallerFranchiseId?: IPLTeamId;
+  tossCall?: 'HEADS' | 'TAILS';
+  tossResult?: 'HEADS' | 'TAILS';
   tossWinnerFranchiseId?: IPLTeamId;
   tossDecision?: 'BAT' | 'BOWL';
+  selectionDeadline?: number;
+  lastDeliveryResult?: DeliveryResultSummary;
   currentInnings: 1 | 2;
   innings1: InningsState;
   innings2?: InningsState;

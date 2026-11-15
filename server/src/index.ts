@@ -1068,21 +1068,134 @@ app.get('/api/matches/:matchId', (req, res) => {
   return res.json({ success: true, match: sanitizeMatchForViewer(match, viewerFranchiseId) });
 });
 
-// Match Toss
+// Match Toss (interactive coin flip or direct decision fallback)
 app.post('/api/matches/:matchId/toss', (req, res) => {
   try {
-    const { tossWinnerFranchiseId, decision } = req.body || {};
-    const result = tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
+    const { callerFranchiseId, call, tossWinnerFranchiseId, decision } = req.body || {};
+    
+    // Direct decision format (backward compatibility)
+    if (decision && tossWinnerFranchiseId) {
+      const result = tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      return res.json({
+        success: true,
+        match: result.match ? sanitizeMatchForViewer(result.match, tossWinnerFranchiseId) : undefined
+      });
+    }
+
+    // Interactive coin flip
+    if (!callerFranchiseId || !call) {
+      return res.status(400).json({ error: 'Caller franchise and call (HEADS/TAILS) required' });
+    }
+
+    const result = tournamentManager.resolveToss(req.params.matchId, callerFranchiseId, call);
     if (!result.success) {
       return res.status(400).json({ error: result.message });
     }
-    const viewerFranchiseId = tossWinnerFranchiseId || undefined;
     return res.json({
       success: true,
-      match: result.match ? sanitizeMatchForViewer(result.match, viewerFranchiseId) : undefined
+      tossWinnerFranchiseId: result.tossWinnerFranchiseId,
+      tossResult: result.tossResult,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match, callerFranchiseId) : undefined
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Error handling toss' });
+  }
+});
+
+// Toss Decision: Bat or Bowl First
+app.post('/api/matches/:matchId/toss-decision', (req, res) => {
+  try {
+    const { tossWinnerFranchiseId, decision } = req.body || {};
+    if (!tossWinnerFranchiseId || !decision) {
+      return res.status(400).json({ error: 'Toss winner and decision (BAT/BOWL) are required' });
+    }
+    const result = tournamentManager.handleTossDecision(req.params.matchId, tossWinnerFranchiseId, decision);
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match, tossWinnerFranchiseId) : undefined
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Error handling toss decision' });
+  }
+});
+
+// Select Opening Batters (Striker and Non-Striker)
+app.post('/api/matches/:matchId/opening-batters', (req, res) => {
+  try {
+    const { franchiseId, strikerId, nonStrikerId } = req.body || {};
+    const result = tournamentManager.selectOpeningBatters(req.params.matchId, franchiseId, strikerId, nonStrikerId);
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Error selecting opening batters' });
+  }
+});
+
+// Select Opening Bowler
+app.post('/api/matches/:matchId/opening-bowler', (req, res) => {
+  try {
+    const { franchiseId, bowlerId } = req.body || {};
+    const result = tournamentManager.selectOpeningBowler(req.params.matchId, franchiseId, bowlerId);
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Error selecting opening bowler' });
+  }
+});
+
+// Select Replacement Batter after a wicket
+app.post('/api/matches/:matchId/select-batter', (req, res) => {
+  try {
+    const { franchiseId, replacementBatterId } = req.body || {};
+    const result = tournamentManager.selectReplacementBatter(req.params.matchId, franchiseId, replacementBatterId);
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Error selecting replacement batter' });
+  }
+});
+
+// Select Bowler for new over
+app.post('/api/matches/:matchId/select-bowler', (req, res) => {
+  try {
+    const { bowlerId } = req.body || {};
+    const result = tournamentManager.selectBowler(req.params.matchId, bowlerId);
+    if (!result.success) {
+      return res.status(400).json({ error: result.message });
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      match: result.match ? sanitizeMatchForViewer(result.match) : undefined
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Error selecting bowler' });
   }
 });
 

@@ -149,6 +149,96 @@ export class TournamentApi {
     return data.match || null;
   }
 
+  public static async submitTossCoinFlip(
+    matchId: string,
+    callerFranchiseId: IPLTeamId,
+    call: 'HEADS' | 'TAILS'
+  ): Promise<{ success: boolean; tossWinnerFranchiseId?: IPLTeamId; tossResult?: 'HEADS' | 'TAILS'; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/toss`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callerFranchiseId, call })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Toss error');
+    return data;
+  }
+
+  public static async submitTossDecision(
+    matchId: string,
+    tossWinnerFranchiseId: IPLTeamId,
+    decision: 'BAT' | 'BOWL'
+  ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/toss-decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tossWinnerFranchiseId, decision })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Toss decision error');
+    return data;
+  }
+
+  public static async selectOpeningBatters(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    strikerId: string,
+    nonStrikerId: string
+  ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/opening-batters`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ franchiseId, strikerId, nonStrikerId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Opening batters selection error');
+    return data;
+  }
+
+  public static async selectOpeningBowler(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    bowlerId: string
+  ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/opening-bowler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ franchiseId, bowlerId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Opening bowler selection error');
+    return data;
+  }
+
+  public static async selectReplacementBatter(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    replacementBatterId: string
+  ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/select-batter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ franchiseId, replacementBatterId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Replacement batter selection error');
+    return data;
+  }
+
+  public static async selectBowler(
+    matchId: string,
+    bowlerId: string
+  ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
+    const res = await fetch(`${API_BASE}/matches/${matchId}/select-bowler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bowlerId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Bowler selection error');
+    return data;
+  }
+
   public static async submitToss(
     matchId: string,
     tossWinnerFranchiseId: IPLTeamId,

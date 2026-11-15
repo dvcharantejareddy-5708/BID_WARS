@@ -785,7 +785,47 @@ export class TournamentManager {
   }
 
   /**
-   * Handle toss decision
+   * Resolve interactive coin flip toss
+   */
+  public resolveToss(
+    matchId: string,
+    callerFranchiseId: IPLTeamId,
+    call: 'HEADS' | 'TAILS'
+  ): { success: boolean; match?: LiveMatch; tossWinnerFranchiseId?: IPLTeamId; tossResult?: 'HEADS' | 'TAILS'; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.resolveToss(match, callerFranchiseId, call);
+    if (!res.success) return { success: false, message: res.message };
+
+    return {
+      success: true,
+      match,
+      tossWinnerFranchiseId: res.tossWinnerFranchiseId,
+      tossResult: res.tossResult,
+      message: res.message
+    };
+  }
+
+  /**
+   * Handle toss decision: Bat or Bowl first
+   */
+  public handleTossDecision(
+    matchId: string,
+    tossWinnerFranchiseId: IPLTeamId,
+    decision: 'BAT' | 'BOWL'
+  ): { success: boolean; match?: LiveMatch; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
+    if (!res.success) return { success: false, message: res.message };
+
+    return { success: true, match, message: res.message };
+  }
+
+  /**
+   * Handle toss decision (legacy fallback)
    */
   public handleToss(
     matchId: string,
@@ -797,6 +837,74 @@ export class TournamentManager {
 
     MatchEngine.handleToss(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
     return { success: true, match };
+  }
+
+  /**
+   * Batting team selects opening striker & non-striker
+   */
+  public selectOpeningBatters(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    strikerId: string,
+    nonStrikerId: string
+  ): { success: boolean; match?: LiveMatch; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
+    if (!res.success) return { success: false, message: res.message };
+
+    return { success: true, match, message: res.message };
+  }
+
+  /**
+   * Bowling team selects opening bowler
+   */
+  public selectOpeningBowler(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    bowlerId: string
+  ): { success: boolean; match?: LiveMatch; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
+    if (!res.success) return { success: false, message: res.message };
+
+    return { success: true, match, message: res.message };
+  }
+
+  /**
+   * Batting team selects replacement batter after wicket
+   */
+  public selectReplacementBatter(
+    matchId: string,
+    franchiseId: IPLTeamId,
+    replacementBatterId: string
+  ): { success: boolean; match?: LiveMatch; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
+    if (!res.success) return { success: false, message: res.message };
+
+    return { success: true, match, message: res.message };
+  }
+
+  /**
+   * Bowling team selects bowler for the new over
+   */
+  public selectBowler(
+    matchId: string,
+    bowlerId: string
+  ): { success: boolean; match?: LiveMatch; message: string } {
+    const match = this.liveMatches.get(matchId);
+    if (!match) return { success: false, message: 'Match not found' };
+
+    const res = MatchEngine.selectBowler(match, bowlerId);
+    if (!res.success) return { success: false, message: res.message };
+
+    return { success: true, match, message: res.message };
   }
 
   /**
