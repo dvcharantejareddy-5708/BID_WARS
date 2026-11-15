@@ -7,19 +7,22 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register' | 'forgot';
   onClose: () => void;
   onSuccess: (user: AuthUser) => void;
+  onNavigateToVerifyRecovery?: (identifier: string) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialMode = 'login',
   onClose,
-  onSuccess
+  onSuccess,
+  onNavigateToVerifyRecovery
 }) => {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [gmail, setGmail] = useState('');
+  const [recoveryIdentifier, setRecoveryIdentifier] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,24 +187,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       } else if (mode === 'forgot') {
         if (forgotCooldown > 0) {
-          setError(`Please wait ${forgotCooldown} seconds before requesting another reset link.`);
+          setError(`Please wait ${forgotCooldown} seconds before requesting another recovery code.`);
           setIsLoading(false);
           return;
         }
 
-        const emailValidation = AuthService.validateGmail(gmail);
-        if (!emailValidation.valid) {
-          setError(emailValidation.error || 'Invalid Gmail address');
+        const cleanIdentifier = (recoveryIdentifier || '').trim();
+        if (!cleanIdentifier) {
+          setError('Username or Gmail address is required.');
           setIsLoading(false);
           return;
         }
 
-        const res = await authService.forgotPassword(gmail);
+        if (cleanIdentifier.includes('@')) {
+          const emailValidation = AuthService.validateGmail(cleanIdentifier);
+          if (!emailValidation.valid) {
+            setError(emailValidation.error || 'Invalid Gmail address');
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        const res = await authService.sendRecoveryOtp(cleanIdentifier);
         if (res.success) {
           setForgotCooldown(60);
-          setSuccessMsg('If an account exists for this email, a password reset link has been sent.');
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('bidwars_recovery_identifier', cleanIdentifier);
+          }
+          setSuccessMsg(res.message || 'If an account matches this username or Gmail, a recovery code has been sent.');
+
+          // Redirect smoothly to /verify-recovery
+          setTimeout(() => {
+            onClose();
+            if (onNavigateToVerifyRecovery) {
+              onNavigateToVerifyRecovery(cleanIdentifier);
+            } else if (typeof window !== 'undefined') {
+              window.history.pushState(null, '', '/verify-recovery');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }
+          }, 600);
         } else {
-          setError(res.error || 'Failed to send password reset request');
+          setError(res.error || 'Failed to send recovery code request');
         }
       }
     } finally {
@@ -222,7 +248,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
             <div>
               <h3 className="font-heading font-black text-lg text-white uppercase tracking-wider">
-                {mode === 'login' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Reset Password'}
+                {mode === 'login' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Forgot Password?'}
               </h3>
               <p className="text-[11px] text-gray-400">BidWars IPL Tournament Platform</p>
             </div>
@@ -397,26 +423,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          {/* Registered Gmail Input (Forgot Password mode) */}
+          {/* Username or Gmail Input (Forgot Password mode) */}
           {mode === 'forgot' && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-gray-300 uppercase tracking-wider block">
-                Registered Gmail Address (@gmail.com)
-              </label>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-300 uppercase tracking-wider block">
+                  Username or Gmail
+                </label>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Enter your BidWars username or registered Gmail address to recover your account.
+                </p>
+              </div>
               <div className="relative">
-                <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <User className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
-                  value={gmail}
-                  onChange={e => setGmail(e.target.value)}
-                  placeholder="yourname@gmail.com"
+                  type="text"
+                  value={recoveryIdentifier}
+                  onChange={e => setRecoveryIdentifier(e.target.value)}
+                  placeholder="Enter username or yourname@gmail.com"
                   required
+                  autoFocus
                   className="w-full pl-10 pr-4 py-2.5 bg-[#12142A] border border-[#2A2F60] focus:border-[#C8FF3D] rounded-xl text-white placeholder-gray-500 text-xs font-semibold focus:outline-none transition-colors"
                 />
               </div>
-              <p className="text-[10px] text-gray-500 leading-tight">
-                Enter your registered Gmail address. We will send an account recovery link to reset your password.
-              </p>
             </div>
           )}
 
@@ -497,7 +526,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ? 'Create BidWars Account'
                 : forgotCooldown > 0
                 ? `Resend in ${forgotCooldown}s`
-                : 'Send Reset Link'}
+                : 'Send Recovery Code'}
             </button>
           </div>
 

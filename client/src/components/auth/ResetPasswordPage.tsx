@@ -183,13 +183,9 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
         throw updateError;
       }
 
-      // Sync backup credential hash if user ID is known
-      if (userId) {
-        await authService.syncPasswordCredentials(userId, newPassword);
-      }
-
       // Clear recovery mode and queue login modal opening
       sessionStorage.removeItem('bidwars_recovery_mode');
+      sessionStorage.removeItem('bidwars_recovery_identifier');
       sessionStorage.setItem('bidwars_open_login_after_reset', 'true');
 
       // Cleanly sign out from recovery session so user signs in with new password
@@ -243,17 +239,17 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
           </div>
           <div className="space-y-2">
             <h3 className="font-heading font-black text-white uppercase text-lg tracking-wider">
-              Invalid or Expired Link
+              Invalid or Expired Recovery Session
             </h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              This password recovery link has either expired or has already been used. Please request a new link from the login page.
+              This password recovery session is invalid, expired, or was already used. Please request a new recovery code to reset your password.
             </p>
           </div>
           <button
             onClick={onGoToLogin}
             className="w-full py-3 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-lime-glow-sm cursor-pointer"
           >
-            Back to Sign In
+            Request Recovery Code
           </button>
         </div>
       </div>

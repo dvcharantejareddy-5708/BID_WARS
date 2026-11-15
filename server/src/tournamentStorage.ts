@@ -318,7 +318,7 @@ export class TournamentStorageService {
         const { data, error } = await clientToUse
           .from('profiles')
           .select('*')
-          .ilike('username', cleanLower)
+          .or(`username.ilike.${cleanLower},in_game_name.ilike.${cleanLower}`)
           .maybeSingle();
 
         if (!error && data) {

@@ -575,73 +575,235 @@ app.post('/api/auth/change-password', async (req, res) => {
   }
 });
 
-// In-memory cooldown tracking for Forgot Password (prevents email spam / enumeration)
-const forgotPasswordCooldowns = new Map<string, number>();
+// Helper: Secure backend account identification for password recovery
+async function resolveAccountForRecovery(rawIdentifier: string): Promise<{ userId: string; email: string; username: string } | null> {
+  const clean = String(rawIdentifier || '').trim();
+  if (!clean) return null;
 
-// Forgot Password — Account-Specific Reset Link to Registered Gmail
-app.post('/api/auth/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body || {};
-    if (!email || !String(email).trim()) {
-      return res.status(400).json({ error: 'Gmail address is required.' });
-    }
-    const cleanEmail = String(email).trim().toLowerCase();
+  const isEmail = clean.includes('@');
+
+  if (isEmail) {
+    const cleanEmail = clean.toLowerCase();
+    // Validate Gmail format
     if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(cleanEmail)) {
-      return res.status(400).json({ error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' });
+      throw new Error('Invalid Gmail format. Enter a valid address ending in @gmail.com.');
     }
+
+    // 1. Identify corresponding Supabase Auth account / profile
+    let profile = await tournamentStorage.getProfileByEmail(cleanEmail);
+
+    if (supabaseAdmin) {
+      try {
+        const { data: userList, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        if (!listErr && userList?.users) {
+          const authUser = userList.users.find(u => (u.email || '').toLowerCase() === cleanEmail);
+          if (authUser) {
+            if (!profile) {
+              profile = await tournamentStorage.getProfile(authUser.id);
+            }
+            // Confirm association if profile exists
+            if (profile && profile.id !== authUser.id) {
+              console.warn('[Recovery] Profile and Auth user ID mismatch for email:', cleanEmail);
+              return null;
+            }
+            return {
+              userId: authUser.id,
+              email: (authUser.email || cleanEmail).toLowerCase(),
+              username: profile?.username || profile?.inGameName || authUser.user_metadata?.username || cleanEmail.split('@')[0]
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Recovery] Admin user search warning:', err.message);
+      }
+    }
+
+    if (profile && profile.email) {
+      return {
+        userId: profile.id,
+        email: profile.email.toLowerCase(),
+        username: profile.username || profile.inGameName
+      };
+    }
+
+    return null;
+  } else {
+    // Identifier is username
+    const cleanUser = clean;
+    // 1. Search existing Supabase profiles table
+    const profile = await tournamentStorage.getProfileByUsername(cleanUser);
+    if (!profile) return null;
+
+    // 2. Retrieve associated Supabase Auth user ID
+    if (supabaseAdmin && profile.id) {
+      try {
+        const { data: authUserData, error: authUserErr } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+        if (!authUserErr && authUserData?.user) {
+          const authUser = authUserData.user;
+          const authEmail = (authUser.email || '').trim().toLowerCase();
+          // Confirm profile and Auth account belong to the same user
+          if (authUser.id === profile.id && authEmail.endsWith('@gmail.com')) {
+            return {
+              userId: authUser.id,
+              email: authEmail,
+              username: profile.username || profile.inGameName
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Recovery] Admin getUserById warning:', err.message);
+      }
+    }
+
+    // Fallback: check profile registered email
+    const profileEmail = (profile.email || profile.recoveryEmail || '').trim().toLowerCase();
+    if (profileEmail.endsWith('@gmail.com')) {
+      return {
+        userId: profile.id,
+        email: profileEmail,
+        username: profile.username || profile.inGameName
+      };
+    }
+
+    return null;
+  }
+}
+
+// In-memory cooldown tracking for recovery codes (prevents email spam / enumeration)
+const recoveryCooldowns = new Map<string, number>();
+
+// Send Recovery Code (OTP) — accepts username or registered Gmail
+app.post('/api/auth/send-recovery-otp', async (req, res) => {
+  try {
+    const { identifier } = req.body || {};
+    if (!identifier || !String(identifier).trim()) {
+      return res.status(400).json({ error: 'Username or Gmail address is required.' });
+    }
+    const cleanId = String(identifier).trim();
+    const cooldownKey = cleanId.toLowerCase();
 
     // Cooldown check (60 seconds)
     const now = Date.now();
-    const lastRequest = forgotPasswordCooldowns.get(cleanEmail) || 0;
+    const lastRequest = recoveryCooldowns.get(cooldownKey) || 0;
     if (now - lastRequest < 60000) {
       const waitSeconds = Math.ceil((60000 - (now - lastRequest)) / 1000);
       return res.status(429).json({
-        error: `Please wait ${waitSeconds} seconds before requesting another password reset email.`
+        error: `Please wait ${waitSeconds} seconds before requesting another recovery code.`
       });
     }
 
-    // Set cooldown timestamp
-    forgotPasswordCooldowns.set(cleanEmail, now);
+    // Set cooldown
+    recoveryCooldowns.set(cooldownKey, now);
 
-    // Neutral confirmation message (exact requested string)
-    const neutralMsg = 'If an account exists for this email, a password reset link has been sent.';
+    // Neutral confirmation message (does not reveal account existence)
+    const neutralMsg = 'If an account matches this username or Gmail, a recovery code has been sent.';
 
-    // Check if account exists in database
-    const profile = await tournamentStorage.getProfileByEmail(cleanEmail);
-    if (!profile) {
-      return res.json({ success: true, message: neutralMsg });
+    let account;
+    try {
+      account = await resolveAccountForRecovery(cleanId);
+    } catch (fmtErr: any) {
+      return res.status(400).json({ error: fmtErr.message });
     }
 
-    const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
-    const redirectUrl = `${clientUrl}/reset-password`;
+    if (!account) {
+      return res.json({ success: true, message: neutralMsg, identifier: cleanId });
+    }
 
+    // In production: trigger recovery code email via Supabase Auth
     if (supabase) {
-      await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: redirectUrl
-      }).catch((err) => console.warn('[Auth] resetPasswordForEmail warning:', err.message));
+      try {
+        await supabase.auth.resetPasswordForEmail(account.email);
+      } catch (err: any) {
+        console.warn('[Recovery] resetPasswordForEmail notification:', err.message);
+      }
     }
 
-    return res.json({ success: true, message: neutralMsg });
+    // Note: NEVER return or expose the registered Gmail to the frontend!
+    return res.json({
+      success: true,
+      message: neutralMsg,
+      identifier: cleanId
+    });
   } catch (err: any) {
-    console.error('[Auth] forgot-password error:', err);
-    return res.status(500).json({ error: err.message || 'Error processing password reset' });
+    console.error('[Auth] send-recovery-otp error:', err);
+    return res.status(500).json({ error: err.message || 'Error processing recovery code request' });
   }
 });
 
-// Sync password hash after recovery reset
-app.post('/api/auth/sync-password', async (req, res) => {
+// Verify Recovery Code (OTP) — verifies code using Supabase Auth recovery type
+app.post('/api/auth/verify-recovery-otp', async (req, res) => {
   try {
-    const { userId, newPassword } = req.body || {};
-    if (!userId || !newPassword || String(newPassword).length < 6) {
-      return res.status(400).json({ error: 'Valid userId and password required' });
+    const { identifier, code } = req.body || {};
+    if (!identifier || !code) {
+      return res.status(400).json({ error: 'Username/Gmail and recovery code are required.' });
     }
-    const salt = crypto.randomBytes(16).toString('hex');
-    const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
-    await tournamentStorage.updateCredentials(userId, passwordHash, salt).catch(() => {});
-    return res.json({ success: true });
-  } catch {
-    return res.json({ success: false });
+
+    const cleanCode = String(code).trim();
+    if (!/^[0-9a-zA-Z]{6,8}$/.test(cleanCode)) {
+      return res.status(400).json({ error: 'Invalid recovery code format. Please enter the 6-digit code.' });
+    }
+
+    let account;
+    try {
+      account = await resolveAccountForRecovery(String(identifier).trim());
+    } catch (err: any) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (!account || !account.email) {
+      return res.status(400).json({ error: 'Invalid, expired, or already-used recovery code. Please request a new code.' });
+    }
+
+    if (!supabase) {
+      return res.status(503).json({ error: 'Authentication service unavailable.' });
+    }
+
+    // Verify recovery OTP via Supabase Auth
+    const { data: vData, error: vErr } = await supabase.auth.verifyOtp({
+      email: account.email,
+      token: cleanCode,
+      type: 'recovery'
+    });
+
+    if (vErr || !vData?.session) {
+      return res.status(400).json({
+        error: vErr?.message || 'Invalid, expired, or already-used recovery code. Please request a new code.'
+      });
+    }
+
+    // Reset cooldown
+    recoveryCooldowns.delete(String(identifier).trim().toLowerCase());
+    recoveryCooldowns.delete(account.email);
+
+    return res.json({
+      success: true,
+      message: 'Recovery code verified successfully.',
+      session: {
+        access_token: vData.session.access_token,
+        refresh_token: vData.session.refresh_token
+      },
+      user: {
+        id: vData.user?.id || account.userId,
+        username: account.username,
+        email: account.email
+      }
+    });
+  } catch (err: any) {
+    console.error('[Auth] verify-recovery-otp error:', err);
+    return res.status(500).json({ error: err.message || 'Error verifying recovery code' });
   }
+});
+
+// Backwards compatibility alias for /api/auth/forgot-password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const identifier = req.body?.identifier || req.body?.email;
+  req.body = { identifier };
+  return (app as any)._router.handle(req, res, () => {});
+});
+
+// Sync password hash endpoint — preserved as no-op to comply with: "Never update password hashes manually in profiles or auth_secrets"
+app.post('/api/auth/sync-password', async (_req, res) => {
+  return res.json({ success: true, message: 'Password managed authoritatively by Supabase Auth' });
 });
 
 // ==========================================

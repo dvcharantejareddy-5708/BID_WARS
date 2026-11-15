@@ -253,28 +253,83 @@ export class AuthService {
     }
   }
 
-  // Forgot password — sends recovery email to registered Gmail only
-  public async forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  // Send OTP recovery code — accepts username or registered Gmail
+  public async sendRecoveryOtp(identifier: string): Promise<{ success: boolean; message?: string; identifier?: string; error?: string }> {
     try {
-      const emailValidation = AuthService.validateGmail(email);
-      if (!emailValidation.valid) {
-        return { success: false, error: emailValidation.error };
+      const clean = (identifier || '').trim();
+      if (!clean) {
+        return { success: false, error: 'Username or Gmail address is required.' };
+      }
+      if (clean.includes('@')) {
+        const emailValidation = AuthService.validateGmail(clean);
+        if (!emailValidation.valid) {
+          return { success: false, error: emailValidation.error };
+        }
       }
 
       const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
-      const res = await fetch(`${apiBase}/api/auth/forgot-password`, {
+      const res = await fetch(`${apiBase}/api/auth/send-recovery-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() })
+        body: JSON.stringify({ identifier: clean })
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to send reset link' };
+        return { success: false, error: data.error || 'Failed to send recovery code' };
       }
-      return { success: true, message: data.message };
+      return { success: true, message: data.message, identifier: data.identifier || clean };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Network error while requesting password reset' };
+      return { success: false, error: err.message || 'Network error while requesting recovery code' };
     }
+  }
+
+  // Verify OTP recovery code — establishes authentic Supabase recovery session
+  public async verifyRecoveryOtp(
+    identifier: string,
+    code: string
+  ): Promise<{ success: boolean; session?: { access_token: string; refresh_token: string }; user?: any; error?: string }> {
+    try {
+      const cleanId = (identifier || '').trim();
+      const cleanCode = (code || '').trim();
+      if (!cleanId || !cleanCode) {
+        return { success: false, error: 'Identifier and recovery code are required.' };
+      }
+
+      const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/auth/verify-recovery-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanId, code: cleanCode })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Invalid or expired recovery code.' };
+      }
+
+      if (data.session && supabaseClient) {
+        try {
+          await supabaseClient.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          });
+        } catch (setErr) {
+          console.warn('[AuthService] setSession error:', setErr);
+        }
+      }
+
+      return {
+        success: true,
+        session: data.session,
+        user: data.user
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error while verifying recovery code' };
+    }
+  }
+
+  // Forgot password alias — accepts username or Gmail
+  public async forgotPassword(identifier: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    return this.sendRecoveryOtp(identifier);
   }
 
   // Change password for currently authenticated user

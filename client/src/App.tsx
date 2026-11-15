@@ -15,6 +15,7 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { PasswordModal } from './components/PasswordModal.js';
 import { TournamentDashboard } from './components/tournament/TournamentDashboard.js';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.js';
+import { VerifyRecoveryPage } from './components/auth/VerifyRecoveryPage.js';
 import { socketService } from './services/socket.js';
 import { authService } from './services/auth.js';
 import { 
@@ -48,11 +49,27 @@ export function App() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Password Recovery Flow
+  const [isVerifyRecoveryRoute, setIsVerifyRecoveryRoute] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.startsWith('/verify-recovery');
+  });
+
   const [isResetRoute, setIsResetRoute] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.location.pathname.startsWith('/reset-password') || 
            window.location.hash.includes('type=recovery');
   });
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const pathname = window.location.pathname;
+      setIsVerifyRecoveryRoute(pathname.startsWith('/verify-recovery'));
+      setIsResetRoute(pathname.startsWith('/reset-password') || window.location.hash.includes('type=recovery'));
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -705,6 +722,28 @@ export function App() {
 
   const myMember = roomState?.members[myMemberId];
   const mySquadCount = myMember?.teamId && roomState ? (roomState.teamSquads[myMember.teamId] || []).length : 0;
+
+  // Render OTP Verification Page if on verify recovery route
+  if (isVerifyRecoveryRoute) {
+    return (
+      <VerifyRecoveryPage
+        onVerified={() => {
+          setIsVerifyRecoveryRoute(false);
+          setIsResetRoute(true);
+          if (window.history.pushState) {
+            window.history.pushState(null, '', '/reset-password');
+          }
+        }}
+        onGoToLogin={() => {
+          setIsVerifyRecoveryRoute(false);
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', '/');
+          }
+          setView('landing');
+        }}
+      />
+    );
+  }
 
   // Render Password Recovery Page if on reset route
   if (isResetRoute) {
