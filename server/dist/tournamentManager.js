@@ -69,15 +69,22 @@ export class TournamentManager {
     }
     getTournament(id, userId) {
         let tournament = this.tournaments.get(id);
+        if (!tournament) {
+            const clean = id.trim().toUpperCase();
+            for (const t of this.tournaments.values()) {
+                if (t.code?.toUpperCase() === clean || (t.roomCode && t.roomCode.toUpperCase() === clean)) {
+                    tournament = t;
+                    break;
+                }
+            }
+        }
         if (!tournament)
             return null;
-        // Idempotent auto-generation check: If auction finished in underlying room, ensure fixtures exist
-        if ((tournament.status === 'AUCTION' || tournament.fixtures.length === 0) && tournament.roomCode) {
+        // Idempotent auto-generation check: If auction finished in underlying room, ensure fixtures exist immediately
+        if ((tournament.status === 'AUCTION' || !tournament.fixtures || tournament.fixtures.length === 0) && tournament.roomCode) {
             const room = roomManager.getRoom(tournament.roomCode);
             if (room && room.getState().status === 'COMPLETED') {
-                this.onAuctionCompleted(tournament.roomCode).catch(err => {
-                    console.error(`[TournamentManager] Reconnect fixture generation warning for ${tournament?.id}:`, err);
-                });
+                this.syncAuctionCompleted(tournament.roomCode);
             }
         }
         if (userId) {
@@ -88,15 +95,15 @@ export class TournamentManager {
         return tournament;
     }
     isUserTournamentMember(tournamentId, userId) {
-        const tournament = this.tournaments.get(tournamentId);
+        const tournament = this.getTournament(tournamentId);
         if (!tournament)
             return false;
         return tournament.hostId === userId || tournament.members.some(m => m.userId === userId);
     }
     /**
-     * Automatic fixture generation triggered authoritatively by backend auction completion
+     * Synchronous authoritative fixture generation triggered upon backend auction completion
      */
-    async onAuctionCompleted(roomCode) {
+    syncAuctionCompleted(roomCode) {
         const tournament = this.getTournamentByRoomCode(roomCode);
         if (!tournament)
             return false;
@@ -105,7 +112,7 @@ export class TournamentManager {
             return true;
         }
         if (this.generatingFixtures.has(tournament.id)) {
-            return true; // Already generating
+            return true;
         }
         this.generatingFixtures.add(tournament.id);
         try {
@@ -192,6 +199,12 @@ export class TournamentManager {
         finally {
             this.generatingFixtures.delete(tournament.id);
         }
+    }
+    /**
+     * Automatic fixture generation triggered authoritatively by backend auction completion
+     */
+    async onAuctionCompleted(roomCode) {
+        return this.syncAuctionCompleted(roomCode);
     }
     getLiveMatch(matchId) {
         return this.liveMatches.get(matchId);

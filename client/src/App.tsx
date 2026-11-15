@@ -40,7 +40,12 @@ export function App() {
   // Flow State
   // 'landing' | 'onboarding' | 'in_room'
   const [view, setView] = useState<'landing' | 'onboarding' | 'in_room'>('landing');
-  const [gameMode, setGameMode] = useState<'QUICK_AUCTION' | 'TOURNAMENT'>('QUICK_AUCTION');
+  const [gameMode, setGameMode] = useState<'QUICK_AUCTION' | 'TOURNAMENT'>(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('bidwars_active_tournament_id')) {
+      return 'TOURNAMENT';
+    }
+    return 'QUICK_AUCTION';
+  });
   const [tournamentIdToOpen, setTournamentIdToOpen] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return sessionStorage.getItem('bidwars_active_tournament_id');
@@ -918,11 +923,14 @@ export function App() {
                 roomState={roomState}
                 myMemberId={myMemberId}
                 onViewTournamentFixtures={() => {
-                  const tid = roomState?.settings?.tournamentId;
+                  const tid = roomState?.settings?.tournamentId || sessionStorage.getItem('bidwars_active_tournament_id');
                   if (tid) {
                     sessionStorage.setItem('bidwars_active_tournament_id', tid);
                     setTournamentIdToOpen(tid);
                   }
+                  // Clean up room state so app cleanly transitions to tournament mode
+                  setRoomState(null);
+                  setMyMemberId('');
                   setGameMode('TOURNAMENT');
                   setView('landing');
                 }}

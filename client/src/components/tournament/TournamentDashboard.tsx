@@ -48,7 +48,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('bidwars_active_tournament_id', t.id);
     }
-    if (['TOURNAMENT_LIVE', 'PLAYOFFS', 'COMPLETED', 'SQUAD_FINALIZATION'].includes(t.status)) {
+    if ((t.fixtures && t.fixtures.length > 0) || ['TOURNAMENT_LIVE', 'PLAYOFFS', 'COMPLETED', 'SQUAD_FINALIZATION'].includes(t.status)) {
       setViewState('HUB');
     } else {
       setViewState('LOBBY');
@@ -56,8 +56,11 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
   };
 
   const loadTournaments = async () => {
-    if (!user || !user.isRegisteredUser) {
-      setTournaments([]);
+    const currentUser = authService.getUser();
+    if (!currentUser || !currentUser.isRegisteredUser) {
+      if (!isLoading) {
+        setTournaments([]);
+      }
       setIsLoading(false);
       return;
     }
@@ -65,7 +68,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
     setIsLoading(true);
     try {
       // STRICT PRIVACY: Only fetch tournaments belonging to this authenticated user
-      const list = await TournamentApi.getTournaments(user.id);
+      const list = await TournamentApi.getTournaments(currentUser.id);
       setTournaments(list);
 
       const targetId =
@@ -77,11 +80,15 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
         let target: Tournament | null | undefined = list.find(t => t.id === targetId);
         if (!target) {
           try {
-            target = await TournamentApi.getTournament(targetId, user.id);
-          } catch {}
+            target = await TournamentApi.getTournament(targetId, currentUser.id);
+          } catch (fetchErr) {
+            console.warn('[TournamentDashboard] Direct tournament fetch warning:', fetchErr);
+          }
         }
         if (target) {
           handleOpenTournament(target);
+        } else {
+          console.warn(`[TournamentDashboard] Tournament ${targetId} not accessible for user ${currentUser.id}`);
         }
       } else if (activeTournament) {
         const updated = list.find(t => t.id === activeTournament.id);
@@ -193,6 +200,24 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
         />
       );
     }
+  }
+
+  // Loading Gate: prevent flashing login gate or dropping tournament state while restoring session or tournament
+  const hasTargetId = Boolean(
+    initialTournamentId ||
+    (typeof window !== 'undefined' && sessionStorage.getItem('bidwars_active_tournament_id'))
+  );
+
+  if (isLoading && (!user || (hasTargetId && !activeTournament))) {
+    return (
+      <div className="min-h-screen bg-[#0A0B14] flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-12 h-12 rounded-full border-4 border-[#C8FF3D] border-t-transparent animate-spin mb-4" />
+        <div className="text-white font-heading font-black uppercase text-sm tracking-wider">
+          Loading Tournament &amp; WicketPulse Fixtures...
+        </div>
+        <p className="text-xs text-gray-400 mt-1">Verifying tournament access and loading match schedule...</p>
+      </div>
+    );
   }
 
   // =========================================================================

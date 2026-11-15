@@ -233,6 +233,7 @@ export type TournamentAuctionType = 'MEGA' | 'MINI';
 
 export interface Tournament {
   id: string;
+  code?: string;
   name: string;
   hostId: string;
   hostName: string;

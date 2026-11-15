@@ -62,25 +62,55 @@ export class TournamentStorageService {
       console.error('[TournamentStorage] Error reading tournaments from disk:', err);
     }
 
-    // 2. Read from Supabase if configured
-    if (supabase) {
+    // 2. Read from Supabase if configured (Use supabaseAdmin if available to bypass RLS for server)
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await clientToUse
           .from('tournaments')
           .select('*')
           .limit(100);
 
         if (!error && data) {
           for (const row of data) {
-            if (row.format_details && row.id) {
+            const rawFormat = row.format_details || row.data_payload;
+            let formatObj: Tournament | null = null;
+            if (rawFormat) {
+              formatObj = typeof rawFormat === 'string' ? JSON.parse(rawFormat) : rawFormat;
+            }
+            if (!formatObj && row.id) {
+              formatObj = {
+                id: row.id,
+                name: row.name,
+                hostId: row.host_id,
+                hostName: row.host_name || 'Host',
+                status: row.status,
+                auctionType: 'MEGA',
+                teamsCount: row.teams_count || 8,
+                matchOvers: row.match_overs || 5,
+                roomCode: row.room_code,
+                members: [],
+                teams: {},
+                fixtures: [],
+                pointsTable: [],
+                playerStats: {},
+                createdAt: new Date(row.created_at || Date.now()).getTime(),
+                updatedAt: new Date(row.updated_at || Date.now()).getTime()
+              };
+            }
+            if (formatObj && row.id) {
+              if (row.host_name && !formatObj.hostName) {
+                formatObj.hostName = row.host_name;
+              }
               const disk = this.tournamentsCache.get(row.id);
-              const formatObj = typeof row.format_details === 'string' ? JSON.parse(row.format_details) : row.format_details;
-              if (!disk || (formatObj.updatedAt || 0) > (disk.updatedAt || 0)) {
+              if (!disk || (formatObj.updatedAt || 0) >= (disk.updatedAt || 0)) {
                 this.tournamentsCache.set(row.id, formatObj);
               }
             }
           }
-          console.log(`[TournamentStorage] Synced tournaments with Supabase`);
+          console.log(`[TournamentStorage] Synced ${this.tournamentsCache.size} tournaments with Supabase`);
+        } else if (error) {
+          console.warn('[TournamentStorage] Supabase load warning:', error.message);
         }
       } catch (err) {
         console.warn('[TournamentStorage] Supabase sync fallback:', err);
@@ -138,70 +168,104 @@ export class TournamentStorageService {
         const toSync = Array.from(this.pendingSaves.values());
         this.pendingSaves.clear();
 
-        for (const t of toSync) {
-          Promise.resolve(
-            clientToUse
-              .from('tournaments')
-              .upsert({
-                id: t.id,
-                name: t.name,
-                host_id: t.hostId,
-                status: t.status,
-                teams_count: t.teamsCount,
-                match_overs: t.matchOvers,
-                room_code: t.roomCode,
-                format_details: t,
-                winner_franchise_id: t.winnerFranchiseId,
-                runner_up_franchise_id: t.runnerUpFranchiseId,
-                updated_at: new Date().toISOString()
-              })
-          ).catch(() => {});
+        (async () => {
+          for (const t of toSync) {
+            try {
+              const { error: tErr } = await clientToUse
+                .from('tournaments')
+                .upsert({
+                  id: t.id,
+                  name: t.name,
+                  host_id: t.hostId,
+                  host_name: t.hostName || 'Host',
+                  status: t.status,
+                  teams_count: t.teamsCount,
+                  match_overs: t.matchOvers,
+                  room_code: t.roomCode,
+                  format_details: t,
+                  data_payload: t,
+                  winner_franchise_id: t.winnerFranchiseId,
+                  runner_up_franchise_id: t.runnerUpFranchiseId,
+                  updated_at: new Date().toISOString()
+                });
 
-          // Persist all fixtures in Supabase PostgreSQL
-          if (t.fixtures && t.fixtures.length > 0) {
-            for (const f of t.fixtures) {
-              Promise.resolve(
-                clientToUse
-                  .from('fixtures')
-                  .upsert({
-                    id: f.id,
-                    tournament_id: t.id,
-                    match_number: f.matchNumber,
-                    round_number: f.roundNumber,
-                    stage: f.stage,
-                    home_franchise_id: f.homeFranchiseId,
-                    away_franchise_id: f.awayFranchiseId,
-                    match_overs: f.matchOvers,
-                    status: f.status,
-                    winner_franchise_id: f.winnerFranchiseId || null,
-                    match_result_summary: f.matchResultSummary || null,
-                    scheduled_at: new Date(f.scheduledAt).toISOString(),
-                    completed_at: f.completedAt ? new Date(f.completedAt).toISOString() : null
-                  })
-              ).catch(() => {});
+              if (tErr) {
+                console.error(`[TournamentStorage] Supabase tournament upsert error for ${t.id}:`, tErr);
+                continue;
+              }
+
+              // Parent tournament exists. Now upsert child members
+              if (t.members && t.members.length > 0) {
+                for (const m of t.members) {
+                  const { error: mErr } = await clientToUse
+                    .from('tournament_members')
+                    .upsert({
+                      tournament_id: t.id,
+                      user_id: m.userId,
+                      user_name: m.userName,
+                      user_email: m.userEmail || null,
+                      franchise_id: m.franchiseId,
+                      is_host: Boolean(m.isHost),
+                      joined_at: new Date(m.joinedAt || Date.now()).toISOString()
+                    }, { onConflict: 'tournament_id,user_id' });
+                  if (mErr) {
+                    console.error(`[TournamentStorage] Member upsert error (${t.id}, ${m.userId}):`, mErr);
+                  }
+                }
+              }
+
+              // Upsert child fixtures
+              if (t.fixtures && t.fixtures.length > 0) {
+                for (const f of t.fixtures) {
+                  const { error: fErr } = await clientToUse
+                    .from('fixtures')
+                    .upsert({
+                      id: f.id,
+                      tournament_id: t.id,
+                      match_number: f.matchNumber,
+                      round_number: f.roundNumber,
+                      stage: f.stage,
+                      home_franchise_id: f.homeFranchiseId,
+                      away_franchise_id: f.awayFranchiseId,
+                      match_overs: f.matchOvers,
+                      status: f.status,
+                      match_id: f.matchId || null,
+                      winner_franchise_id: f.winnerFranchiseId || null,
+                      match_result_summary: f.matchResultSummary || null,
+                      scheduled_at: new Date(f.scheduledAt).toISOString(),
+                      completed_at: f.completedAt ? new Date(f.completedAt).toISOString() : null
+                    });
+                  if (fErr) {
+                    console.error(`[TournamentStorage] Fixture upsert error (${t.id}, ${f.id}):`, fErr);
+                  }
+                }
+              }
+
+              // Upsert child teams
+              if (t.teams) {
+                for (const team of Object.values(t.teams)) {
+                  const { error: tmErr } = await clientToUse
+                    .from('tournament_teams')
+                    .upsert({
+                      tournament_id: t.id,
+                      franchise_id: team.franchiseId,
+                      owner_user_id: team.ownerUserId,
+                      owner_user_name: team.ownerUserName,
+                      purse_remaining: team.purseRemaining,
+                      squad: team.squad,
+                      default_lineup: team.defaultPlayingXI,
+                      updated_at: new Date().toISOString()
+                    }, { onConflict: 'tournament_id,franchise_id' });
+                  if (tmErr) {
+                    console.error(`[TournamentStorage] Team upsert error (${t.id}, ${team.franchiseId}):`, tmErr);
+                  }
+                }
+              }
+            } catch (syncErr) {
+              console.error(`[TournamentStorage] Error syncing tournament ${t.id} to Supabase:`, syncErr);
             }
           }
-
-          // Persist tournament teams in Supabase PostgreSQL
-          if (t.teams) {
-            for (const team of Object.values(t.teams)) {
-              Promise.resolve(
-                clientToUse
-                  .from('tournament_teams')
-                  .upsert({
-                    tournament_id: t.id,
-                    franchise_id: team.franchiseId,
-                    owner_user_id: team.ownerUserId,
-                    owner_user_name: team.ownerUserName,
-                    purse_remaining: team.purseRemaining,
-                    squad: team.squad,
-                    default_lineup: team.defaultPlayingXI,
-                    updated_at: new Date().toISOString()
-                  }, { onConflict: 'tournament_id,franchise_id' })
-              ).catch(() => {});
-            }
-          }
-        }
+        })();
       } else {
         this.pendingSaves.clear();
       }
