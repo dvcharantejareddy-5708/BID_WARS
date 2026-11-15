@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { supabase, supabaseAdmin } from './supabase.js';
-import { Tournament, UserProfile } from './tournamentTypes.js';
+import { Tournament, UserProfile, LiveMatch } from './tournamentTypes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,14 +19,17 @@ const getTournamentStorageFilePath = (): string => {
 
 const storageFilePath = getTournamentStorageFilePath();
 const profilesFilePath = path.join(path.dirname(storageFilePath), 'persisted_profiles.json');
+const matchesFilePath = path.join(path.dirname(storageFilePath), 'persisted_matches.json');
 
 export class TournamentStorageService {
   private saveTimeout: NodeJS.Timeout | null = null;
   private tournamentsCache: Map<string, Tournament> = new Map();
   private pendingSaves: Map<string, Tournament> = new Map();
   private profilesCache: Map<string, UserProfile> = new Map();
+  private matchesCache: Map<string, LiveMatch> = new Map();
   private isLoaded: boolean = false;
   private isProfilesLoaded: boolean = false;
+  private isMatchesLoaded: boolean = false;
 
   constructor() {
     this.init();
@@ -637,6 +640,134 @@ export class TournamentStorageService {
     this.profilesCache.set(profile.id, updated);
     console.log(`[TournamentStorage] Profile "${updated.username}" successfully persisted in Supabase database`);
     return updated;
+  }
+
+  /**
+   * Load all persisted matches from local disk and Supabase public.matches
+   */
+  public async loadAllMatches(): Promise<LiveMatch[]> {
+    this.matchesCache.clear();
+
+    // 1. Read from local disk store
+    try {
+      if (fs.existsSync(matchesFilePath)) {
+        const raw = fs.readFileSync(matchesFilePath, 'utf-8');
+        if (raw.trim()) {
+          const list: LiveMatch[] = JSON.parse(raw);
+          for (const m of list) {
+            if (m.id) this.matchesCache.set(m.id, m);
+          }
+          console.log(`[TournamentStorage] Loaded ${this.matchesCache.size} matches from disk`);
+        }
+      }
+    } catch (err) {
+      console.warn('[TournamentStorage] Error reading matches file:', err);
+    }
+
+    // 2. Read from Supabase public.matches
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
+      try {
+        const { data, error } = await clientToUse
+          .from('matches')
+          .select('*');
+
+        if (!error && Array.isArray(data)) {
+          for (const row of data) {
+            if (row.id) {
+              const liveState: LiveMatch = row.live_state || {
+                id: row.id,
+                tournamentId: row.tournament_id,
+                fixtureId: row.fixture_id,
+                homeFranchiseId: row.home_franchise_id,
+                awayFranchiseId: row.away_franchise_id,
+                matchOvers: row.match_overs,
+                maxBowlerOvers: Math.ceil((row.match_overs || 5) / 5),
+                status: row.status,
+                tossWinnerFranchiseId: row.toss_winner_franchise_id,
+                tossDecision: row.toss_decision,
+                currentInnings: row.current_innings,
+                innings1: row.innings1 || row.innings_1_data,
+                innings2: row.innings2 || row.innings_2_data,
+                targetRuns: row.target_runs,
+                lineups: row.lineups || {},
+                pendingInputs: {},
+                impactPlayersUsed: {},
+                ballHistory: row.ball_history || [],
+                winnerFranchiseId: row.winner_franchise_id,
+                resultSummary: row.result_summary || row.result_text,
+                createdAt: new Date(row.created_at || Date.now()).getTime(),
+                updatedAt: new Date(row.updated_at || Date.now()).getTime()
+              };
+              this.matchesCache.set(row.id, liveState);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('[TournamentStorage] Supabase load matches notice:', err.message);
+      }
+    }
+
+    this.isMatchesLoaded = true;
+    return Array.from(this.matchesCache.values());
+  }
+
+  public getMatch(matchId: string): LiveMatch | undefined {
+    return this.matchesCache.get(matchId);
+  }
+
+  public saveMatch(match: LiveMatch): void {
+    if (!match || !match.id) return;
+    this.matchesCache.set(match.id, match);
+
+    // Save to local disk
+    try {
+      const list = Array.from(this.matchesCache.values());
+      fs.writeFileSync(matchesFilePath, JSON.stringify(list, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('[TournamentStorage] Error writing matches file:', err);
+    }
+
+    // Async save to Supabase
+    const clientToUse = supabaseAdmin || supabase;
+    if (clientToUse) {
+      (async () => {
+        try {
+          const { error } = await clientToUse
+            .from('matches')
+            .upsert(
+              {
+                id: match.id,
+                tournament_id: match.tournamentId,
+                fixture_id: match.fixtureId,
+                home_franchise_id: match.homeFranchiseId,
+                away_franchise_id: match.awayFranchiseId,
+                match_overs: match.matchOvers,
+                status: match.status,
+                toss_winner_franchise_id: match.tossWinnerFranchiseId || null,
+                toss_decision: match.tossDecision || null,
+                current_innings: match.currentInnings,
+                innings1: match.innings1,
+                innings2: match.innings2 || null,
+                live_state: match,
+                target_runs: match.targetRuns || null,
+                lineups: match.lineups,
+                ball_history: match.ballHistory,
+                winner_franchise_id: match.winnerFranchiseId || null,
+                result_summary: match.resultSummary || null,
+                updated_at: new Date(match.updatedAt || Date.now()).toISOString()
+              },
+              { onConflict: 'id' }
+            );
+
+          if (error) {
+            console.warn('[TournamentStorage] Supabase saveMatch warning:', error.message);
+          }
+        } catch (err: any) {
+          console.warn('[TournamentStorage] Supabase saveMatch async exception:', err?.message || err);
+        }
+      })();
+    }
   }
 }
 

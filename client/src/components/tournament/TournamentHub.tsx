@@ -29,26 +29,30 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
   const [activeTab, setActiveTab] = useState<'FIXTURES' | 'STANDINGS' | 'STATS' | 'SQUAD'>('FIXTURES');
   const [selectedFixtureForPrep, setSelectedFixtureForPrep] = useState<Fixture | null>(null);
   const [selectedMatchForScorecard, setSelectedMatchForScorecard] = useState<LiveMatch | null>(null);
-  const [isLoadingMatch, setIsLoadingMatch] = useState(false);
+  const [loadingFixtureId, setLoadingFixtureId] = useState<string | null>(null);
 
   const myMember = tournament.members.find(m => m.userId === user.id);
   const myFranchise = myMember?.franchiseId;
   const myTeam = myFranchise ? tournament.teams[myFranchise] : null;
 
   const handlePlayFixture = async (fixture: Fixture) => {
-    setIsLoadingMatch(true);
+    setLoadingFixtureId(fixture.id);
     try {
-      if (fixture.status === 'IN_PROGRESS' && fixture.matchId) {
-        const m = await TournamentApi.getLiveMatch(fixture.matchId);
-        if (m) onOpenMatch(m);
-      } else {
-        const liveMatch = await TournamentApi.startMatch(tournament.id, fixture.id, user.id);
-        onOpenMatch(liveMatch);
+      let m: LiveMatch | null = null;
+      if (fixture.matchId) {
+        m = await TournamentApi.getLiveMatch(fixture.matchId, myFranchise);
       }
-    } catch (err) {
-      console.error('Error starting match:', err);
+      if (!m) {
+        // Fallback: If match was not found in server cache, re-fetch or re-instantiate seamlessly
+        m = await TournamentApi.startMatch(tournament.id, fixture.id, user.id);
+      }
+      if (m) {
+        onOpenMatch(m);
+      }
+    } catch (err: any) {
+      console.error('Error starting/resuming match:', err);
     } finally {
-      setIsLoadingMatch(false);
+      setLoadingFixtureId(null);
     }
   };
 
@@ -315,12 +319,12 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
                       {/* Play or Spectate */}
                       {!isCompleted && (
                         <button
-                          disabled={isLoadingMatch}
+                          disabled={Boolean(loadingFixtureId)}
                           onClick={() => handlePlayFixture(f)}
-                          className="px-4 py-1.5 rounded-lg bg-[#C8FF3D] text-[#0A0B14] font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(200,255,61,0.2)] hover:opacity-95 transition-all flex items-center gap-1.5"
+                          className="px-4 py-1.5 rounded-lg bg-[#C8FF3D] text-[#0A0B14] font-black text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(200,255,61,0.2)] hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Play className="w-3.5 h-3.5 fill-current" />
-                          {isMyMatch ? (isInProgress ? 'Resume' : 'Play') : 'Spectate'}
+                          {loadingFixtureId === f.id ? 'Opening...' : isMyMatch ? (isInProgress ? 'Resume' : 'Play') : 'Spectate'}
                         </button>
                       )}
 
