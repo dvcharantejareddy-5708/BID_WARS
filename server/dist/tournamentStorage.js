@@ -316,6 +316,129 @@ export class TournamentStorageService {
         }
         return undefined;
     }
+    async isEmailAvailable(email, excludeUserId) {
+        const cleanLower = email.trim().toLowerCase();
+        const clientToUse = supabaseAdmin || supabase;
+        if (clientToUse) {
+            try {
+                const { data, error } = await clientToUse
+                    .from('profiles')
+                    .select('id, email')
+                    .ilike('email', cleanLower);
+                if (!error && data && data.length > 0) {
+                    if (!excludeUserId || data.some(row => row.id !== excludeUserId)) {
+                        return false;
+                    }
+                }
+            }
+            catch { }
+        }
+        await this.loadAllProfiles();
+        for (const [id, p] of this.profilesCache.entries()) {
+            if (excludeUserId && id === excludeUserId)
+                continue;
+            const existingEmail = (p.email || p.recoveryEmail || '').trim().toLowerCase();
+            if (existingEmail === cleanLower) {
+                return false;
+            }
+        }
+        return true;
+    }
+    async getProfileByEmail(email) {
+        const cleanLower = email.trim().toLowerCase();
+        const clientToUse = supabaseAdmin || supabase;
+        if (clientToUse) {
+            try {
+                const { data, error } = await clientToUse
+                    .from('profiles')
+                    .select('*')
+                    .ilike('email', cleanLower)
+                    .maybeSingle();
+                if (!error && data) {
+                    const prof = {
+                        id: data.id,
+                        username: data.username || data.in_game_name,
+                        inGameName: data.in_game_name || data.username,
+                        email: data.email,
+                        recoveryEmail: data.recovery_email,
+                        avatarUrl: data.avatar_url,
+                        createdAt: data.created_at ? new Date(data.created_at).getTime() : Date.now(),
+                        updatedAt: data.updated_at ? new Date(data.updated_at).getTime() : Date.now()
+                    };
+                    this.profilesCache.set(data.id, prof);
+                    return prof;
+                }
+            }
+            catch { }
+        }
+        await this.loadAllProfiles();
+        for (const p of this.profilesCache.values()) {
+            const uEmail = (p.email || p.recoveryEmail || '').trim().toLowerCase();
+            if (uEmail === cleanLower) {
+                return p;
+            }
+        }
+        return undefined;
+    }
+    async getLegacyCredentials(username) {
+        const cleanLower = username.trim().toLowerCase();
+        // 1. Check auth_secrets table in Supabase via Admin client
+        if (supabaseAdmin) {
+            try {
+                const { data, error } = await supabaseAdmin
+                    .from('auth_secrets')
+                    .select('user_id, username, password_hash, password_salt')
+                    .ilike('username', cleanLower)
+                    .maybeSingle();
+                if (!error && data && data.password_hash && data.password_salt) {
+                    return {
+                        id: data.user_id,
+                        username: data.username,
+                        inGameName: data.username,
+                        passwordHash: data.password_hash,
+                        salt: data.password_salt
+                    };
+                }
+            }
+            catch { }
+        }
+        // 2. Check local persisted_profiles.json for legacy accounts
+        try {
+            if (fs.existsSync(profilesFilePath)) {
+                const raw = fs.readFileSync(profilesFilePath, 'utf-8');
+                if (raw.trim()) {
+                    const list = JSON.parse(raw);
+                    for (const p of list) {
+                        const uName = (p.username || p.inGameName || '').trim().toLowerCase();
+                        if (uName === cleanLower && p.passwordHash && p.salt) {
+                            return {
+                                id: p.id,
+                                username: p.username || p.inGameName,
+                                inGameName: p.inGameName || p.username,
+                                passwordHash: p.passwordHash,
+                                salt: p.salt
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return undefined;
+    }
+    async updateCredentials(userId, passwordHash, salt) {
+        if (supabaseAdmin) {
+            try {
+                await supabaseAdmin.from('auth_secrets').upsert({
+                    user_id: userId,
+                    password_hash: passwordHash,
+                    password_salt: salt,
+                    updated_at: new Date().toISOString()
+                });
+            }
+            catch { }
+        }
+    }
     async isNameAvailable(name, excludeUserId) {
         const cleanLower = name.trim().toLowerCase();
         const clientToUse = supabaseAdmin || supabase;

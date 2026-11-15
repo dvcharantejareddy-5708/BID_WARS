@@ -183,12 +183,14 @@ app.get('/api/players/:id', (req, res) => {
     res.json({ player });
 });
 // ==========================================
-// 4. USERNAME + PASSWORD AUTHENTICATION API
+// 4. USERNAME + GMAIL AUTHENTICATION & PASSWORD MANAGEMENT API
 // ==========================================
-// Register new account with unique username and secure password
+// Register new account with unique username, mandatory verified Gmail and secure password
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, password, confirmPassword, recoveryEmail } = req.body || {};
+        const { username, password, confirmPassword, email, gmail } = req.body || {};
+        const inputEmail = email || gmail;
+        // 1. Validate Username
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required' });
         }
@@ -199,32 +201,45 @@ app.post('/api/auth/register', async (req, res) => {
         if (!/^[a-zA-Z0-9_-]{3,20}$/.test(cleanUser)) {
             return res.status(400).json({ error: 'Username can only contain letters, numbers, underscores, and hyphens' });
         }
+        // 2. Validate Password
         if (String(password).length < 6) {
             return res.status(400).json({ error: 'Password must be at least 6 characters long' });
         }
         if (confirmPassword && password !== confirmPassword) {
             return res.status(400).json({ error: 'Passwords do not match' });
         }
-        // Atomic uniqueness check (verifies Supabase DB constraint and local state)
-        const isAvailable = await tournamentStorage.isNameAvailable(cleanUser);
-        if (!isAvailable) {
+        // 3. Mandatory Gmail Validation
+        if (!inputEmail || !String(inputEmail).trim()) {
+            return res.status(400).json({ error: 'Gmail address is required.' });
+        }
+        const cleanEmail = String(inputEmail).trim().toLowerCase();
+        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(cleanEmail)) {
+            return res.status(400).json({ error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' });
+        }
+        // 4. Atomic Uniqueness Checks
+        const isNameAvailable = await tournamentStorage.isNameAvailable(cleanUser);
+        if (!isNameAvailable) {
             return res.status(409).json({ error: `Username "${cleanUser}" is already taken. Please choose another.` });
         }
-        // Generate secure password salt and hash using crypto.scrypt
-        const salt = crypto.randomBytes(16).toString('hex');
-        const passwordHash = crypto.scryptSync(password, salt, 64).toString('hex');
-        // Deterministic, unpredictable internal auth identity for Supabase Auth
-        const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
-        const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
-        const internalEmail = `usr_${authHash}@bidwars.com`;
+        const isEmailAvailable = await tournamentStorage.isEmailAvailable(cleanEmail);
+        if (!isEmailAvailable) {
+            return res.status(409).json({ error: 'This Gmail address is already registered to another account.' });
+        }
+        if (!supabaseAdmin && !supabase) {
+            return res.status(503).json({
+                error: 'Supabase authentication service is unavailable. Local fallback storage is strictly disabled.'
+            });
+        }
+        const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
         let userId = '';
+        let emailConfirmed = false;
         let supabaseSession = null;
+        // 5. Create confirmed / unconfirmed user in Supabase Auth using the real Gmail address
         if (supabaseAdmin) {
-            // 1. Preferred Server-Side Path: Admin API directly creates confirmed user in auth.users
             const { data: suData, error: suError } = await supabaseAdmin.auth.admin.createUser({
-                email: internalEmail,
+                email: cleanEmail,
                 password: password,
-                email_confirm: true,
+                email_confirm: false, // Enforce Gmail verification
                 user_metadata: {
                     username: cleanUser,
                     in_game_name: cleanUser
@@ -233,7 +248,7 @@ app.post('/api/auth/register', async (req, res) => {
             if (suError) {
                 console.error('[Auth] Supabase Admin createUser error:', suError);
                 if (suError.message.toLowerCase().includes('already') || suError.status === 422) {
-                    return res.status(409).json({ error: `Username "${cleanUser}" is already taken.` });
+                    return res.status(409).json({ error: 'This Gmail address is already registered to another account.' });
                 }
                 return res.status(500).json({ error: `Supabase Auth error: ${suError.message}` });
             }
@@ -241,41 +256,34 @@ app.post('/api/auth/register', async (req, res) => {
                 return res.status(500).json({ error: 'Failed to create user in Supabase Auth' });
             }
             userId = suData.user.id;
-            // Issue active session via anon client for client-side persistence
+            emailConfirmed = Boolean(suData.user.email_confirmed_at);
+            // Trigger verification email through Supabase Auth
             if (supabase) {
-                const { data: siData } = await supabase.auth.signInWithPassword({
-                    email: internalEmail,
-                    password: password
-                });
-                if (siData?.session) {
-                    supabaseSession = {
-                        access_token: siData.session.access_token,
-                        refresh_token: siData.session.refresh_token
-                    };
-                }
+                await supabase.auth.resend({
+                    type: 'signup',
+                    email: cleanEmail,
+                    options: {
+                        emailRedirectTo: clientUrl
+                    }
+                }).catch((err) => console.warn('[Auth] Verification email notice:', err.message));
             }
         }
         else if (supabase) {
-            // 2. Standard Client/Anon Key Path: Uses Supabase Auth signUp
             const { data: suData, error: suError } = await supabase.auth.signUp({
-                email: internalEmail,
+                email: cleanEmail,
                 password: password,
                 options: {
                     data: {
                         username: cleanUser,
                         in_game_name: cleanUser
-                    }
+                    },
+                    emailRedirectTo: clientUrl
                 }
             });
             if (suError) {
                 console.error('[Auth] Supabase Auth signUp error:', suError);
-                if (suError.code === 'over_email_send_rate_limit' || suError.status === 429) {
-                    return res.status(429).json({
-                        error: 'Supabase Auth Email Rate Limit Exceeded. In your Supabase Dashboard, go to Authentication -> Providers -> Email, and toggle "Confirm email" to OFF so instant username accounts can be created without triggering email rate limits (or configure SUPABASE_SERVICE_ROLE_KEY).'
-                    });
-                }
                 if (suError.message.toLowerCase().includes('already') || suError.status === 400 || suError.status === 422) {
-                    return res.status(409).json({ error: `Username "${cleanUser}" is already taken.` });
+                    return res.status(409).json({ error: 'This Gmail address or username is already taken.' });
                 }
                 return res.status(500).json({ error: `Supabase Auth error: ${suError.message}` });
             }
@@ -283,6 +291,7 @@ app.post('/api/auth/register', async (req, res) => {
                 return res.status(500).json({ error: 'Failed to create user in Supabase Auth' });
             }
             userId = suData.user.id;
+            emailConfirmed = Boolean(suData.user.email_confirmed_at);
             if (suData.session) {
                 supabaseSession = {
                     access_token: suData.session.access_token,
@@ -290,18 +299,18 @@ app.post('/api/auth/register', async (req, res) => {
                 };
             }
         }
-        else {
-            return res.status(503).json({
-                error: 'Supabase authentication service is unavailable. Local fallback storage is strictly disabled.'
-            });
-        }
+        // 6. Generate scrypt hash & salt for auth_secrets backup
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = crypto.scryptSync(password, salt, 64).toString('hex');
+        // 7. Persist Profile to public.profiles & credentials to public.auth_secrets
         let profile;
         try {
             profile = await tournamentStorage.saveProfile({
                 id: userId,
                 username: cleanUser,
                 inGameName: cleanUser,
-                recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
+                email: cleanEmail,
+                recoveryEmail: cleanEmail,
                 passwordHash,
                 salt,
                 createdAt: Date.now(),
@@ -309,7 +318,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         catch (dbErr) {
-            // Rollback auth user if profile creation fails in database
             if (supabaseAdmin && userId) {
                 await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => { });
             }
@@ -317,19 +325,52 @@ app.post('/api/auth/register', async (req, res) => {
         }
         return res.status(201).json({
             success: true,
+            emailConfirmed,
+            message: emailConfirmed
+                ? 'Account created successfully!'
+                : 'Registration successful! A verification email has been sent to your Gmail address. Please check your inbox and verify your email before logging in.',
             user: {
                 id: profile.id,
                 username: profile.username || cleanUser,
-                inGameName: profile.inGameName || cleanUser
+                inGameName: profile.inGameName || cleanUser,
+                email: cleanEmail
             },
-            session: supabaseSession
+            session: emailConfirmed ? supabaseSession : null
         });
     }
     catch (err) {
+        console.error('[Auth] Registration error:', err);
         return res.status(500).json({ error: err.message || 'Registration failed' });
     }
 });
-// Login with username and password
+// Resend verification email to Gmail address
+app.post('/api/auth/resend-verification', async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (!email || !String(email).trim().toLowerCase().endsWith('@gmail.com')) {
+            return res.status(400).json({ error: 'Valid Gmail address is required' });
+        }
+        const cleanEmail = String(email).trim().toLowerCase();
+        const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
+        if (supabase) {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: cleanEmail,
+                options: {
+                    emailRedirectTo: clientUrl
+                }
+            });
+            if (error) {
+                return res.status(400).json({ error: error.message });
+            }
+        }
+        return res.json({ success: true, message: 'Verification email resent. Please check your Gmail inbox.' });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message || 'Failed to resend verification email' });
+    }
+});
+// Login with username and password (Supabase Auth single source of truth)
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body || {};
@@ -338,122 +379,218 @@ app.post('/api/auth/login', async (req, res) => {
         }
         const cleanUser = String(username).trim();
         let profile = await tournamentStorage.getProfileByUsername(cleanUser);
-        const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
-        const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
-        const internalEmail = `usr_${authHash}@bidwars.com`;
-        let supabaseSession = null;
-        // Authenticate with Supabase Auth if available
+        // 1. Resolve registered email
+        let userEmail = '';
+        if (profile && profile.email) {
+            userEmail = profile.email.trim().toLowerCase();
+        }
+        else {
+            // Deterministic fallback for legacy accounts created prior to mandatory Gmail
+            const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
+            const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
+            userEmail = `usr_${authHash}@bidwars.com`;
+        }
+        // 2. Authoritative Supabase Auth Authentication
         if (supabase) {
-            try {
-                const { data: siData } = await supabase.auth.signInWithPassword({
-                    email: internalEmail,
-                    password: password
-                });
-                if (siData?.session) {
-                    supabaseSession = {
+            const { data: siData, error: siError } = await supabase.auth.signInWithPassword({
+                email: userEmail,
+                password: String(password)
+            });
+            if (siData?.session && siData.user) {
+                // Enforce Gmail verification
+                const isGmailAccount = userEmail.endsWith('@gmail.com');
+                if (isGmailAccount && !siData.user.email_confirmed_at) {
+                    return res.status(403).json({
+                        success: false,
+                        unverified: true,
+                        email: userEmail,
+                        error: 'Please verify your Gmail address before logging in. Check your inbox for the activation link.'
+                    });
+                }
+                if (!profile) {
+                    profile = await tournamentStorage.getProfile(siData.user.id);
+                }
+                return res.json({
+                    success: true,
+                    user: {
+                        id: siData.user.id,
+                        username: profile?.username || cleanUser,
+                        inGameName: profile?.inGameName || cleanUser,
+                        email: userEmail,
+                        avatar: profile?.avatarUrl
+                    },
+                    session: {
                         access_token: siData.session.access_token,
                         refresh_token: siData.session.refresh_token
-                    };
-                    if (!profile && siData.user) {
-                        profile = await tournamentStorage.getProfile(siData.user.id);
-                    }
-                }
-            }
-            catch (err) {
-                console.warn('[Auth] Supabase signIn fallback:', err);
-            }
-        }
-        if (!profile || !profile.passwordHash || !profile.salt) {
-            return res.status(401).json({ error: 'Invalid username or password' });
-        }
-        // Verify password in constant time using crypto.timingSafeEqual
-        const computedHash = crypto.scryptSync(password, profile.salt, 64).toString('hex');
-        const hashBuf = Buffer.from(computedHash, 'hex');
-        const targetBuf = Buffer.from(profile.passwordHash, 'hex');
-        if (hashBuf.length !== targetBuf.length || !crypto.timingSafeEqual(hashBuf, targetBuf)) {
-            return res.status(401).json({ error: 'Invalid username or password' });
-        }
-        // Seamless auto-migration: If this profile exists on disk and needs a Supabase Auth user created
-        if (!supabaseSession && supabaseAdmin) {
-            try {
-                const { data: created } = await supabaseAdmin.auth.admin.createUser({
-                    id: profile.id.length === 36 ? profile.id : undefined,
-                    email: internalEmail,
-                    password: password,
-                    email_confirm: true,
-                    user_metadata: {
-                        username: profile.username || cleanUser,
-                        in_game_name: profile.inGameName || cleanUser
                     }
                 });
-                if (created?.user) {
-                    profile.id = created.user.id;
-                    await tournamentStorage.saveProfile(profile);
-                    if (supabase) {
-                        const { data: siData } = await supabase.auth.signInWithPassword({
-                            email: internalEmail,
-                            password: password
+            }
+        }
+        // 3. Legacy Migration Path: For pre-existing accounts stored with scrypt hash
+        const legacyCreds = await tournamentStorage.getLegacyCredentials(cleanUser);
+        if (legacyCreds && legacyCreds.passwordHash && legacyCreds.salt) {
+            const computedHash = crypto.scryptSync(password, legacyCreds.salt, 64).toString('hex');
+            const hashBuf = Buffer.from(computedHash, 'hex');
+            const targetBuf = Buffer.from(legacyCreds.passwordHash, 'hex');
+            if (hashBuf.length === targetBuf.length && crypto.timingSafeEqual(hashBuf, targetBuf)) {
+                // Legacy password matches! Auto-sync to Supabase Auth
+                if (supabaseAdmin) {
+                    try {
+                        await supabaseAdmin.auth.admin.createUser({
+                            id: legacyCreds.id.length === 36 ? legacyCreds.id : undefined,
+                            email: userEmail,
+                            password: String(password),
+                            email_confirm: true,
+                            user_metadata: {
+                                username: legacyCreds.username || cleanUser,
+                                in_game_name: legacyCreds.inGameName || cleanUser
+                            }
                         });
-                        if (siData?.session) {
-                            supabaseSession = {
-                                access_token: siData.session.access_token,
-                                refresh_token: siData.session.refresh_token
-                            };
+                    }
+                    catch {
+                        await supabaseAdmin.auth.admin.updateUserById(legacyCreds.id, { password: String(password) }).catch(() => { });
+                    }
+                    if (supabase) {
+                        const { data: retrySi } = await supabase.auth.signInWithPassword({
+                            email: userEmail,
+                            password: String(password)
+                        });
+                        if (retrySi?.session) {
+                            return res.json({
+                                success: true,
+                                user: {
+                                    id: retrySi.user.id,
+                                    username: legacyCreds.username || cleanUser,
+                                    inGameName: legacyCreds.inGameName || cleanUser,
+                                    email: userEmail
+                                },
+                                session: {
+                                    access_token: retrySi.session.access_token,
+                                    refresh_token: retrySi.session.refresh_token
+                                }
+                            });
                         }
                     }
                 }
             }
-            catch (syncErr) {
-                console.warn('[Auth] Seamless Supabase Auth sync on login warning:', syncErr);
-            }
         }
-        return res.json({
-            success: true,
-            user: {
-                id: profile.id,
-                username: profile.username || profile.inGameName,
-                inGameName: profile.inGameName,
-                avatar: profile.avatarUrl
-            },
-            session: supabaseSession
-        });
+        return res.status(401).json({ error: 'Invalid username or password' });
     }
     catch (err) {
+        console.error('[Auth] Login error:', err);
         return res.status(500).json({ error: err.message || 'Login failed' });
     }
 });
-// Password recovery using registered username and recovery email
-app.post('/api/auth/reset-password', async (req, res) => {
+// Change Password in user profile / account settings
+app.post('/api/auth/change-password', async (req, res) => {
     try {
-        const { username, recoveryEmail, newPassword, confirmPassword } = req.body || {};
-        if (!username || !recoveryEmail || !newPassword) {
-            return res.status(400).json({ error: 'Username, recovery email, and new password are required' });
+        const { userId, username, currentPassword, newPassword, confirmPassword } = req.body || {};
+        if ((!userId && !username) || !currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Current password and new password are required.' });
         }
         if (newPassword !== confirmPassword) {
-            return res.status(400).json({ error: 'Passwords do not match' });
+            return res.status(400).json({ error: 'New passwords do not match.' });
+        }
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ error: 'New password cannot be the same as your current password.' });
         }
         if (String(newPassword).length < 6) {
-            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+            return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
         }
-        const profile = await tournamentStorage.getProfileByUsername(username);
+        let profile = userId ? await tournamentStorage.getProfile(userId) : null;
+        if (!profile && username) {
+            profile = await tournamentStorage.getProfileByUsername(username);
+        }
         if (!profile) {
-            return res.status(404).json({ error: 'Account not found' });
+            return res.status(404).json({ error: 'User profile not found.' });
         }
-        if (!profile.recoveryEmail || profile.recoveryEmail.trim().toLowerCase() !== String(recoveryEmail).trim().toLowerCase()) {
-            return res.status(403).json({ error: 'The provided recovery email does not match our records for this username.' });
+        let userEmail = profile.email || profile.recoveryEmail;
+        if (!userEmail && profile.username) {
+            const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
+            const authHash = crypto.createHmac('sha256', authSecret).update(profile.username.toLowerCase()).digest('hex').slice(0, 32);
+            userEmail = `usr_${authHash}@bidwars.com`;
+        }
+        if (!userEmail) {
+            return res.status(400).json({ error: 'Account does not have a registered email address.' });
+        }
+        if (!supabase) {
+            return res.status(503).json({ error: 'Authentication service unavailable.' });
+        }
+        // Verify current password by signing in with Supabase Auth
+        const { data: verifyData, error: verifyError } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: String(currentPassword)
+        });
+        if (verifyError || !verifyData?.user) {
+            return res.status(401).json({ error: 'Current password is incorrect.' });
+        }
+        const targetUserId = profile.id || verifyData.user.id;
+        // Update password using Supabase Auth Admin API
+        if (supabaseAdmin) {
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+                password: String(newPassword)
+            });
+            if (updateError) {
+                return res.status(500).json({ error: `Failed to update password: ${updateError.message}` });
+            }
+        }
+        // Also update backup credentials in auth_secrets
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
+        await tournamentStorage.updateCredentials(targetUserId, passwordHash, salt).catch(() => { });
+        return res.json({ success: true, message: 'Password updated successfully!' });
+    }
+    catch (err) {
+        console.error('[Auth] change-password error:', err);
+        return res.status(500).json({ error: err.message || 'Failed to change password.' });
+    }
+});
+// Forgot Password — Account-Specific Reset Link to Registered Gmail
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body || {};
+        if (!email || !String(email).trim()) {
+            return res.status(400).json({ error: 'Gmail address is required.' });
+        }
+        const cleanEmail = String(email).trim().toLowerCase();
+        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(cleanEmail)) {
+            return res.status(400).json({ error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' });
+        }
+        // Generic response message to prevent email enumeration
+        const genericSuccessMsg = 'If an account exists with this Gmail address, a password-reset link has been sent to your inbox.';
+        // Check if account exists
+        const profile = await tournamentStorage.getProfileByEmail(cleanEmail);
+        if (!profile) {
+            return res.json({ success: true, message: genericSuccessMsg });
+        }
+        const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
+        const redirectUrl = `${clientUrl}/reset-password`;
+        if (supabase) {
+            await supabase.auth.resetPasswordForEmail(cleanEmail, {
+                redirectTo: redirectUrl
+            }).catch((err) => console.warn('[Auth] resetPasswordForEmail warning:', err.message));
+        }
+        return res.json({ success: true, message: genericSuccessMsg });
+    }
+    catch (err) {
+        console.error('[Auth] forgot-password error:', err);
+        return res.status(500).json({ error: err.message || 'Error processing password reset' });
+    }
+});
+// Sync password hash after recovery reset
+app.post('/api/auth/sync-password', async (req, res) => {
+    try {
+        const { userId, newPassword } = req.body || {};
+        if (!userId || !newPassword || String(newPassword).length < 6) {
+            return res.status(400).json({ error: 'Valid userId and password required' });
         }
         const salt = crypto.randomBytes(16).toString('hex');
         const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
-        await tournamentStorage.saveProfile({
-            ...profile,
-            passwordHash,
-            salt,
-            updatedAt: Date.now()
-        });
-        return res.json({ success: true, message: 'Password has been reset successfully. Please log in with your new password.' });
+        await tournamentStorage.updateCredentials(userId, passwordHash, salt).catch(() => { });
+        return res.json({ success: true });
     }
-    catch (err) {
-        return res.status(500).json({ error: err.message || 'Password reset failed' });
+    catch {
+        return res.json({ success: false });
     }
 });
 // ==========================================

@@ -14,6 +14,7 @@ import { FinalTeamManagement } from './components/FinalTeamManagement.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { PasswordModal } from './components/PasswordModal.js';
 import { TournamentDashboard } from './components/tournament/TournamentDashboard.js';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage.js';
 import { socketService } from './services/socket.js';
 import { authService } from './services/auth.js';
 import { 
@@ -45,6 +46,13 @@ export function App() {
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Password Recovery Flow
+  const [isResetRoute, setIsResetRoute] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.startsWith('/reset-password') || 
+           window.location.hash.includes('type=recovery');
+  });
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -697,6 +705,21 @@ export function App() {
 
   const myMember = roomState?.members[myMemberId];
   const mySquadCount = myMember?.teamId && roomState ? (roomState.teamSquads[myMember.teamId] || []).length : 0;
+
+  // Render Password Recovery Page if on reset route
+  if (isResetRoute) {
+    return (
+      <ResetPasswordPage
+        onGoToLogin={() => {
+          setIsResetRoute(false);
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', '/');
+          }
+          setView('landing');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0B14] text-[#F4F6FA] flex flex-col selection:bg-[#C8FF3D] selection:text-[#0A0B14]">

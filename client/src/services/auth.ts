@@ -30,7 +30,7 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('your-project'))
 
 const STORAGE_KEY = 'bidwars_active_user';
 
-class AuthService {
+export class AuthService {
   private currentUser: AuthUser | null = null;
   private listeners: Array<(user: AuthUser | null) => void> = [];
 
@@ -111,14 +111,32 @@ class AuthService {
     this.listeners.forEach(cb => cb(user));
   }
 
-  // Register new account with unique username and secure password
+  // Helper: validate Gmail address
+  public static validateGmail(email: string): { valid: boolean; error?: string } {
+    if (!email || !email.trim()) {
+      return { valid: false, error: 'Gmail address is required.' };
+    }
+    const clean = email.trim().toLowerCase();
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!gmailRegex.test(clean)) {
+      return { valid: false, error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' };
+    }
+    return { valid: true };
+  }
+
+  // Register new account with unique username, secure password and mandatory @gmail.com
   public async register(
     username: string,
     password: string,
     confirmPassword: string,
-    recoveryEmail?: string
-  ): Promise<{ success: boolean; error?: string }> {
+    email: string
+  ): Promise<{ success: boolean; unverified?: boolean; message?: string; error?: string }> {
     try {
+      const emailValidation = AuthService.validateGmail(email);
+      if (!emailValidation.valid) {
+        return { success: false, error: emailValidation.error };
+      }
+
       const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
       const res = await fetch(`${apiBase}/api/auth/register`, {
         method: 'POST',
@@ -127,13 +145,22 @@ class AuthService {
           username: username.trim(),
           password,
           confirmPassword,
-          recoveryEmail: recoveryEmail ? recoveryEmail.trim() : undefined
+          email: email.trim().toLowerCase()
         })
       });
 
       const data = await res.json();
       if (!res.ok) {
         return { success: false, error: data.error || 'Registration failed' };
+      }
+
+      // If email verification is required and account is unconfirmed
+      if (data.emailConfirmed === false) {
+        return {
+          success: true,
+          unverified: true,
+          message: data.message || 'Registration successful! A verification email has been sent to your Gmail address. Please verify your email before logging in.'
+        };
       }
 
       // If Supabase session tokens were returned, set session on client
@@ -150,22 +177,22 @@ class AuthService {
         id: data.user.id,
         username: data.user.username,
         inGameName: data.user.inGameName,
-        email: recoveryEmail ? recoveryEmail.trim() : undefined,
+        email: email.trim().toLowerCase(),
         isRegisteredUser: true
       };
 
       this.setUser(activeUser);
-      return { success: true };
+      return { success: true, message: data.message };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error during registration' };
     }
   }
 
-  // Login with username and password
+  // Login with username/email and password
   public async login(
     username: string,
     password: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; unverified?: boolean; email?: string; error?: string }> {
     try {
       const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
       const res = await fetch(`${apiBase}/api/auth/login`, {
@@ -179,6 +206,14 @@ class AuthService {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.unverified) {
+          return {
+            success: false,
+            unverified: true,
+            email: data.email,
+            error: data.error || 'Please verify your Gmail address before logging in.'
+          };
+        }
         return { success: false, error: data.error || 'Invalid username or password' };
       }
 
@@ -196,6 +231,7 @@ class AuthService {
         id: data.user.id,
         username: data.user.username,
         inGameName: data.user.inGameName,
+        email: data.user.email,
         avatar: data.user.avatar,
         isRegisteredUser: true
       };
@@ -207,21 +243,80 @@ class AuthService {
     }
   }
 
-  // Password recovery
-  public async resetPassword(
-    username: string,
-    recoveryEmail: string,
+  // Resend verification email to registered Gmail address
+  public async resendVerification(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to resend verification email' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error while resending verification' };
+    }
+  }
+
+  // Forgot password — sends recovery email to registered Gmail only
+  public async forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const emailValidation = AuthService.validateGmail(email);
+      if (!emailValidation.valid) {
+        return { success: false, error: emailValidation.error };
+      }
+
+      const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
+      const res = await fetch(`${apiBase}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to send reset link' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error while requesting password reset' };
+    }
+  }
+
+  // Change password for currently authenticated user
+  public async changePassword(
+    currentPassword: string,
     newPassword: string,
     confirmPassword: string
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
+      if (!this.currentUser) {
+        return { success: false, error: 'User is not logged in.' };
+      }
+      if (!currentPassword || !newPassword) {
+        return { success: false, error: 'Current password and new password are required.' };
+      }
+      if (newPassword !== confirmPassword) {
+        return { success: false, error: 'New passwords do not match.' };
+      }
+      if (newPassword === currentPassword) {
+        return { success: false, error: 'New password cannot be the same as your current password.' };
+      }
+      if (newPassword.length < 6) {
+        return { success: false, error: 'New password must be at least 6 characters long.' };
+      }
+
       const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
-      const res = await fetch(`${apiBase}/api/auth/reset-password`, {
+      const res = await fetch(`${apiBase}/api/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim(),
-          recoveryEmail: recoveryEmail.trim(),
+          userId: this.currentUser.id,
+          username: this.currentUser.username,
+          currentPassword,
           newPassword,
           confirmPassword
         })
@@ -229,13 +324,24 @@ class AuthService {
 
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Password reset failed' };
+        return { success: false, error: data.error || 'Failed to change password' };
       }
-
-      return { success: true, message: data.message };
+      return { success: true, message: data.message || 'Password changed successfully!' };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Network error during password reset' };
+      return { success: false, error: err.message || 'Network error while changing password' };
     }
+  }
+
+  // Sync password credentials helper
+  public async syncPasswordCredentials(userId: string, newPassword: string): Promise<void> {
+    try {
+      const apiBase = ((import.meta as any).env?.VITE_API_URL as string) || '';
+      await fetch(`${apiBase}/api/auth/sync-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newPassword })
+      });
+    } catch {}
   }
 
   public async checkUsernameAvailable(username: string): Promise<{ available: boolean; message: string }> {
