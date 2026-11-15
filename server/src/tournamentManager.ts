@@ -258,6 +258,7 @@ export class TournamentManager {
     // Create an underlying Quick Auction room in roomManager to guarantee 100% auction reuse
     const roomSettings: Partial<RoomSettings> = {
       season: '2026',
+      poolMode: 'mega_all',
       startingPurse: 1200000000,
       timerDuration: 15,
       isPrivate: false,

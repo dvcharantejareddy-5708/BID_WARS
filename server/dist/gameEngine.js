@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { IPL_FRANCHISES } from './types.js';
-import { buildAuctionLots, shuffleArray } from './playerService.js';
+import { buildAuctionLots, buildTournamentAuctionLots, shuffleArray } from './playerService.js';
 import { evaluateBotBid } from './botEngine.js';
 import { storageService } from './storageService.js';
 export class GameRoom {
@@ -103,7 +103,9 @@ export class GameRoom {
         });
         this.addAuditLog('ROOM_CREATED', `Room ${roomCode} created by ${hostNickname}`, hostNickname);
         // Mandatory: Generate randomized auction queue on room creation and persist it
-        this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
+            ? buildTournamentAuctionLots(this.settings.season)
+            : buildAuctionLots(this.settings.season, this.settings.poolMode);
     }
     verifyPassword(inputPassword) {
         if (!this.isPrivate)
@@ -412,9 +414,11 @@ export class GameRoom {
                 this.addBot(team, strategy);
             }
         }
-        // Only generate lots if queue is not yet initialized; preserves saved queue on reconnects
-        if (!this.lots || this.lots.length === 0) {
-            this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        // Generate lots on auction start if starting from LOBBY or uninitialized; preserves saved queue on reconnects
+        if (!this.lots || this.lots.length === 0 || this.status === 'LOBBY') {
+            this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
+                ? buildTournamentAuctionLots(this.settings.season)
+                : buildAuctionLots(this.settings.season, this.settings.poolMode);
         }
         if (this.lots.length === 0) {
             return { success: false, message: 'No eligible auction lots found for this season/pool mode' };
@@ -500,8 +504,17 @@ export class GameRoom {
                 };
             }
         }
+        else if (this.settings.tournamentId || this.settings.poolMode === 'mega_all') {
+            // Case B1: Mega Auction Set-Structured Draw
+            // Group pending lots by IPL set order, picking randomly from the current active set
+            const activeSetOrder = Math.min(...pendingLotsWithIndex.map(({ lot }) => lot.player.set_order));
+            targetCandidates = pendingLotsWithIndex.filter(({ lot }) => lot.player.set_order === activeSetOrder);
+            if (targetCandidates.length === 0) {
+                targetCandidates = pendingLotsWithIndex;
+            }
+        }
         else {
-            // Case B: Mandatory sequence random draw (Section 6)
+            // Case B2: Mandatory sequence random draw for Quick Auction (Section 6)
             // 1. Group pending lots by descending base price
             const uniqueBasePrices = Array.from(new Set(pendingLotsWithIndex.map(({ lot }) => lot.player.base_price_inr))).sort((a, b) => b - a);
             const activeHighestPrice = uniqueBasePrices[0];
@@ -930,10 +943,15 @@ export class GameRoom {
     }
     /**
      * Authoritative Next-Lot Advance after speech and visual sequences complete
+     * Host-only control when triggered by client; internal server timers pass undefined memberId.
      */
-    advanceLot(lotIndex, resultId) {
+    advanceLot(lotIndex, resultId, memberId) {
         if (this.status !== 'AUCTION')
             return { success: false, message: 'Auction is not active' };
+        // Host-only authorization check when triggered by a connected member
+        if (memberId && memberId !== this.hostId) {
+            return { success: false, message: 'Only the host can advance the auction' };
+        }
         const lot = this.lots[this.currentLotIndex];
         if (!lot || (lot.status !== 'SOLD' && lot.status !== 'UNSOLD' && lot.status !== 'SKIPPED')) {
             return { success: false, message: 'Current lot is not in completed state' };
@@ -1059,7 +1077,9 @@ export class GameRoom {
         this.history = [];
         this.deadlineTimestamp = null;
         // Generate fresh randomized auction sequence for restarted auction
-        this.lots = buildAuctionLots(this.settings.season, this.settings.poolMode);
+        this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
+            ? buildTournamentAuctionLots(this.settings.season)
+            : buildAuctionLots(this.settings.season, this.settings.poolMode);
         this.addAuditLog('AUCTION_RESTARTED', 'Auction was reset to lobby by host with a newly randomized queue', 'Host');
         this.broadcastState();
         return { success: true };

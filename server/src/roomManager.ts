@@ -358,11 +358,17 @@ export class RoomManager {
         break;
       }
       case 'ADVANCE_LOT': {
-        room.advanceLot(msg.lotIndex);
+        const res = room.advanceLot(msg.lotIndex, undefined, conn.memberId);
+        if (!res.success && res.message) {
+          this.sendError(ws, res.message);
+        }
         break;
       }
       case 'ANNOUNCEMENT_COMPLETE': {
-        room.advanceLot(msg.lotIndex, msg.resultId);
+        const res = room.advanceLot(msg.lotIndex, msg.resultId, conn.memberId);
+        if (!res.success && res.message) {
+          this.sendError(ws, res.message);
+        }
         break;
       }
       case 'CREATE_TRADE_REQUEST': {
