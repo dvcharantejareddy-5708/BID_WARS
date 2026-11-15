@@ -40,7 +40,7 @@ export const TournamentHub: React.FC<TournamentHubProps> = ({
     try {
       let m: LiveMatch | null = null;
       if (fixture.matchId) {
-        m = await TournamentApi.getLiveMatch(fixture.matchId, myFranchise);
+        m = await TournamentApi.getLiveMatch(fixture.matchId, myFranchise, user.id);
       }
       if (!m) {
         // Fallback: If match was not found in server cache, re-fetch or re-instantiate seamlessly

@@ -971,13 +971,21 @@ app.get('/api/matches/:matchId', (req, res) => {
     if (!match) {
         return res.status(404).json({ error: 'Match not found' });
     }
-    const viewerFranchiseId = req.query.franchiseId || undefined;
+    const userId = req.query.userId || req.headers['x-user-id'] || undefined;
+    let viewerFranchiseId = req.query.franchiseId || undefined;
+    if (userId) {
+        const verifiedFranchise = tournamentManager.getParticipantFranchise(match.tournamentId, userId);
+        if (verifiedFranchise) {
+            viewerFranchiseId = verifiedFranchise;
+        }
+    }
     return res.json({ success: true, match: sanitizeMatchForViewer(match, viewerFranchiseId) });
 });
 // Match Toss (interactive coin flip or direct decision fallback)
 app.post('/api/matches/:matchId/toss', (req, res) => {
     try {
         const { callerFranchiseId, call, tossWinnerFranchiseId, decision } = req.body || {};
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
         // Direct decision format (backward compatibility)
         if (decision && tossWinnerFranchiseId) {
             const result = tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
@@ -993,9 +1001,9 @@ app.post('/api/matches/:matchId/toss', (req, res) => {
         if (!callerFranchiseId || !call) {
             return res.status(400).json({ error: 'Caller franchise and call (HEADS/TAILS) required' });
         }
-        const result = tournamentManager.resolveToss(req.params.matchId, callerFranchiseId, call);
+        const result = tournamentManager.resolveToss(req.params.matchId, callerFranchiseId, call, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
@@ -1013,12 +1021,13 @@ app.post('/api/matches/:matchId/toss', (req, res) => {
 app.post('/api/matches/:matchId/toss-decision', (req, res) => {
     try {
         const { tossWinnerFranchiseId, decision } = req.body || {};
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
         if (!tossWinnerFranchiseId || !decision) {
             return res.status(400).json({ error: 'Toss winner and decision (BAT/BOWL) are required' });
         }
-        const result = tournamentManager.handleTossDecision(req.params.matchId, tossWinnerFranchiseId, decision);
+        const result = tournamentManager.handleTossDecision(req.params.matchId, tossWinnerFranchiseId, decision, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
@@ -1034,9 +1043,10 @@ app.post('/api/matches/:matchId/toss-decision', (req, res) => {
 app.post('/api/matches/:matchId/opening-batters', (req, res) => {
     try {
         const { franchiseId, strikerId, nonStrikerId } = req.body || {};
-        const result = tournamentManager.selectOpeningBatters(req.params.matchId, franchiseId, strikerId, nonStrikerId);
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
+        const result = tournamentManager.selectOpeningBatters(req.params.matchId, franchiseId, strikerId, nonStrikerId, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
@@ -1052,9 +1062,10 @@ app.post('/api/matches/:matchId/opening-batters', (req, res) => {
 app.post('/api/matches/:matchId/opening-bowler', (req, res) => {
     try {
         const { franchiseId, bowlerId } = req.body || {};
-        const result = tournamentManager.selectOpeningBowler(req.params.matchId, franchiseId, bowlerId);
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
+        const result = tournamentManager.selectOpeningBowler(req.params.matchId, franchiseId, bowlerId, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
@@ -1070,9 +1081,10 @@ app.post('/api/matches/:matchId/opening-bowler', (req, res) => {
 app.post('/api/matches/:matchId/select-batter', (req, res) => {
     try {
         const { franchiseId, replacementBatterId } = req.body || {};
-        const result = tournamentManager.selectReplacementBatter(req.params.matchId, franchiseId, replacementBatterId);
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
+        const result = tournamentManager.selectReplacementBatter(req.params.matchId, franchiseId, replacementBatterId, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
@@ -1087,15 +1099,16 @@ app.post('/api/matches/:matchId/select-batter', (req, res) => {
 // Select Bowler for new over
 app.post('/api/matches/:matchId/select-bowler', (req, res) => {
     try {
-        const { bowlerId } = req.body || {};
-        const result = tournamentManager.selectBowler(req.params.matchId, bowlerId);
+        const { bowlerId, franchiseId } = req.body || {};
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
+        const result = tournamentManager.selectBowler(req.params.matchId, bowlerId, franchiseId, userId);
         if (!result.success) {
-            return res.status(400).json({ error: result.message });
+            return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match) : undefined
+            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1106,9 +1119,10 @@ app.post('/api/matches/:matchId/select-bowler', (req, res) => {
 app.post('/api/matches/:matchId/choice', (req, res) => {
     try {
         const { franchiseId, choice, ability, blockedNumbers } = req.body || {};
-        const result = tournamentManager.submitChoice(req.params.matchId, franchiseId, choice, ability, blockedNumbers);
+        const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
+        const result = tournamentManager.submitChoice(req.params.matchId, franchiseId, choice, ability, blockedNumbers, userId);
         if (result.error) {
-            return res.status(400).json({ error: result.error });
+            return res.status(result.error.includes('Forbidden') ? 403 : 400).json({ error: result.error });
         }
         return res.json({
             success: true,

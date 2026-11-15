@@ -661,12 +661,46 @@ export class TournamentManager {
         return { success: true, match: liveMatch };
     }
     /**
+     * Identifies the verified IPL team a user owns in a tournament
+     */
+    getParticipantFranchise(tournamentId, userId) {
+        if (!tournamentId || !userId)
+            return null;
+        const tournament = this.getTournament(tournamentId);
+        if (!tournament)
+            return null;
+        // 1. Check tournament members
+        if (tournament.members) {
+            const member = tournament.members.find(m => m.userId === userId);
+            if (member?.franchiseId)
+                return member.franchiseId;
+        }
+        // 2. Check tournament teams
+        if (tournament.teams) {
+            for (const [fid, team] of Object.entries(tournament.teams)) {
+                if (team && team.ownerUserId === userId) {
+                    return fid;
+                }
+            }
+        }
+        return null;
+    }
+    /**
      * Resolve interactive coin flip toss
      */
-    resolveToss(matchId, callerFranchiseId, call) {
+    resolveToss(matchId, callerFranchiseId, call, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        if (userId) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== callerFranchiseId) {
+                return {
+                    success: false,
+                    message: `Forbidden: You are not authorized to call toss for ${callerFranchiseId}`
+                };
+            }
+        }
         const res = MatchEngine.resolveToss(match, callerFranchiseId, call);
         if (!res.success)
             return { success: false, message: res.message };
@@ -681,11 +715,22 @@ export class TournamentManager {
     }
     /**
      * Handle toss decision: Bat or Bowl first
+     * Strictly enforces that only the authenticated user belonging to the toss winning team can submit.
      */
-    handleTossDecision(matchId, tossWinnerFranchiseId, decision) {
+    handleTossDecision(matchId, tossWinnerFranchiseId, decision, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        const expectedWinner = match.tossWinnerFranchiseId || tossWinnerFranchiseId;
+        if (userId) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== expectedWinner) {
+                return {
+                    success: false,
+                    message: `Forbidden: Only ${expectedWinner} can submit the toss decision. You do not own this team.`
+                };
+            }
+        }
         const res = MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
         if (!res.success)
             return { success: false, message: res.message };
@@ -706,10 +751,21 @@ export class TournamentManager {
     /**
      * Batting team selects opening striker & non-striker
      */
-    selectOpeningBatters(matchId, franchiseId, strikerId, nonStrikerId) {
+    selectOpeningBatters(matchId, franchiseId, strikerId, nonStrikerId, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const battingTeam = inn?.battingFranchiseId || match.batting_team_id;
+        if (userId && battingTeam) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== battingTeam) {
+                return {
+                    success: false,
+                    message: `Forbidden: Only the batting team (${battingTeam}) can select opening batters.`
+                };
+            }
+        }
         const res = MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
         if (!res.success)
             return { success: false, message: res.message };
@@ -719,10 +775,21 @@ export class TournamentManager {
     /**
      * Bowling team selects opening bowler
      */
-    selectOpeningBowler(matchId, franchiseId, bowlerId) {
+    selectOpeningBowler(matchId, franchiseId, bowlerId, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const bowlingTeam = inn?.bowlingFranchiseId || match.bowling_team_id;
+        if (userId && bowlingTeam) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== bowlingTeam) {
+                return {
+                    success: false,
+                    message: `Forbidden: Only the bowling team (${bowlingTeam}) can select opening bowler.`
+                };
+            }
+        }
         const res = MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
         if (!res.success)
             return { success: false, message: res.message };
@@ -732,10 +799,21 @@ export class TournamentManager {
     /**
      * Batting team selects replacement batter after wicket
      */
-    selectReplacementBatter(matchId, franchiseId, replacementBatterId) {
+    selectReplacementBatter(matchId, franchiseId, replacementBatterId, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const battingTeam = inn?.battingFranchiseId || match.batting_team_id;
+        if (userId && battingTeam) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== battingTeam) {
+                return {
+                    success: false,
+                    message: `Forbidden: Only the batting team (${battingTeam}) can select a replacement batter.`
+                };
+            }
+        }
         const res = MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
         if (!res.success)
             return { success: false, message: res.message };
@@ -745,10 +823,21 @@ export class TournamentManager {
     /**
      * Bowling team selects bowler for the new over
      */
-    selectBowler(matchId, bowlerId) {
+    selectBowler(matchId, bowlerId, franchiseId, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
+        const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const bowlingTeam = inn?.bowlingFranchiseId || match.bowling_team_id;
+        if (userId && bowlingTeam) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== bowlingTeam) {
+                return {
+                    success: false,
+                    message: `Forbidden: Only the bowling team (${bowlingTeam}) can select the next bowler.`
+                };
+            }
+        }
         const res = MatchEngine.selectBowler(match, bowlerId);
         if (!res.success)
             return { success: false, message: res.message };
@@ -758,10 +847,19 @@ export class TournamentManager {
     /**
      * Submit hand-cricket selection for active delivery
      */
-    submitChoice(matchId, franchiseId, choice, ability, blockedNumbers) {
+    submitChoice(matchId, franchiseId, choice, ability, blockedNumbers, userId) {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { resolved: false, error: 'Match not found' };
+        if (userId) {
+            const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+            if (!userFranchise || userFranchise !== franchiseId) {
+                return {
+                    resolved: false,
+                    error: `Forbidden: You belong to ${userFranchise || 'no team'} and cannot submit selections for ${franchiseId}.`
+                };
+            }
+        }
         const res = MatchEngine.submitChoice(match, franchiseId, choice, ability, blockedNumbers, this.allPlayersMap);
         tournamentStorage.saveMatch(match);
         if (res.resolved) {

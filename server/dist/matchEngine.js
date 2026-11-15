@@ -131,13 +131,20 @@ export class MatchEngine {
         const isWinner = call === tossResult;
         const opponentFranchiseId = callerFranchiseId === match.homeFranchiseId ? match.awayFranchiseId : match.homeFranchiseId;
         const tossWinnerFranchiseId = isWinner ? callerFranchiseId : opponentFranchiseId;
+        const tossLoserFranchiseId = isWinner ? opponentFranchiseId : callerFranchiseId;
         match.tossCallerFranchiseId = callerFranchiseId;
         match.tossCall = call;
         match.tossResult = tossResult;
         match.tossWinnerFranchiseId = tossWinnerFranchiseId;
+        match.tossLoserFranchiseId = tossLoserFranchiseId;
         match.status = 'TOSS_DECISION_PENDING';
         match.selectionDeadline = Date.now() + 15000;
         match.updatedAt = Date.now();
+        // Explicit snake_case fields required by specification
+        match.toss_winner_team_id = tossWinnerFranchiseId;
+        match.toss_loser_team_id = tossLoserFranchiseId;
+        match.toss_choice = call;
+        match.current_match_phase = match.status;
         return {
             success: true,
             tossWinnerFranchiseId,
@@ -147,31 +154,43 @@ export class MatchEngine {
     }
     /**
      * Toss Decision: Toss winner decides to BAT or BOWL first.
-     * Transitions match to OPENING_BATTERS_SELECTION.
+     * Transitions match to OPENING_PLAYER_SELECTION with a 5-second selection timer.
      */
     static handleTossDecision(match, tossWinnerFranchiseId, decision, playersMap) {
         if (match.status !== 'TOSS_DECISION_PENDING' && match.status !== 'TOSS' && match.status !== 'TOSS_PENDING') {
             return { success: false, message: 'Match is not awaiting a toss decision' };
         }
         if (match.tossWinnerFranchiseId && match.tossWinnerFranchiseId !== tossWinnerFranchiseId) {
-            return { success: false, message: 'Only the toss winning team can choose Bat/Bowl' };
+            return { success: false, message: `Only the toss winning team (${match.tossWinnerFranchiseId}) can choose Bat/Bowl` };
         }
         match.tossWinnerFranchiseId = tossWinnerFranchiseId;
+        const opponentFranchiseId = tossWinnerFranchiseId === match.homeFranchiseId ? match.awayFranchiseId : match.homeFranchiseId;
+        match.tossLoserFranchiseId = opponentFranchiseId;
         match.tossDecision = decision;
         const battingFirst = decision === 'BAT'
             ? tossWinnerFranchiseId
-            : tossWinnerFranchiseId === match.homeFranchiseId
-                ? match.awayFranchiseId
-                : match.homeFranchiseId;
+            : opponentFranchiseId;
         const bowlingFirst = battingFirst === match.homeFranchiseId ? match.awayFranchiseId : match.homeFranchiseId;
         match.innings1 = this.initializeInnings(1, battingFirst, bowlingFirst, match.lineups[battingFirst], match.lineups[bowlingFirst], playersMap, match.maxBowlerOvers);
         match.status = 'OPENING_BATTERS_SELECTION';
         match.currentInnings = 1;
-        match.selectionDeadline = Date.now() + 15000;
+        // Strict 5-second selection timer as specified in Part 2 and Part 3
+        match.selectionDeadline = Date.now() + 5000;
+        match.openingSelections = {
+            battingConfirmed: false,
+            bowlingConfirmed: false
+        };
         match.updatedAt = Date.now();
+        // Explicit snake_case fields required by specification
+        match.toss_winner_team_id = tossWinnerFranchiseId;
+        match.toss_loser_team_id = match.tossLoserFranchiseId;
+        match.toss_choice = decision;
+        match.batting_team_id = battingFirst;
+        match.bowling_team_id = bowlingFirst;
+        match.current_match_phase = match.status;
         return {
             success: true,
-            message: `${tossWinnerFranchiseId} chose to ${decision} first. Select opening batters.`
+            message: `${tossWinnerFranchiseId} chose to ${decision} first. Select opening players.`
         };
     }
     /**
@@ -182,13 +201,13 @@ export class MatchEngine {
     }
     /**
      * Batting team selects opening 2 batters (Striker & Non-Striker) from confirmed Playing XI.
-     * Transitions to OPENING_BOWLER_SELECTION.
      */
     static selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId) {
         const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
         if (!inn)
             return { success: false, message: 'Invalid innings' };
-        if (match.status !== 'OPENING_BATTERS_SELECTION') {
+        if (match.status !== 'OPENING_PLAYER_SELECTION' &&
+            match.status !== 'OPENING_BATTERS_SELECTION') {
             return { success: false, message: 'Match is not in opening batters selection phase' };
         }
         if (franchiseId !== inn.battingFranchiseId) {
@@ -207,20 +226,37 @@ export class MatchEngine {
         const remaining = lineup.filter(pid => pid !== strikerId && pid !== nonStrikerId);
         inn.battingOrder = [strikerId, nonStrikerId, ...remaining];
         inn.nextBatterIndex = 2;
-        match.status = 'OPENING_BOWLER_SELECTION';
-        match.selectionDeadline = Date.now() + 15000;
+        if (!match.openingSelections) {
+            match.openingSelections = {};
+        }
+        match.openingSelections.battingConfirmed = true;
+        // If bowling selection is also confirmed, transition to DELIVERY_ACTIVE
+        const isBowlingConfirmed = Boolean(match.openingSelections.bowlingConfirmed);
+        if (isBowlingConfirmed) {
+            match.status = 'DELIVERY_ACTIVE';
+            this.startTurnTimer(match);
+            match.selectionDeadline = undefined;
+        }
+        else {
+            // In sequential mode, transition to OPENING_BOWLER_SELECTION with 5s timer
+            if (match.status === 'OPENING_BATTERS_SELECTION') {
+                match.status = 'OPENING_BOWLER_SELECTION';
+                match.selectionDeadline = Date.now() + 5000;
+            }
+        }
         match.updatedAt = Date.now();
-        return { success: true, message: 'Opening batters confirmed. Select opening bowler.' };
+        match.current_match_phase = match.status;
+        return { success: true, message: 'Opening batters confirmed.' };
     }
     /**
      * Bowling team selects opening bowler from confirmed Playing XI.
-     * Transitions to DELIVERY_ACTIVE and starts 10-second delivery timer.
      */
     static selectOpeningBowler(match, franchiseId, bowlerId) {
         const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
         if (!inn)
             return { success: false, message: 'Invalid innings' };
-        if (match.status !== 'OPENING_BOWLER_SELECTION') {
+        if (match.status !== 'OPENING_PLAYER_SELECTION' &&
+            match.status !== 'OPENING_BOWLER_SELECTION') {
             return { success: false, message: 'Match is not in opening bowler selection phase' };
         }
         if (franchiseId !== inn.bowlingFranchiseId) {
@@ -231,10 +267,21 @@ export class MatchEngine {
             return { success: false, message: 'Selected bowler must be in the confirmed Playing XI' };
         }
         inn.activeBowlerId = bowlerId;
-        match.status = 'DELIVERY_ACTIVE';
-        this.startTurnTimer(match);
+        if (!match.openingSelections) {
+            match.openingSelections = {};
+        }
+        match.openingSelections.bowlingConfirmed = true;
+        // If batting selection is also confirmed, transition to DELIVERY_ACTIVE
+        const isBattingConfirmed = match.openingSelections.battingConfirmed ||
+            Boolean(inn.activeBatterId && inn.nonStrikerId);
+        if (isBattingConfirmed) {
+            match.status = 'DELIVERY_ACTIVE';
+            this.startTurnTimer(match);
+            match.selectionDeadline = undefined;
+        }
         match.updatedAt = Date.now();
-        return { success: true, message: 'Opening bowler confirmed. Match delivery is active!' };
+        match.current_match_phase = match.status;
+        return { success: true, message: 'Opening bowler confirmed.' };
     }
     /**
      * Batting team selects replacement batter after a wicket fell.
@@ -456,17 +503,20 @@ export class MatchEngine {
         const innings = match.currentInnings === 1 ? match.innings1 : match.innings2;
         if (!innings || innings.isCompleted || match.status === 'COMPLETED')
             return null;
-        if (match.status === 'OPENING_BATTERS_SELECTION') {
-            const lineup = match.lineups[innings.battingFranchiseId]?.playingXI || [];
-            const sId = lineup[0] || '';
-            const nsId = lineup[1] || '';
-            this.selectOpeningBatters(match, innings.battingFranchiseId, sId, nsId);
-            return null;
-        }
-        if (match.status === 'OPENING_BOWLER_SELECTION') {
-            const lineup = match.lineups[innings.bowlingFranchiseId]?.playingXI || [];
-            const bId = lineup[lineup.length - 1] || lineup[0] || '';
-            this.selectOpeningBowler(match, innings.bowlingFranchiseId, bId);
+        if (match.status === 'OPENING_PLAYER_SELECTION' ||
+            match.status === 'OPENING_BATTERS_SELECTION' ||
+            match.status === 'OPENING_BOWLER_SELECTION') {
+            const battingLineup = match.lineups[innings.battingFranchiseId]?.playingXI || [];
+            const bowlingLineup = match.lineups[innings.bowlingFranchiseId]?.playingXI || [];
+            if (!innings.activeBatterId || !innings.nonStrikerId || innings.activeBatterId === innings.nonStrikerId) {
+                const sId = battingLineup[0] || '';
+                const nsId = battingLineup[1] || '';
+                this.selectOpeningBatters(match, innings.battingFranchiseId, sId, nsId);
+            }
+            if (!innings.activeBowlerId) {
+                const bId = bowlingLineup[bowlingLineup.length - 1] || bowlingLineup[0] || '';
+                this.selectOpeningBowler(match, innings.bowlingFranchiseId, bId);
+            }
             return null;
         }
         if (match.status === 'BATTER_SELECTION') {
@@ -908,12 +958,10 @@ export function sanitizeMatchForViewer(match, viewerFranchiseId) {
     if (!match)
         return match;
     const clone = JSON.parse(JSON.stringify(match));
-    const inputs = clone.pendingInputs;
-    if (!inputs)
-        return clone;
+    const inputs = clone.pendingInputs || {};
     const inn = clone.currentInnings === 1 ? clone.innings1 : clone.innings2;
-    const battingTeam = inn?.battingFranchiseId;
-    const bowlingTeam = inn?.bowlingFranchiseId;
+    const battingTeam = inn?.battingFranchiseId || clone.batting_team_id;
+    const bowlingTeam = inn?.bowlingFranchiseId || clone.bowling_team_id;
     const hasBatterSubmitted = inputs.batterChoice !== undefined;
     const hasBowlerSubmitted = inputs.bowlerChoice !== undefined;
     inputs.hasBatterSubmitted = hasBatterSubmitted;
@@ -929,5 +977,21 @@ export function sanitizeMatchForViewer(match, viewerFranchiseId) {
         delete inputs.bowlerAbility;
         delete inputs.blockedNumbers;
     }
+    // Inject authoritative role & team permissions for viewer
+    clone.viewerFranchiseId = viewerFranchiseId;
+    clone.toss_winner_team_id = clone.tossWinnerFranchiseId;
+    clone.toss_loser_team_id = clone.tossLoserFranchiseId;
+    clone.toss_choice = clone.tossDecision || clone.tossCall;
+    clone.batting_team_id = battingTeam;
+    clone.bowling_team_id = bowlingTeam;
+    clone.current_match_phase = clone.status;
+    clone.isViewerTossWinner = Boolean(viewerFranchiseId && viewerFranchiseId === clone.tossWinnerFranchiseId);
+    clone.isViewerBattingTeam = Boolean(viewerFranchiseId && viewerFranchiseId === battingTeam);
+    clone.isViewerBowlingTeam = Boolean(viewerFranchiseId && viewerFranchiseId === bowlingTeam);
+    clone.viewerRole = clone.isViewerBattingTeam
+        ? 'BATTING'
+        : clone.isViewerBowlingTeam
+            ? 'BOWLING'
+            : 'SPECTATOR';
     return clone;
 }

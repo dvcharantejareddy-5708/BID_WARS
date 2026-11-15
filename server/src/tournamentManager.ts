@@ -803,15 +803,52 @@ export class TournamentManager {
   }
 
   /**
+   * Identifies the verified IPL team a user owns in a tournament
+   */
+  public getParticipantFranchise(tournamentId: string, userId?: string | null): IPLTeamId | null {
+    if (!tournamentId || !userId) return null;
+    const tournament = this.getTournament(tournamentId);
+    if (!tournament) return null;
+
+    // 1. Check tournament members
+    if (tournament.members) {
+      const member = tournament.members.find(m => m.userId === userId);
+      if (member?.franchiseId) return member.franchiseId;
+    }
+
+    // 2. Check tournament teams
+    if (tournament.teams) {
+      for (const [fid, team] of Object.entries(tournament.teams)) {
+        if (team && team.ownerUserId === userId) {
+          return fid as IPLTeamId;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Resolve interactive coin flip toss
    */
   public resolveToss(
     matchId: string,
     callerFranchiseId: IPLTeamId,
-    call: 'HEADS' | 'TAILS'
+    call: 'HEADS' | 'TAILS',
+    userId?: string
   ): { success: boolean; match?: LiveMatch; tossWinnerFranchiseId?: IPLTeamId; tossResult?: 'HEADS' | 'TAILS'; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    if (userId) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== callerFranchiseId) {
+        return {
+          success: false,
+          message: `Forbidden: You are not authorized to call toss for ${callerFranchiseId}`
+        };
+      }
+    }
 
     const res = MatchEngine.resolveToss(match, callerFranchiseId, call);
     if (!res.success) return { success: false, message: res.message };
@@ -828,14 +865,28 @@ export class TournamentManager {
 
   /**
    * Handle toss decision: Bat or Bowl first
+   * Strictly enforces that only the authenticated user belonging to the toss winning team can submit.
    */
   public handleTossDecision(
     matchId: string,
     tossWinnerFranchiseId: IPLTeamId,
-    decision: 'BAT' | 'BOWL'
+    decision: 'BAT' | 'BOWL',
+    userId?: string
   ): { success: boolean; match?: LiveMatch; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    const expectedWinner = match.tossWinnerFranchiseId || tossWinnerFranchiseId;
+
+    if (userId) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== expectedWinner) {
+        return {
+          success: false,
+          message: `Forbidden: Only ${expectedWinner} can submit the toss decision. You do not own this team.`
+        };
+      }
+    }
 
     const res = MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
     if (!res.success) return { success: false, message: res.message };
@@ -867,10 +918,24 @@ export class TournamentManager {
     matchId: string,
     franchiseId: IPLTeamId,
     strikerId: string,
-    nonStrikerId: string
+    nonStrikerId: string,
+    userId?: string
   ): { success: boolean; match?: LiveMatch; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const battingTeam = inn?.battingFranchiseId || match.batting_team_id;
+
+    if (userId && battingTeam) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== battingTeam) {
+        return {
+          success: false,
+          message: `Forbidden: Only the batting team (${battingTeam}) can select opening batters.`
+        };
+      }
+    }
 
     const res = MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
     if (!res.success) return { success: false, message: res.message };
@@ -885,10 +950,24 @@ export class TournamentManager {
   public selectOpeningBowler(
     matchId: string,
     franchiseId: IPLTeamId,
-    bowlerId: string
+    bowlerId: string,
+    userId?: string
   ): { success: boolean; match?: LiveMatch; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const bowlingTeam = inn?.bowlingFranchiseId || match.bowling_team_id;
+
+    if (userId && bowlingTeam) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== bowlingTeam) {
+        return {
+          success: false,
+          message: `Forbidden: Only the bowling team (${bowlingTeam}) can select opening bowler.`
+        };
+      }
+    }
 
     const res = MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
     if (!res.success) return { success: false, message: res.message };
@@ -903,10 +982,24 @@ export class TournamentManager {
   public selectReplacementBatter(
     matchId: string,
     franchiseId: IPLTeamId,
-    replacementBatterId: string
+    replacementBatterId: string,
+    userId?: string
   ): { success: boolean; match?: LiveMatch; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const battingTeam = inn?.battingFranchiseId || match.batting_team_id;
+
+    if (userId && battingTeam) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== battingTeam) {
+        return {
+          success: false,
+          message: `Forbidden: Only the batting team (${battingTeam}) can select a replacement batter.`
+        };
+      }
+    }
 
     const res = MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
     if (!res.success) return { success: false, message: res.message };
@@ -920,10 +1013,25 @@ export class TournamentManager {
    */
   public selectBowler(
     matchId: string,
-    bowlerId: string
+    bowlerId: string,
+    franchiseId?: IPLTeamId,
+    userId?: string
   ): { success: boolean; match?: LiveMatch; message: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { success: false, message: 'Match not found' };
+
+    const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+    const bowlingTeam = inn?.bowlingFranchiseId || match.bowling_team_id;
+
+    if (userId && bowlingTeam) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== bowlingTeam) {
+        return {
+          success: false,
+          message: `Forbidden: Only the bowling team (${bowlingTeam}) can select the next bowler.`
+        };
+      }
+    }
 
     const res = MatchEngine.selectBowler(match, bowlerId);
     if (!res.success) return { success: false, message: res.message };
@@ -940,10 +1048,21 @@ export class TournamentManager {
     franchiseId: IPLTeamId,
     choice: HandCricketChoice,
     ability?: BowlerAbilityType | BatterAbilityType,
-    blockedNumbers?: number[]
+    blockedNumbers?: number[],
+    userId?: string
   ): { resolved: boolean; ballEvent?: BallEvent; match?: LiveMatch; error?: string } {
     const match = this.getLiveMatch(matchId);
     if (!match) return { resolved: false, error: 'Match not found' };
+
+    if (userId) {
+      const userFranchise = this.getParticipantFranchise(match.tournamentId, userId);
+      if (!userFranchise || userFranchise !== franchiseId) {
+        return {
+          resolved: false,
+          error: `Forbidden: You belong to ${userFranchise || 'no team'} and cannot submit selections for ${franchiseId}.`
+        };
+      }
+    }
 
     const res = MatchEngine.submitChoice(
       match,

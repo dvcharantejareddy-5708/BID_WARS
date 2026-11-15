@@ -139,10 +139,12 @@ export class TournamentApi {
     return data.match;
   }
 
-  public static async getLiveMatch(matchId: string, franchiseId?: string): Promise<LiveMatch | null> {
-    const url = franchiseId
-      ? `${API_BASE}/matches/${matchId}?franchiseId=${encodeURIComponent(franchiseId)}`
-      : `${API_BASE}/matches/${matchId}`;
+  public static async getLiveMatch(matchId: string, franchiseId?: string, userId?: string): Promise<LiveMatch | null> {
+    const params = new URLSearchParams();
+    if (franchiseId) params.append('franchiseId', franchiseId);
+    if (userId) params.append('userId', userId);
+    const queryString = params.toString();
+    const url = queryString ? `${API_BASE}/matches/${matchId}?${queryString}` : `${API_BASE}/matches/${matchId}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
@@ -152,12 +154,13 @@ export class TournamentApi {
   public static async submitTossCoinFlip(
     matchId: string,
     callerFranchiseId: IPLTeamId,
-    call: 'HEADS' | 'TAILS'
+    call: 'HEADS' | 'TAILS',
+    userId?: string
   ): Promise<{ success: boolean; tossWinnerFranchiseId?: IPLTeamId; tossResult?: 'HEADS' | 'TAILS'; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/toss`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ callerFranchiseId, call })
+      body: JSON.stringify({ callerFranchiseId, call, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Toss error');
@@ -167,12 +170,13 @@ export class TournamentApi {
   public static async submitTossDecision(
     matchId: string,
     tossWinnerFranchiseId: IPLTeamId,
-    decision: 'BAT' | 'BOWL'
+    decision: 'BAT' | 'BOWL',
+    userId?: string
   ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/toss-decision`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tossWinnerFranchiseId, decision })
+      body: JSON.stringify({ tossWinnerFranchiseId, decision, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Toss decision error');
@@ -183,12 +187,13 @@ export class TournamentApi {
     matchId: string,
     franchiseId: IPLTeamId,
     strikerId: string,
-    nonStrikerId: string
+    nonStrikerId: string,
+    userId?: string
   ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/opening-batters`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ franchiseId, strikerId, nonStrikerId })
+      body: JSON.stringify({ franchiseId, strikerId, nonStrikerId, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Opening batters selection error');
@@ -198,12 +203,13 @@ export class TournamentApi {
   public static async selectOpeningBowler(
     matchId: string,
     franchiseId: IPLTeamId,
-    bowlerId: string
+    bowlerId: string,
+    userId?: string
   ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/opening-bowler`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ franchiseId, bowlerId })
+      body: JSON.stringify({ franchiseId, bowlerId, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Opening bowler selection error');
@@ -213,12 +219,13 @@ export class TournamentApi {
   public static async selectReplacementBatter(
     matchId: string,
     franchiseId: IPLTeamId,
-    replacementBatterId: string
+    replacementBatterId: string,
+    userId?: string
   ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/select-batter`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ franchiseId, replacementBatterId })
+      body: JSON.stringify({ franchiseId, replacementBatterId, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Replacement batter selection error');
@@ -227,12 +234,14 @@ export class TournamentApi {
 
   public static async selectBowler(
     matchId: string,
-    bowlerId: string
+    bowlerId: string,
+    franchiseId?: IPLTeamId,
+    userId?: string
   ): Promise<{ success: boolean; match?: LiveMatch; message: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/select-bowler`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bowlerId })
+      body: JSON.stringify({ bowlerId, franchiseId, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Bowler selection error');
@@ -242,12 +251,13 @@ export class TournamentApi {
   public static async submitToss(
     matchId: string,
     tossWinnerFranchiseId: IPLTeamId,
-    decision: 'BAT' | 'BOWL'
+    decision: 'BAT' | 'BOWL',
+    userId?: string
   ): Promise<LiveMatch> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/toss`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tossWinnerFranchiseId, decision })
+      body: JSON.stringify({ tossWinnerFranchiseId, decision, userId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Toss error');
@@ -261,6 +271,7 @@ export class TournamentApi {
       choice: HandCricketChoice;
       ability?: BowlerAbilityType | BatterAbilityType;
       blockedNumbers?: number[];
+      userId?: string;
     }
   ): Promise<{ resolved: boolean; ballEvent?: BallEvent; match?: LiveMatch; error?: string }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/choice`, {
@@ -275,14 +286,17 @@ export class TournamentApi {
 
   public static async triggerTimeout(
     matchId: string,
-    franchiseId?: string
+    franchiseId?: string,
+    userId?: string
   ): Promise<{ resolved: boolean; ballEvent?: BallEvent; match?: LiveMatch }> {
     const res = await fetch(`${API_BASE}/matches/${matchId}/timeout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ franchiseId })
+      body: JSON.stringify({ franchiseId, userId })
     });
-    return await res.json();
+    const data = await res.json();
+    if (!res.ok) return { resolved: false };
+    return data;
   }
 }
 

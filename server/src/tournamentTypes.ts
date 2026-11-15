@@ -23,6 +23,7 @@ export type MatchStatus =
   | 'TOSS_PENDING'
   | 'TOSS_RESOLVED'
   | 'TOSS_DECISION_PENDING'
+  | 'OPENING_PLAYER_SELECTION'
   | 'OPENING_BATTERS_SELECTION'
   | 'OPENING_BOWLER_SELECTION'
   | 'DELIVERY_ACTIVE'
@@ -212,7 +213,19 @@ export interface LiveMatch {
   tossCall?: 'HEADS' | 'TAILS';
   tossResult?: 'HEADS' | 'TAILS';
   tossWinnerFranchiseId?: IPLTeamId;
+  tossLoserFranchiseId?: IPLTeamId;
   tossDecision?: 'BAT' | 'BOWL';
+  // Explicit snake_case fields required by specification
+  toss_winner_team_id?: IPLTeamId;
+  toss_loser_team_id?: IPLTeamId;
+  toss_choice?: 'BAT' | 'BOWL' | 'HEADS' | 'TAILS';
+  batting_team_id?: IPLTeamId;
+  bowling_team_id?: IPLTeamId;
+  current_match_phase?: MatchStatus;
+  openingSelections?: {
+    battingConfirmed?: boolean;
+    bowlingConfirmed?: boolean;
+  };
   selectionDeadline?: number;
   lastDeliveryResult?: DeliveryResultSummary;
   currentInnings: 1 | 2;
@@ -235,6 +248,12 @@ export interface LiveMatch {
   winnerFranchiseId?: IPLTeamId;
   resultSummary?: string;
   mvpPlayerId?: string;
+  // Role & viewer specific fields injected by server
+  viewerFranchiseId?: IPLTeamId;
+  viewerRole?: 'BATTING' | 'BOWLING' | 'SPECTATOR';
+  isViewerTossWinner?: boolean;
+  isViewerBattingTeam?: boolean;
+  isViewerBowlingTeam?: boolean;
   createdAt: number;
   updatedAt: number;
 }
