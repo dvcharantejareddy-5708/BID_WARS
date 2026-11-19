@@ -861,6 +861,9 @@ export class TournamentManager {
             }
         }
         const res = MatchEngine.submitChoice(match, franchiseId, choice, ability, blockedNumbers, this.allPlayersMap);
+        if (res.error) {
+            return { resolved: false, match, error: res.error };
+        }
         tournamentStorage.saveMatch(match);
         if (res.resolved) {
             if (match.status === 'COMPLETED') {

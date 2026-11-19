@@ -272,8 +272,7 @@ export class MatchEngine {
         }
         match.openingSelections.bowlingConfirmed = true;
         // If batting selection is also confirmed, transition to DELIVERY_ACTIVE
-        const isBattingConfirmed = match.openingSelections.battingConfirmed ||
-            Boolean(inn.activeBatterId && inn.nonStrikerId);
+        const isBattingConfirmed = Boolean(match.openingSelections.battingConfirmed);
         if (isBattingConfirmed) {
             match.status = 'DELIVERY_ACTIVE';
             this.startTurnTimer(match);
@@ -345,17 +344,35 @@ export class MatchEngine {
         return { success: true, message: 'Bowler selected successfully' };
     }
     /**
-     * Starts or resets the 10-second synchronized turn timer
+     * Starts or resets the 10-second synchronized turn timer and authoritative delivery state
      */
     static startTurnTimer(match) {
+        const inn = match.currentInnings === 1 ? match.innings1 : match.innings2;
+        const overNumber = inn ? inn.oversCompleted : 0;
+        const ballNumber = inn ? (inn.ballsInCurrentOver + 1) : 1;
+        const now = Date.now();
+        const deadline = now + 10000;
+        const deliveryId = `DEL-${match.id}-${match.currentInnings}-${overNumber}-${ballNumber}-${now}`;
+        match.currentDelivery = {
+            id: deliveryId,
+            matchId: match.id,
+            inningsNumber: match.currentInnings,
+            overNumber,
+            ballNumber,
+            startTime: now,
+            deadline,
+            status: 'WAITING_INPUTS'
+        };
         match.pendingInputs = {
-            turnStartTime: Date.now(),
-            turnExpiresAt: Date.now() + 10000, // 10s synchronized turn timer
+            turnStartTime: now,
+            turnExpiresAt: deadline,
             batterChoice: undefined,
             bowlerChoice: undefined,
             batterAbility: undefined,
             bowlerAbility: undefined,
-            blockedNumbers: undefined
+            blockedNumbers: undefined,
+            hasBatterSubmitted: false,
+            hasBowlerSubmitted: false
         };
     }
     /**
@@ -420,7 +437,6 @@ export class MatchEngine {
             if (!LEGAL_CHOICES.includes(choice)) {
                 return { resolved: false, error: 'Invalid delivery choice' };
             }
-            match.pendingInputs.bowlerChoice = choice;
             if (ability === 'NUMBER_BLOCK' || ability === 'ELITE_NUMBER_BLOCK') {
                 const bowlerFig = innings.bowlers[innings.activeBowlerId];
                 if (!bowlerFig || bowlerFig.abilityUsedInCurrentOver) {
@@ -428,10 +444,8 @@ export class MatchEngine {
                 }
                 if (ability === 'ELITE_NUMBER_BLOCK') {
                     if (bowlerAdv < 8) {
-                        return { resolved: false, error: 'Elite Number Block requires at least 8 OVR advantage' };
+                        return { resolved: false, error: 'Special Delivery requires at least 8 OVR advantage' };
                     }
-                    match.pendingInputs.bowlerAbility = 'ELITE_NUMBER_BLOCK';
-                    match.pendingInputs.blockedNumbers = [0, 1, 2, 3]; // Batter can only select 4 or 6!
                 }
                 else if (ability === 'NUMBER_BLOCK') {
                     if (bowlerAdv < 3) {
@@ -443,9 +457,17 @@ export class MatchEngine {
                         !blockedNumbers.every(n => LEGAL_CHOICES.includes(n))) {
                         return { resolved: false, error: 'Bowler must select exactly 3 unique scoring options to block from [0, 1, 2, 3, 4, 6]' };
                     }
-                    match.pendingInputs.bowlerAbility = 'NUMBER_BLOCK';
-                    match.pendingInputs.blockedNumbers = blockedNumbers;
                 }
+            }
+            match.pendingInputs.bowlerChoice = choice;
+            match.pendingInputs.hasBowlerSubmitted = true;
+            if (ability === 'ELITE_NUMBER_BLOCK') {
+                match.pendingInputs.bowlerAbility = 'ELITE_NUMBER_BLOCK';
+                match.pendingInputs.blockedNumbers = [0, 1, 2, 3]; // Batter can only select 4 or 6!
+            }
+            else if (ability === 'NUMBER_BLOCK' && blockedNumbers) {
+                match.pendingInputs.bowlerAbility = 'NUMBER_BLOCK';
+                match.pendingInputs.blockedNumbers = blockedNumbers;
             }
         }
         // Validate batter input and choice
@@ -458,28 +480,33 @@ export class MatchEngine {
             }
             // Check if choice is restricted by an active bowler block
             if (match.pendingInputs.bowlerAbility === 'ELITE_NUMBER_BLOCK' && (choice === 0 || choice === 1 || choice === 2 || choice === 3)) {
-                return { resolved: false, error: 'Pace Barrage active! You can only select 4 or 6.' };
+                return { resolved: false, error: 'Special Delivery active! You can only select 4 or 6.' };
             }
             if (match.pendingInputs.blockedNumbers && match.pendingInputs.blockedNumbers.includes(choice)) {
                 return { resolved: false, error: `Selection ${choice} is blocked by bowler's special ability!` };
             }
-            match.pendingInputs.batterChoice = choice;
             if (ability === 'COMBINATION_SHOT' || ability === 'SECRET_DOUBLE_SHOT') {
                 if (innings.batterAbilityUsedInCurrentOver) {
                     return { resolved: false, error: 'Batter special ability already used in current over' };
                 }
                 if (ability === 'SECRET_DOUBLE_SHOT') {
                     if (batterAdv < 8) {
-                        return { resolved: false, error: 'Secret Double Shot requires at least 8 OVR advantage' };
+                        return { resolved: false, error: '2X Power requires at least 8 OVR advantage' };
                     }
-                    match.pendingInputs.batterAbility = 'SECRET_DOUBLE_SHOT';
                 }
                 else if (ability === 'COMBINATION_SHOT') {
                     if (batterAdv < 3) {
-                        return { resolved: false, error: 'Combination Shot requires 3–7 OVR advantage' };
+                        return { resolved: false, error: 'Bonus Shot requires 3–7 OVR advantage' };
                     }
-                    match.pendingInputs.batterAbility = 'COMBINATION_SHOT';
                 }
+            }
+            match.pendingInputs.batterChoice = choice;
+            match.pendingInputs.hasBatterSubmitted = true;
+            if (ability === 'SECRET_DOUBLE_SHOT') {
+                match.pendingInputs.batterAbility = 'SECRET_DOUBLE_SHOT';
+            }
+            else if (ability === 'COMBINATION_SHOT') {
+                match.pendingInputs.batterAbility = 'COMBINATION_SHOT';
             }
         }
         // Check if both sides have submitted
@@ -612,6 +639,10 @@ export class MatchEngine {
             timestamp: Date.now()
         };
         match.ballHistory.push(ballEvent);
+        if (match.currentDelivery) {
+            match.currentDelivery.status = 'RESOLVED';
+            match.currentDelivery.resultStatus = 'TIMED_OUT';
+        }
         this.postBallProcessing(match, innings, 0, true);
         return ballEvent;
     }
@@ -733,6 +764,16 @@ export class MatchEngine {
             timestamp: Date.now()
         };
         match.ballHistory.push(ballEvent);
+        if (match.currentDelivery) {
+            match.currentDelivery.status = 'RESOLVED';
+            match.currentDelivery.resultStatus = isWicket
+                ? 'WICKET'
+                : runsScored === 6 || runsScored === 4
+                    ? 'BOUNDARY'
+                    : runsScored === 0
+                        ? 'DOT'
+                        : 'RUNS';
+        }
         this.postBallProcessing(match, innings, runsScored, isWicket, playersMap);
         return ballEvent;
     }
@@ -828,9 +869,14 @@ export class MatchEngine {
         const bowlingSecond = inn1.battingFranchiseId;
         const pMap = playersMap || new Map();
         match.innings2 = this.initializeInnings(2, battingSecond, bowlingSecond, match.lineups[battingSecond], match.lineups[bowlingSecond], pMap, match.maxBowlerOvers, targetRuns);
+        match.openingSelections = {
+            battingConfirmed: false,
+            bowlingConfirmed: false
+        };
         match.status = 'OPENING_BATTERS_SELECTION';
-        match.selectionDeadline = Date.now() + 15000;
+        match.selectionDeadline = Date.now() + 5000;
         match.updatedAt = Date.now();
+        match.current_match_phase = match.status;
     }
     /**
      * Finalizes the match result and calculates MVP
