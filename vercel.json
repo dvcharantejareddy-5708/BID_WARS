@@ -21,18 +21,21 @@
         "index.js": {
           "includeFiles": "{data,src/data,dist/data}/**"
         }
-      }
+      },
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.js"
+        }
+      ]
     }
   },
   "rewrites": [
     {
-      "source": "/api/diag",
-      "destination": "/api/diag.js"
-    },
-    {
       "source": "/api/(.*)",
       "destination": {
-        "service": "server"
+        "service": "server",
+        "path": "/index.js"
       }
     },
     {
