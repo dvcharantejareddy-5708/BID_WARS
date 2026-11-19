@@ -7,13 +7,21 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { RoomManager } from './roomManager.js';
+import { roomManager } from './roomManager.js';
 import { getAllPlayers, getPlayerById } from './playerService.js';
 import { tournamentManager } from './tournamentManager.js';
 import { tournamentStorage } from './tournamentStorage.js';
 import { supabase, supabaseAdmin } from './supabase.js';
 import { sanitizeMatchForViewer } from './matchEngine.js';
 dotenv.config();
+// Detect serverless environment (Vercel Functions / AWS Lambda)
+export const isServerless = Boolean(process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_REGION ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.NOW_REGION ||
+    process.env.LAMBDA_TASK_ROOT);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -22,11 +30,12 @@ const host = process.env.HOST || '0.0.0.0';
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const roomManager = new RoomManager();
-// Restore persisted rooms from durable disk / Supabase
-roomManager.loadPersistedRooms().catch((err) => {
-    console.error('[Startup] Failed to restore persisted rooms:', err);
-});
+// Restore persisted rooms from durable disk / Supabase only in stateful mode
+if (!isServerless) {
+    roomManager.loadPersistedRooms().catch((err) => {
+        console.error('[Startup] Failed to restore persisted rooms:', err);
+    });
+}
 // Serve static frontend from client/dist if available (unified fullstack deployment / Render)
 const resolveClientDistPath = () => {
     const candidates = [
@@ -374,6 +383,7 @@ app.post('/api/auth/resend-verification', async (req, res) => {
 });
 // Login with username and password (Supabase Auth single source of truth)
 app.post('/api/auth/login', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     try {
         const { username, password } = req.body || {};
         if (!username || !password) {
@@ -415,6 +425,13 @@ app.post('/api/auth/login', async (req, res) => {
                         access_token: siData.session.access_token,
                         refresh_token: siData.session.refresh_token
                     }
+                });
+            }
+            if (siError && siError.message && siError.message.toLowerCase().includes('email not confirmed')) {
+                return res.status(403).json({
+                    error: 'Please verify your Gmail address before logging in.',
+                    unverified: true,
+                    email: userEmail
                 });
             }
         }
@@ -465,6 +482,11 @@ app.post('/api/auth/login', async (req, res) => {
                     }
                 }
             }
+        }
+        if (!supabase && !supabaseAdmin) {
+            return res.status(503).json({
+                error: 'Authentication database unavailable. Please verify SUPABASE_URL and SUPABASE_ANON_KEY environment variables.'
+            });
         }
         return res.status(401).json({ error: 'Invalid username or password' });
     }
@@ -1179,18 +1201,10 @@ app.use((err, req, res, next) => {
         statusCode: status
     });
 });
-// Detect serverless environment (Vercel Functions / AWS Lambda) to prevent port-binding conflicts
-const isServerless = Boolean(process.env.VERCEL ||
-    process.env.VERCEL_ENV ||
-    process.env.VERCEL_URL ||
-    process.env.VERCEL_REGION ||
-    process.env.AWS_LAMBDA_FUNCTION_NAME ||
-    process.env.NOW_REGION ||
-    process.env.LAMBDA_TASK_ROOT);
-// HTTP Server & WebSockets
-let server = http.createServer(app);
+// HTTP Server & WebSockets (Only created in standalone / stateful mode)
+let server = isServerless ? null : http.createServer(app);
 let wss = null;
-if (!isServerless) {
+if (!isServerless && server) {
     wss = new WebSocketServer({ server });
     wss.on('connection', (ws) => {
         roomManager.handleConnection(ws);
@@ -1199,16 +1213,19 @@ if (!isServerless) {
 // Start permanent HTTP listener only when directly executed (standalone/persistent mode)
 const isDirectExecution = Boolean(process.argv[1] && (process.argv[1].endsWith('index.ts') ||
     process.argv[1].endsWith('index.js')) && !process.argv[1].includes('___vc'));
-if (!isServerless && isDirectExecution && process.env.NODE_ENV !== 'test') {
+if (!isServerless && isDirectExecution && server && process.env.NODE_ENV !== 'test') {
     server.listen(port, host, () => {
         console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
         console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
     });
 }
 // Attach HTTP server and WebSocket server references to Express app
-app.server = server;
+if (server) {
+    app.server = server;
+}
 if (wss) {
     app.wss = wss;
 }
+app.default = app;
 export default app;
 export { app, server, roomManager, tournamentManager };

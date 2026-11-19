@@ -124,6 +124,20 @@ export class AuthService {
     return { valid: true };
   }
 
+  // Helper: safely parse JSON responses without throwing syntax errors on plain text/HTML errors
+  public static async safeJson(res: Response): Promise<any> {
+    try {
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch {
+      return {
+        error: res.status >= 500
+          ? `Server error (${res.status}). The server encountered an unexpected condition.`
+          : `HTTP error ${res.status}`
+      };
+    }
+  }
+
   // Register new account with unique username, secure password and mandatory @gmail.com
   public async register(
     username: string,
@@ -149,7 +163,7 @@ export class AuthService {
         })
       });
 
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         return { success: false, error: data.error || 'Registration failed' };
       }
@@ -195,7 +209,7 @@ export class AuthService {
         })
       });
 
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         if (data.unverified) {
           return {
@@ -243,7 +257,7 @@ export class AuthService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() })
       });
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         return { success: false, error: data.error || 'Failed to resend verification email' };
       }
@@ -273,7 +287,7 @@ export class AuthService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: clean })
       });
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         return { success: false, error: data.error || 'Failed to send recovery code' };
       }
@@ -301,7 +315,7 @@ export class AuthService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: cleanId, code: cleanCode })
       });
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         return { success: false, error: data.error || 'Invalid or expired recovery code.' };
       }
@@ -368,7 +382,7 @@ export class AuthService {
         })
       });
 
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) {
         return { success: false, error: data.error || 'Failed to change password' };
       }
@@ -398,7 +412,7 @@ export class AuthService {
       if (!res.ok) {
         return { available: true, message: 'Available' };
       }
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       return {
         available: Boolean(data.available),
         message: data.message || (data.available ? 'Username is available' : 'This username is already taken')
@@ -434,7 +448,7 @@ export class AuthService {
           email: this.currentUser.email
         })
       });
-      const data = await res.json();
+      const data = await AuthService.safeJson(res);
       if (!res.ok) return { success: false, error: data.error || 'Failed to update name' };
       const updated: AuthUser = {
         ...this.currentUser,

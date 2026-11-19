@@ -6,7 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Locate or create data storage directory
 const getStorageFilePath = () => {
-    const defaultDir = path.join(process.cwd(), 'server', 'data');
+    const isServerless = Boolean(process.env.VERCEL ||
+        process.env.VERCEL_ENV ||
+        process.env.VERCEL_URL ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME ||
+        process.env.LAMBDA_TASK_ROOT);
+    const defaultDir = isServerless ? path.join('/tmp', 'bidwars_data') : path.join(process.cwd(), 'server', 'data');
     if (!fs.existsSync(defaultDir)) {
         try {
             fs.mkdirSync(defaultDir, { recursive: true });

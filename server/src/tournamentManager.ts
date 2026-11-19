@@ -18,7 +18,7 @@ import { MatchEngine } from './matchEngine.js';
 import { FixtureGenerator } from './fixtureGenerator.js';
 import { tournamentStorage } from './tournamentStorage.js';
 import { supabase, supabaseAdmin } from './supabase.js';
-import { roomManager } from './index.js';
+import { roomManager } from './roomManager.js';
 import { getAllPlayers } from './playerService.js';
 
 export class TournamentManager {

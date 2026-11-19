@@ -507,3 +507,6 @@ export class RoomManager {
     }
   }
 }
+
+export const roomManager = new RoomManager();
+

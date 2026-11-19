@@ -12,13 +12,18 @@ const __dirname = path.dirname(__filename);
 const getDataPath = (filename: string): string => {
   const candidates = [
     path.join(__dirname, 'data', filename),
+    path.join(__dirname, '..', 'dist', 'data', filename),
     path.join(__dirname, '..', 'src', 'data', filename),
     path.join(__dirname, '..', 'data', filename),
     path.join(process.cwd(), 'dist', 'data', filename),
     path.join(process.cwd(), 'server', 'dist', 'data', filename),
     path.join(process.cwd(), 'src', 'data', filename),
     path.join(process.cwd(), 'server', 'src', 'data', filename),
-    path.join(process.cwd(), 'data', filename)
+    path.join(process.cwd(), 'data', filename),
+    path.join('/var/task', 'server', 'dist', 'data', filename),
+    path.join('/var/task', 'dist', 'data', filename),
+    path.join('/var/task', 'server', 'src', 'data', filename),
+    path.join('/var/task', 'src', 'data', filename)
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;

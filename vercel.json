@@ -19,7 +19,12 @@
       "framework": "express",
       "installCommand": "npm install",
       "buildCommand": "npm run build",
-      "entrypoint": "dist/index.js"
+      "entrypoint": "dist/index.js",
+      "functions": {
+        "dist/index.js": {
+          "includeFiles": "dist/data/**"
+        }
+      }
     }
   },
   "rewrites": [
