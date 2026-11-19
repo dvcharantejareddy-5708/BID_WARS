@@ -26,6 +26,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/diag",
+      "destination": "/api/diag.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": {
         "service": "server"
