@@ -5,8 +5,7 @@ import { fileURLToPath } from 'url';
 import { supabase, supabaseAdmin } from './supabase.js';
 import { Tournament, UserProfile, LiveMatch } from './tournamentTypes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
 const getTournamentStorageFilePath = (): string => {
   const isServerless = Boolean(

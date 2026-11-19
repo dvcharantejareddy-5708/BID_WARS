@@ -1,4 +1,9 @@
-export const LEGAL_CHOICES = [0, 1, 2, 3, 4, 6];
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MatchEngine = exports.LEGAL_CHOICES = void 0;
+exports.getMaxBowlerOvers = getMaxBowlerOvers;
+exports.sanitizeMatchForViewer = sanitizeMatchForViewer;
+exports.LEGAL_CHOICES = [0, 1, 2, 3, 4, 6];
 /**
  * Bowling Limits explicitly per tournament match overs:
  * 1 Over: 1 max
@@ -8,7 +13,7 @@ export const LEGAL_CHOICES = [0, 1, 2, 3, 4, 6];
  * 15 Overs: 3 max
  * 20 Overs: 4 max
  */
-export function getMaxBowlerOvers(matchOvers) {
+function getMaxBowlerOvers(matchOvers) {
     if (matchOvers <= 1)
         return 1;
     if (matchOvers <= 2)
@@ -21,7 +26,7 @@ export function getMaxBowlerOvers(matchOvers) {
         return 3;
     return 4; // 20 overs
 }
-export class MatchEngine {
+class MatchEngine {
     /**
      * Initializes a new live match from fixture and confirmed lineups
      */
@@ -434,7 +439,7 @@ export class MatchEngine {
             if (match.pendingInputs.bowlerChoice !== undefined) {
                 return { resolved: false, error: 'Bowler choice already submitted and locked for this delivery.' };
             }
-            if (!LEGAL_CHOICES.includes(choice)) {
+            if (!exports.LEGAL_CHOICES.includes(choice)) {
                 return { resolved: false, error: 'Invalid delivery choice' };
             }
             if (ability === 'NUMBER_BLOCK' || ability === 'ELITE_NUMBER_BLOCK') {
@@ -454,7 +459,7 @@ export class MatchEngine {
                     if (!blockedNumbers ||
                         blockedNumbers.length !== 3 ||
                         new Set(blockedNumbers).size !== 3 ||
-                        !blockedNumbers.every(n => LEGAL_CHOICES.includes(n))) {
+                        !blockedNumbers.every(n => exports.LEGAL_CHOICES.includes(n))) {
                         return { resolved: false, error: 'Bowler must select exactly 3 unique scoring options to block from [0, 1, 2, 3, 4, 6]' };
                     }
                 }
@@ -475,7 +480,7 @@ export class MatchEngine {
             if (match.pendingInputs.batterChoice !== undefined) {
                 return { resolved: false, error: 'Batter choice already submitted and locked for this delivery.' };
             }
-            if (!LEGAL_CHOICES.includes(choice)) {
+            if (!exports.LEGAL_CHOICES.includes(choice)) {
                 return { resolved: false, error: 'Invalid scoring choice' };
             }
             // Check if choice is restricted by an active bowler block
@@ -572,8 +577,8 @@ export class MatchEngine {
         // Active delivery timeout handling
         // If bowler didn't submit, pick random legal choice
         if (match.pendingInputs.bowlerChoice === undefined) {
-            const randIdx = Math.floor(Math.random() * LEGAL_CHOICES.length);
-            match.pendingInputs.bowlerChoice = LEGAL_CHOICES[randIdx];
+            const randIdx = Math.floor(Math.random() * exports.LEGAL_CHOICES.length);
+            match.pendingInputs.bowlerChoice = exports.LEGAL_CHOICES[randIdx];
         }
         // If batter didn't submit, batter is timed out!
         if (match.pendingInputs.batterChoice === undefined) {
@@ -995,12 +1000,13 @@ export class MatchEngine {
         return { success: true, message: `Impact Player ${playerIn.name} brought on for ${playerOutId}` };
     }
 }
+exports.MatchEngine = MatchEngine;
 /**
  * Strips secret, uncommitted opponent choices from LiveMatch payload
  * Ensures simultaneous commit integrity: Batter cannot see bowler's choice,
  * Bowler cannot see batter's choice or secret 2x activation.
  */
-export function sanitizeMatchForViewer(match, viewerFranchiseId) {
+function sanitizeMatchForViewer(match, viewerFranchiseId) {
     if (!match)
         return match;
     const clone = JSON.parse(JSON.stringify(match));

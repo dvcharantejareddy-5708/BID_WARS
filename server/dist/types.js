@@ -1,4 +1,9 @@
-export const IPL_FRANCHISES = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IPL_FRANCHISES = void 0;
+exports.resolveTeamId = resolveTeamId;
+exports.resolveTeamFranchise = resolveTeamFranchise;
+exports.IPL_FRANCHISES = {
     CSK: {
         id: 'CSK',
         name: 'Chennai Super Kings',
@@ -120,13 +125,13 @@ export const IPL_FRANCHISES = {
         logoUrl: '/logos/lsg.webp'
     }
 };
-export function resolveTeamId(input) {
+function resolveTeamId(input) {
     if (!input)
         return null;
     const clean = input.trim().toUpperCase();
-    if (clean in IPL_FRANCHISES)
+    if (clean in exports.IPL_FRANCHISES)
         return clean;
-    for (const [key, f] of Object.entries(IPL_FRANCHISES)) {
+    for (const [key, f] of Object.entries(exports.IPL_FRANCHISES)) {
         if (f.shortName.toUpperCase() === clean || f.name.toUpperCase() === clean) {
             return key;
         }
@@ -153,7 +158,7 @@ export function resolveTeamId(input) {
         return 'LSG';
     return null;
 }
-export function resolveTeamFranchise(input) {
+function resolveTeamFranchise(input) {
     const id = resolveTeamId(input);
-    return id ? IPL_FRANCHISES[id] : null;
+    return id ? exports.IPL_FRANCHISES[id] : null;
 }

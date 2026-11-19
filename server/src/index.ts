@@ -36,8 +36,8 @@ process.on('unhandledRejection', (reason) => {
   console.error('[Diagnostic UnhandledRejection]', reason);
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const currentFilename = typeof __filename !== 'undefined' ? __filename : '';
 
 const app = express();
 const port = parseInt(process.env.PORT || '3001', 10);
@@ -63,8 +63,8 @@ if (!isServerless) {
 // Serve static frontend from client/dist if available (unified fullstack deployment / Render)
 const resolveClientDistPath = (): string => {
   const candidates = [
-    path.join(__dirname, '../../client/dist'),
-    path.join(__dirname, '../client/dist'),
+    path.join(currentDirname, '../../client/dist'),
+    path.join(currentDirname, '../client/dist'),
     path.join(process.cwd(), 'client/dist'),
     path.join(process.cwd(), '../client/dist')
   ];
@@ -1386,6 +1386,16 @@ if (wss) {
 (app as any).handler = handler;
 (handler as any).app = app;
 (handler as any).default = app;
+
+if (typeof module !== 'undefined' && (module as any).exports) {
+  (module as any).exports = app;
+  (module as any).exports.default = app;
+  (module as any).exports.handler = handler;
+  (module as any).exports.server = server;
+  (module as any).exports.roomManager = roomManager;
+  (module as any).exports.tournamentManager = tournamentManager;
+  (module as any).exports.isServerless = isServerless;
+}
 
 export default app;
 export { app, server, roomManager, tournamentManager };

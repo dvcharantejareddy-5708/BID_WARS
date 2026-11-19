@@ -1,29 +1,33 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
-import { supabase, supabaseAdmin } from './supabase.js';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tournamentStorage = exports.TournamentStorageService = void 0;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const os_1 = __importDefault(require("os"));
+const supabase_js_1 = require("./supabase.js");
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 const getTournamentStorageFilePath = () => {
     const isServerless = Boolean(process.env.VERCEL ||
         process.env.VERCEL_ENV ||
         process.env.VERCEL_URL ||
         process.env.AWS_LAMBDA_FUNCTION_NAME ||
         process.env.LAMBDA_TASK_ROOT);
-    const defaultDir = isServerless ? path.join(os.tmpdir(), 'bidwars_data') : path.join(process.cwd(), 'server', 'data');
-    if (!fs.existsSync(defaultDir)) {
+    const defaultDir = isServerless ? path_1.default.join(os_1.default.tmpdir(), 'bidwars_data') : path_1.default.join(process.cwd(), 'server', 'data');
+    if (!fs_1.default.existsSync(defaultDir)) {
         try {
-            fs.mkdirSync(defaultDir, { recursive: true });
+            fs_1.default.mkdirSync(defaultDir, { recursive: true });
         }
         catch { }
     }
-    return path.join(defaultDir, 'persisted_tournaments.json');
+    return path_1.default.join(defaultDir, 'persisted_tournaments.json');
 };
 const storageFilePath = getTournamentStorageFilePath();
-const profilesFilePath = path.join(path.dirname(storageFilePath), 'persisted_profiles.json');
-const matchesFilePath = path.join(path.dirname(storageFilePath), 'persisted_matches.json');
-export class TournamentStorageService {
+const profilesFilePath = path_1.default.join(path_1.default.dirname(storageFilePath), 'persisted_profiles.json');
+const matchesFilePath = path_1.default.join(path_1.default.dirname(storageFilePath), 'persisted_matches.json');
+class TournamentStorageService {
     saveTimeout = null;
     tournamentsCache = new Map();
     pendingSaves = new Map();
@@ -37,9 +41,9 @@ export class TournamentStorageService {
     }
     init() {
         try {
-            const dir = path.dirname(storageFilePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
+            const dir = path_1.default.dirname(storageFilePath);
+            if (!fs_1.default.existsSync(dir)) {
+                fs_1.default.mkdirSync(dir, { recursive: true });
             }
         }
         catch (err) {
@@ -50,8 +54,8 @@ export class TournamentStorageService {
         this.tournamentsCache.clear();
         // 1. Read from local disk store
         try {
-            if (fs.existsSync(storageFilePath)) {
-                const raw = fs.readFileSync(storageFilePath, 'utf-8');
+            if (fs_1.default.existsSync(storageFilePath)) {
+                const raw = fs_1.default.readFileSync(storageFilePath, 'utf-8');
                 if (raw.trim()) {
                     const list = JSON.parse(raw);
                     for (const t of list) {
@@ -66,7 +70,7 @@ export class TournamentStorageService {
             console.error('[TournamentStorage] Error reading tournaments from disk:', err);
         }
         // 2. Read from Supabase if configured (Use supabaseAdmin if available to bypass RLS for server)
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -155,10 +159,10 @@ export class TournamentStorageService {
             }
             const list = Array.from(this.tournamentsCache.values());
             const tempPath = `${storageFilePath}.tmp`;
-            fs.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
-            fs.renameSync(tempPath, storageFilePath);
+            fs_1.default.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
+            fs_1.default.renameSync(tempPath, storageFilePath);
             // Async sync to Supabase if configured
-            const clientToUse = supabaseAdmin || supabase;
+            const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
             if (clientToUse && this.pendingSaves.size > 0) {
                 const toSync = Array.from(this.pendingSaves.values());
                 this.pendingSaves.clear();
@@ -275,7 +279,7 @@ export class TournamentStorageService {
         }
         this.profilesCache.clear();
         // 1. Read from Supabase PostgreSQL database (authoritative source of truth)
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -310,8 +314,8 @@ export class TournamentStorageService {
         }
         // 2. Fallback to local disk store only if Supabase database is unreachable or unconfigured
         try {
-            if (fs.existsSync(profilesFilePath)) {
-                const raw = fs.readFileSync(profilesFilePath, 'utf-8');
+            if (fs_1.default.existsSync(profilesFilePath)) {
+                const raw = fs_1.default.readFileSync(profilesFilePath, 'utf-8');
                 if (raw.trim()) {
                     const list = JSON.parse(raw);
                     for (const p of list) {
@@ -328,7 +332,7 @@ export class TournamentStorageService {
         return Array.from(this.profilesCache.values());
     }
     async getProfile(userId) {
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -360,7 +364,7 @@ export class TournamentStorageService {
     }
     async getProfileByUsername(username) {
         const cleanLower = username.trim().toLowerCase();
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         // Check Supabase DB directly
         if (clientToUse) {
             try {
@@ -401,7 +405,7 @@ export class TournamentStorageService {
         const cleanLower = email.trim().toLowerCase();
         if (!cleanLower)
             return false;
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         // Supabase PostgreSQL is the single authoritative source of truth for email uniqueness
         if (clientToUse) {
             try {
@@ -432,7 +436,7 @@ export class TournamentStorageService {
     }
     async getProfileByEmail(email) {
         const cleanLower = email.trim().toLowerCase();
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -469,9 +473,9 @@ export class TournamentStorageService {
     async getLegacyCredentials(username) {
         const cleanLower = username.trim().toLowerCase();
         // 1. Check auth_secrets table in Supabase via Admin client
-        if (supabaseAdmin) {
+        if (supabase_js_1.supabaseAdmin) {
             try {
-                const { data, error } = await supabaseAdmin
+                const { data, error } = await supabase_js_1.supabaseAdmin
                     .from('auth_secrets')
                     .select('user_id, username, password_hash, password_salt')
                     .ilike('username', cleanLower)
@@ -490,8 +494,8 @@ export class TournamentStorageService {
         }
         // 2. Check local persisted_profiles.json for legacy accounts
         try {
-            if (fs.existsSync(profilesFilePath)) {
-                const raw = fs.readFileSync(profilesFilePath, 'utf-8');
+            if (fs_1.default.existsSync(profilesFilePath)) {
+                const raw = fs_1.default.readFileSync(profilesFilePath, 'utf-8');
                 if (raw.trim()) {
                     const list = JSON.parse(raw);
                     for (const p of list) {
@@ -513,9 +517,9 @@ export class TournamentStorageService {
         return undefined;
     }
     async updateCredentials(userId, passwordHash, salt) {
-        if (supabaseAdmin) {
+        if (supabase_js_1.supabaseAdmin) {
             try {
-                await supabaseAdmin.from('auth_secrets').upsert({
+                await supabase_js_1.supabaseAdmin.from('auth_secrets').upsert({
                     user_id: userId,
                     password_hash: passwordHash,
                     password_salt: salt,
@@ -531,7 +535,7 @@ export class TournamentStorageService {
         const cleanLower = name.trim().toLowerCase();
         if (!cleanLower)
             return false;
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         // Supabase PostgreSQL is the single authoritative source of truth for username uniqueness
         if (clientToUse) {
             try {
@@ -568,7 +572,7 @@ export class TournamentStorageService {
             inGameName: cleanUsername,
             updatedAt: Date.now()
         };
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (!clientToUse) {
             throw new Error('Supabase database service is not configured. Local JSON fallback persistence is strictly disabled.');
         }
@@ -590,9 +594,9 @@ export class TournamentStorageService {
             throw new Error(`Failed to persist profile to Supabase database: ${error.message}`);
         }
         // 2. Also back up private credentials to public.auth_secrets if hash and salt present (Service Role Only)
-        if (updated.passwordHash && updated.salt && supabaseAdmin) {
+        if (updated.passwordHash && updated.salt && supabase_js_1.supabaseAdmin) {
             try {
-                await supabaseAdmin.from('auth_secrets').upsert({
+                await supabase_js_1.supabaseAdmin.from('auth_secrets').upsert({
                     user_id: updated.id,
                     username: updated.username,
                     password_hash: updated.passwordHash,
@@ -616,8 +620,8 @@ export class TournamentStorageService {
         this.matchesCache.clear();
         // 1. Read from local disk store
         try {
-            if (fs.existsSync(matchesFilePath)) {
-                const raw = fs.readFileSync(matchesFilePath, 'utf-8');
+            if (fs_1.default.existsSync(matchesFilePath)) {
+                const raw = fs_1.default.readFileSync(matchesFilePath, 'utf-8');
                 if (raw.trim()) {
                     const list = JSON.parse(raw);
                     for (const m of list) {
@@ -632,7 +636,7 @@ export class TournamentStorageService {
             console.warn('[TournamentStorage] Error reading matches file:', err);
         }
         // 2. Read from Supabase public.matches
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -687,13 +691,13 @@ export class TournamentStorageService {
         // Save to local disk
         try {
             const list = Array.from(this.matchesCache.values());
-            fs.writeFileSync(matchesFilePath, JSON.stringify(list, null, 2), 'utf-8');
+            fs_1.default.writeFileSync(matchesFilePath, JSON.stringify(list, null, 2), 'utf-8');
         }
         catch (err) {
             console.warn('[TournamentStorage] Error writing matches file:', err);
         }
         // Async save to Supabase
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             (async () => {
                 try {
@@ -731,4 +735,5 @@ export class TournamentStorageService {
         }
     }
 }
-export const tournamentStorage = new TournamentStorageService();
+exports.TournamentStorageService = TournamentStorageService;
+exports.tournamentStorage = new TournamentStorageService();

@@ -1,10 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
-import { supabase, supabaseAdmin } from './supabase.js';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.storageService = void 0;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const os_1 = __importDefault(require("os"));
+const supabase_js_1 = require("./supabase.js");
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 // Locate or create data storage directory
 const getStorageFilePath = () => {
     const isServerless = Boolean(process.env.VERCEL ||
@@ -12,14 +16,14 @@ const getStorageFilePath = () => {
         process.env.VERCEL_URL ||
         process.env.AWS_LAMBDA_FUNCTION_NAME ||
         process.env.LAMBDA_TASK_ROOT);
-    const defaultDir = isServerless ? path.join(os.tmpdir(), 'bidwars_data') : path.join(process.cwd(), 'server', 'data');
-    if (!fs.existsSync(defaultDir)) {
+    const defaultDir = isServerless ? path_1.default.join(os_1.default.tmpdir(), 'bidwars_data') : path_1.default.join(process.cwd(), 'server', 'data');
+    if (!fs_1.default.existsSync(defaultDir)) {
         try {
-            fs.mkdirSync(defaultDir, { recursive: true });
+            fs_1.default.mkdirSync(defaultDir, { recursive: true });
         }
         catch { }
     }
-    return path.join(defaultDir, 'persisted_rooms.json');
+    return path_1.default.join(defaultDir, 'persisted_rooms.json');
 };
 const storageFilePath = getStorageFilePath();
 class StorageService {
@@ -32,9 +36,9 @@ class StorageService {
     }
     init() {
         try {
-            const dir = path.dirname(storageFilePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
+            const dir = path_1.default.dirname(storageFilePath);
+            if (!fs_1.default.existsSync(dir)) {
+                fs_1.default.mkdirSync(dir, { recursive: true });
             }
         }
         catch (err) {
@@ -57,8 +61,8 @@ class StorageService {
         this.roomsCache.clear();
         // 1. Try reading from local durable file store
         try {
-            if (fs.existsSync(storageFilePath)) {
-                const raw = fs.readFileSync(storageFilePath, 'utf-8');
+            if (fs_1.default.existsSync(storageFilePath)) {
+                const raw = fs_1.default.readFileSync(storageFilePath, 'utf-8');
                 if (raw.trim()) {
                     const list = JSON.parse(raw);
                     for (const r of list) {
@@ -73,7 +77,7 @@ class StorageService {
             console.error('[Storage] Error reading persisted rooms from disk:', err);
         }
         // 2. If Supabase is active, fetch any rooms missing or newer
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 const { data, error } = await clientToUse
@@ -137,10 +141,10 @@ class StorageService {
             const list = Array.from(this.roomsCache.values());
             const tempPath = `${storageFilePath}.tmp`;
             // High-performance compact write without multi-megabyte whitespace formatting
-            fs.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
-            fs.renameSync(tempPath, storageFilePath);
+            fs_1.default.writeFileSync(tempPath, JSON.stringify(list), 'utf-8');
+            fs_1.default.renameSync(tempPath, storageFilePath);
             // Async sync to Supabase if configured for only pending items
-            const clientToUse = supabaseAdmin || supabase;
+            const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
             if (clientToUse && this.pendingRooms.size > 0) {
                 const toSync = Array.from(this.pendingRooms.values());
                 this.pendingRooms.clear();
@@ -163,4 +167,4 @@ class StorageService {
         }
     }
 }
-export const storageService = new StorageService();
+exports.storageService = new StorageService();

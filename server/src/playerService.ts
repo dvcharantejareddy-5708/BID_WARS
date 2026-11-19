@@ -4,26 +4,28 @@ import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { Player, AuctionLot } from './types.js';
 
-const require = createRequire(import.meta.url);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const safeRequire: any = typeof require !== 'undefined' ? require : () => null;
 
 // Load datasets (support static bundler trace, ts-node/tsx src/, compiled dist/, and Vercel paths)
 const getDataPath = (filename: string): string => {
   const candidates = [
-    path.join(__dirname, 'data', filename),
-    path.join(__dirname, '..', 'dist', 'data', filename),
-    path.join(__dirname, '..', 'src', 'data', filename),
-    path.join(__dirname, '..', 'data', filename),
+    path.join(currentDirname, 'data', filename),
+    path.join(currentDirname, '..', 'dist', 'data', filename),
+    path.join(currentDirname, '..', 'src', 'data', filename),
+    path.join(currentDirname, '..', 'data', filename),
     path.join(process.cwd(), 'dist', 'data', filename),
     path.join(process.cwd(), 'server', 'dist', 'data', filename),
     path.join(process.cwd(), 'src', 'data', filename),
     path.join(process.cwd(), 'server', 'src', 'data', filename),
+    path.join(process.cwd(), 'server', 'data', filename),
     path.join(process.cwd(), 'data', filename),
     path.join('/var/task', 'server', 'dist', 'data', filename),
     path.join('/var/task', 'dist', 'data', filename),
     path.join('/var/task', 'server', 'src', 'data', filename),
-    path.join('/var/task', 'src', 'data', filename)
+    path.join('/var/task', 'server', 'data', filename),
+    path.join('/var/task', 'src', 'data', filename),
+    path.join('/var/task', 'data', filename)
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
@@ -34,17 +36,23 @@ const getDataPath = (filename: string): string => {
 function loadDataset(filename: string): Player[] {
   // 1. Static require to ensure @vercel/nft traces and bundles the JSON assets
   try {
-    if (filename === 'players2026.json') {
-      try {
-        return require('./data/players2026.json');
-      } catch {
-        return require('../src/data/players2026.json');
-      }
-    } else if (filename === 'players2025.json') {
-      try {
-        return require('./data/players2025.json');
-      } catch {
-        return require('../src/data/players2025.json');
+    if (typeof safeRequire === 'function') {
+      if (filename === 'players2026.json') {
+        try {
+          const res = safeRequire('./data/players2026.json');
+          if (res) return res;
+        } catch {
+          const res = safeRequire('../src/data/players2026.json');
+          if (res) return res;
+        }
+      } else if (filename === 'players2025.json') {
+        try {
+          const res = safeRequire('./data/players2025.json');
+          if (res) return res;
+        } catch {
+          const res = safeRequire('../src/data/players2025.json');
+          if (res) return res;
+        }
       }
     }
   } catch (err) {

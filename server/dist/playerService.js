@@ -1,29 +1,39 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getAllPlayers = getAllPlayers;
+exports.getPlayerById = getPlayerById;
+exports.shuffleArray = shuffleArray;
+exports.buildAuctionLots = buildAuctionLots;
+exports.buildTournamentAuctionLots = buildTournamentAuctionLots;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const safeRequire = typeof require !== 'undefined' ? require : () => null;
 // Load datasets (support static bundler trace, ts-node/tsx src/, compiled dist/, and Vercel paths)
 const getDataPath = (filename) => {
     const candidates = [
-        path.join(__dirname, 'data', filename),
-        path.join(__dirname, '..', 'dist', 'data', filename),
-        path.join(__dirname, '..', 'src', 'data', filename),
-        path.join(__dirname, '..', 'data', filename),
-        path.join(process.cwd(), 'dist', 'data', filename),
-        path.join(process.cwd(), 'server', 'dist', 'data', filename),
-        path.join(process.cwd(), 'src', 'data', filename),
-        path.join(process.cwd(), 'server', 'src', 'data', filename),
-        path.join(process.cwd(), 'data', filename),
-        path.join('/var/task', 'server', 'dist', 'data', filename),
-        path.join('/var/task', 'dist', 'data', filename),
-        path.join('/var/task', 'server', 'src', 'data', filename),
-        path.join('/var/task', 'src', 'data', filename)
+        path_1.default.join(currentDirname, 'data', filename),
+        path_1.default.join(currentDirname, '..', 'dist', 'data', filename),
+        path_1.default.join(currentDirname, '..', 'src', 'data', filename),
+        path_1.default.join(currentDirname, '..', 'data', filename),
+        path_1.default.join(process.cwd(), 'dist', 'data', filename),
+        path_1.default.join(process.cwd(), 'server', 'dist', 'data', filename),
+        path_1.default.join(process.cwd(), 'src', 'data', filename),
+        path_1.default.join(process.cwd(), 'server', 'src', 'data', filename),
+        path_1.default.join(process.cwd(), 'server', 'data', filename),
+        path_1.default.join(process.cwd(), 'data', filename),
+        path_1.default.join('/var/task', 'server', 'dist', 'data', filename),
+        path_1.default.join('/var/task', 'dist', 'data', filename),
+        path_1.default.join('/var/task', 'server', 'src', 'data', filename),
+        path_1.default.join('/var/task', 'server', 'data', filename),
+        path_1.default.join('/var/task', 'src', 'data', filename),
+        path_1.default.join('/var/task', 'data', filename)
     ];
     for (const p of candidates) {
-        if (fs.existsSync(p))
+        if (fs_1.default.existsSync(p))
             return p;
     }
     return candidates[0];
@@ -31,20 +41,30 @@ const getDataPath = (filename) => {
 function loadDataset(filename) {
     // 1. Static require to ensure @vercel/nft traces and bundles the JSON assets
     try {
-        if (filename === 'players2026.json') {
-            try {
-                return require('./data/players2026.json');
+        if (typeof safeRequire === 'function') {
+            if (filename === 'players2026.json') {
+                try {
+                    const res = safeRequire('./data/players2026.json');
+                    if (res)
+                        return res;
+                }
+                catch {
+                    const res = safeRequire('../src/data/players2026.json');
+                    if (res)
+                        return res;
+                }
             }
-            catch {
-                return require('../src/data/players2026.json');
-            }
-        }
-        else if (filename === 'players2025.json') {
-            try {
-                return require('./data/players2025.json');
-            }
-            catch {
-                return require('../src/data/players2025.json');
+            else if (filename === 'players2025.json') {
+                try {
+                    const res = safeRequire('./data/players2025.json');
+                    if (res)
+                        return res;
+                }
+                catch {
+                    const res = safeRequire('../src/data/players2025.json');
+                    if (res)
+                        return res;
+                }
             }
         }
     }
@@ -54,8 +74,8 @@ function loadDataset(filename) {
     // 2. Direct filesystem read fallback
     try {
         const p = getDataPath(filename);
-        if (fs.existsSync(p)) {
-            return JSON.parse(fs.readFileSync(p, 'utf-8'));
+        if (fs_1.default.existsSync(p)) {
+            return JSON.parse(fs_1.default.readFileSync(p, 'utf-8'));
         }
         console.error(`[PlayerService] Dataset file not found at any candidate path: ${filename}`);
     }
@@ -66,17 +86,17 @@ function loadDataset(filename) {
 }
 const players2026 = loadDataset('players2026.json');
 const players2025 = loadDataset('players2025.json');
-export function getAllPlayers(season = '2026') {
+function getAllPlayers(season = '2026') {
     return season === '2025' ? players2025 : players2026;
 }
-export function getPlayerById(id, season = '2026') {
+function getPlayerById(id, season = '2026') {
     const list = getAllPlayers(season);
     return list.find(p => p.id === id);
 }
 /**
  * Fisher-Yates shuffle algorithm for impartial, uniform random distribution
  */
-export function shuffleArray(array) {
+function shuffleArray(array) {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -96,7 +116,7 @@ export function shuffleArray(array) {
  * 5. Empty categories are automatically skipped.
  * 6. Every eligible player appears exactly once (532 players in Mega Auction, 359 in Mini Auction).
  */
-export function buildAuctionLots(season = '2026', poolMode = 'auction_pool', customMarqueeIds = []) {
+function buildAuctionLots(season = '2026', poolMode = 'auction_pool', customMarqueeIds = []) {
     let pool = getAllPlayers(season);
     if (poolMode === 'auction_pool') {
         // Mini Auction: Only auction-eligible (non-retained) players
@@ -177,6 +197,6 @@ export function buildAuctionLots(season = '2026', poolMode = 'auction_pool', cus
         bids: []
     }));
 }
-export function buildTournamentAuctionLots(season = '2026', poolMode = 'mega_all') {
+function buildTournamentAuctionLots(season = '2026', poolMode = 'mega_all') {
     return buildAuctionLots(season, poolMode);
 }

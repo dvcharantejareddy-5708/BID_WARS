@@ -1,4 +1,7 @@
-export function evaluateBotBid(botMember, teamId, player, currentBid, currentBidder, squad, remainingPurse, settings) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.evaluateBotBid = evaluateBotBid;
+function evaluateBotBid(botMember, teamId, player, currentBid, currentBidder, squad, remainingPurse, settings) {
     // 1. Don't bid against self
     if (currentBidder === teamId) {
         return { shouldBid: false, maxWillingToPay: 0, delayMs: 0 };

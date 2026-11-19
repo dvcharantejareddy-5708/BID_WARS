@@ -1,9 +1,15 @@
-import crypto from 'crypto';
-import { IPL_FRANCHISES } from './types.js';
-import { buildAuctionLots, buildTournamentAuctionLots, shuffleArray } from './playerService.js';
-import { evaluateBotBid } from './botEngine.js';
-import { storageService } from './storageService.js';
-export class GameRoom {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GameRoom = void 0;
+const crypto_1 = __importDefault(require("crypto"));
+const types_js_1 = require("./types.js");
+const playerService_js_1 = require("./playerService.js");
+const botEngine_js_1 = require("./botEngine.js");
+const storageService_js_1 = require("./storageService.js");
+class GameRoom {
     roomCode;
     settings;
     status = 'LOBBY';
@@ -52,7 +58,7 @@ export class GameRoom {
         if (this.isPrivate && initialSettings.password !== undefined && initialSettings.password !== null) {
             const cleanPassword = String(initialSettings.password).trim();
             if (cleanPassword) {
-                this.passwordHash = crypto.createHash('sha256').update(cleanPassword).digest('hex');
+                this.passwordHash = crypto_1.default.createHash('sha256').update(cleanPassword).digest('hex');
             }
         }
         this.settings = {
@@ -104,8 +110,8 @@ export class GameRoom {
         this.addAuditLog('ROOM_CREATED', `Room ${roomCode} created by ${hostNickname}`, hostNickname);
         // Mandatory: Generate randomized auction queue on room creation and persist it
         this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
-            ? buildTournamentAuctionLots(this.settings.season)
-            : buildAuctionLots(this.settings.season, this.settings.poolMode);
+            ? (0, playerService_js_1.buildTournamentAuctionLots)(this.settings.season)
+            : (0, playerService_js_1.buildAuctionLots)(this.settings.season, this.settings.poolMode);
     }
     verifyPassword(inputPassword) {
         if (!this.isPrivate)
@@ -117,7 +123,7 @@ export class GameRoom {
         const cleanInput = String(inputPassword).trim();
         if (!cleanInput)
             return false;
-        const hash = crypto.createHash('sha256').update(cleanInput).digest('hex');
+        const hash = crypto_1.default.createHash('sha256').update(cleanInput).digest('hex');
         return hash === this.passwordHash;
     }
     addAuditLog(action, details, performer) {
@@ -268,7 +274,7 @@ export class GameRoom {
             if (otherId !== memberId && other.teamId === teamId) {
                 return {
                     success: false,
-                    message: `${IPL_FRANCHISES[teamId].name} (${teamId}) has already been claimed by ${other.nickname}. Please choose another available franchise.`
+                    message: `${types_js_1.IPL_FRANCHISES[teamId].name} (${teamId}) has already been claimed by ${other.nickname}. Please choose another available franchise.`
                 };
             }
         }
@@ -285,14 +291,14 @@ export class GameRoom {
         }
         const oldTeam = member.teamId;
         member.teamId = teamId;
-        this.addAuditLog('TEAM_SELECTED', `${member.nickname} selected ${IPL_FRANCHISES[teamId].name} (${teamId})` + (oldTeam ? ` (released ${oldTeam})` : ''), member.nickname);
+        this.addAuditLog('TEAM_SELECTED', `${member.nickname} selected ${types_js_1.IPL_FRANCHISES[teamId].name} (${teamId})` + (oldTeam ? ` (released ${oldTeam})` : ''), member.nickname);
         this.addBidLog({
             type: 'EVENT',
             eventAction: 'TEAM_SELECTED',
             teamId,
-            teamName: IPL_FRANCHISES[teamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[teamId].name,
             bidderName: member.nickname,
-            eventMessage: `${member.nickname} joined as manager of ${IPL_FRANCHISES[teamId].name} (${teamId})`
+            eventMessage: `${member.nickname} joined as manager of ${types_js_1.IPL_FRANCHISES[teamId].name} (${teamId})`
         });
         this.broadcastState();
         return { success: true };
@@ -358,7 +364,7 @@ export class GameRoom {
             return { success: false, message: 'Cannot add bots after auction start' };
         for (const member of this.members.values()) {
             if (member.teamId === teamId) {
-                return { success: false, message: `${IPL_FRANCHISES[teamId].name} is already occupied` };
+                return { success: false, message: `${types_js_1.IPL_FRANCHISES[teamId].name} is already occupied` };
             }
         }
         const botId = `bot_${teamId.toLowerCase()}`;
@@ -417,8 +423,8 @@ export class GameRoom {
         // Generate lots on auction start if starting from LOBBY or uninitialized; preserves saved queue on reconnects
         if (!this.lots || this.lots.length === 0 || this.status === 'LOBBY') {
             this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
-                ? buildTournamentAuctionLots(this.settings.season)
-                : buildAuctionLots(this.settings.season, this.settings.poolMode);
+                ? (0, playerService_js_1.buildTournamentAuctionLots)(this.settings.season)
+                : (0, playerService_js_1.buildAuctionLots)(this.settings.season, this.settings.poolMode);
         }
         if (this.lots.length === 0) {
             return { success: false, message: 'No eligible auction lots found for this season/pool mode' };
@@ -620,7 +626,7 @@ export class GameRoom {
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId,
-                    teamName: IPL_FRANCHISES[teamId].name,
+                    teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                     bidderName: member.nickname,
                     amount: customAmount || lot.currentBid,
                     accepted: false,
@@ -641,7 +647,7 @@ export class GameRoom {
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId,
-                    teamName: IPL_FRANCHISES[teamId].name,
+                    teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                     bidderName: member.nickname,
                     amount: bidAmount,
                     accepted: false,
@@ -659,7 +665,7 @@ export class GameRoom {
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId,
-                    teamName: IPL_FRANCHISES[teamId].name,
+                    teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                     bidderName: member.nickname,
                     amount: bidAmount,
                     accepted: false,
@@ -678,7 +684,7 @@ export class GameRoom {
                         playerName: lot.player.name,
                         lotNumber: lot.lotNumber,
                         teamId,
-                        teamName: IPL_FRANCHISES[teamId].name,
+                        teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                         bidderName: member.nickname,
                         amount: bidAmount,
                         accepted: false,
@@ -697,7 +703,7 @@ export class GameRoom {
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId,
-                    teamName: IPL_FRANCHISES[teamId].name,
+                    teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                     bidderName: member.nickname,
                     amount: bidAmount,
                     accepted: false,
@@ -715,7 +721,7 @@ export class GameRoom {
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId,
-                    teamName: IPL_FRANCHISES[teamId].name,
+                    teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                     bidderName: member.nickname,
                     amount: bidAmount,
                     accepted: false,
@@ -731,7 +737,7 @@ export class GameRoom {
                 playerId: lot.player.id,
                 amount: bidAmount,
                 teamId,
-                teamName: IPL_FRANCHISES[teamId].name,
+                teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                 bidderName: member.nickname,
                 timestamp: Date.now(),
                 isBot: member.isBot
@@ -745,7 +751,7 @@ export class GameRoom {
                 playerName: lot.player.name,
                 lotNumber: lot.lotNumber,
                 teamId,
-                teamName: IPL_FRANCHISES[teamId].name,
+                teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                 bidderName: member.nickname,
                 amount: bidAmount,
                 accepted: true,
@@ -784,7 +790,7 @@ export class GameRoom {
             const teamId = member.teamId;
             const squad = this.teamSquads[teamId] || [];
             const purse = this.teamPurse[teamId] || 0;
-            const decision = evaluateBotBid(member, teamId, lot.player, lot.currentBid, lot.currentBidder, squad, purse, this.settings);
+            const decision = (0, botEngine_js_1.evaluateBotBid)(member, teamId, lot.player, lot.currentBid, lot.currentBidder, squad, purse, this.settings);
             if (decision.shouldBid) {
                 const timeout = setTimeout(() => {
                     if (this.status === 'AUCTION' && lot.status === 'IN_PROGRESS') {
@@ -830,7 +836,7 @@ export class GameRoom {
                 lot.status = 'SOLD';
                 lot.soldPrice = winningPrice;
                 lot.winningTeam = winningTeam;
-                lot.winningTeamName = IPL_FRANCHISES[winningTeam].name;
+                lot.winningTeamName = types_js_1.IPL_FRANCHISES[winningTeam].name;
                 lot.winningBidderName = lot.currentBidderName || undefined;
                 const resultId = `${this.roomCode}_round${lot.lotNumber}_SOLD_${winningPrice}_${Date.now()}`;
                 lot.resultId = resultId;
@@ -860,16 +866,16 @@ export class GameRoom {
                     this.teamSquads[winningTeam] = [];
                 }
                 this.teamSquads[winningTeam].push(purchasedPlayer);
-                this.addAuditLog('PLAYER_SOLD', `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`, 'System');
+                this.addAuditLog('PLAYER_SOLD', `SOLD: ${lot.player.name} to ${types_js_1.IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`, 'System');
                 this.addBidLog({
                     type: 'EVENT',
                     eventAction: 'PLAYER_SOLD',
                     playerName: lot.player.name,
                     lotNumber: lot.lotNumber,
                     teamId: winningTeam,
-                    teamName: IPL_FRANCHISES[winningTeam].name,
+                    teamName: types_js_1.IPL_FRANCHISES[winningTeam].name,
                     amount: winningPrice,
-                    eventMessage: `SOLD: ${lot.player.name} to ${IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`
+                    eventMessage: `SOLD: ${lot.player.name} to ${types_js_1.IPL_FRANCHISES[winningTeam].name} (${winningTeam}) for ₹${(winningPrice / 10000000).toFixed(2)} Cr`
                 });
             }
         }
@@ -1055,8 +1061,8 @@ export class GameRoom {
         this.deadlineTimestamp = null;
         // Generate fresh randomized auction sequence for restarted auction
         this.lots = (this.settings.tournamentId || this.settings.poolMode === 'mega_all')
-            ? buildTournamentAuctionLots(this.settings.season)
-            : buildAuctionLots(this.settings.season, this.settings.poolMode);
+            ? (0, playerService_js_1.buildTournamentAuctionLots)(this.settings.season)
+            : (0, playerService_js_1.buildAuctionLots)(this.settings.season, this.settings.poolMode);
         this.addAuditLog('AUCTION_RESTARTED', 'Auction was reset to lobby by host with a newly randomized queue', 'Host');
         this.broadcastState();
         return { success: true };
@@ -1285,7 +1291,7 @@ export class GameRoom {
         }
         else {
             const numToPick = Math.min(Math.max(1, count), eligibleUnsoldPlayers.length);
-            const shuffled = shuffleArray([...eligibleUnsoldPlayers]);
+            const shuffled = (0, playerService_js_1.shuffleArray)([...eligibleUnsoldPlayers]);
             selectedPlayers = shuffled.slice(0, numToPick);
         }
         if (selectedPlayers.length === 0) {
@@ -1463,19 +1469,19 @@ export class GameRoom {
         const wasAtEnd = this.currentLotIndex >= this.lots.length;
         this.insertLotsIntoQueue([newLot], wasAtEnd);
         // 7. Audit log & Bid log
-        this.addAuditLog('SALE_REVERSED', `Sale reversed: ${freshPlayer.name} removed from ${IPL_FRANCHISES[originalTeamId].name} (${originalTeamId}). ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`, 'Host');
+        this.addAuditLog('SALE_REVERSED', `Sale reversed: ${freshPlayer.name} removed from ${types_js_1.IPL_FRANCHISES[originalTeamId].name} (${originalTeamId}). ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`, 'Host');
         this.addBidLog({
             type: 'EVENT',
             eventAction: 'SALE_REVERSED',
             playerName: freshPlayer.name,
             teamId: originalTeamId,
-            teamName: IPL_FRANCHISES[originalTeamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[originalTeamId].name,
             amount: refundAmount,
-            eventMessage: `SALE REVERSED: ${freshPlayer.name} removed from ${IPL_FRANCHISES[originalTeamId].name} and returned to auction pool. ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`
+            eventMessage: `SALE REVERSED: ${freshPlayer.name} removed from ${types_js_1.IPL_FRANCHISES[originalTeamId].name} and returned to auction pool. ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded.`
         });
         return {
             success: true,
-            message: `Reversed sale of ${freshPlayer.name}: ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded to ${IPL_FRANCHISES[originalTeamId].name}.`,
+            message: `Reversed sale of ${freshPlayer.name}: ₹${(refundAmount / 10000000).toFixed(2)} Cr refunded to ${types_js_1.IPL_FRANCHISES[originalTeamId].name}.`,
             refundedTeam: originalTeamId,
             refundAmount,
             lot: newLot
@@ -1583,7 +1589,7 @@ export class GameRoom {
                     continue;
                 setCounter++;
                 const setName = `Re-Auction: ${priceDisplay} ${cat.label}`;
-                const shuffled = shuffleArray(catPlayers);
+                const shuffled = (0, playerService_js_1.shuffleArray)(catPlayers);
                 shuffled.forEach(p => {
                     reorderedPlayers.push({ ...p, set_name: setName, set_order: setCounter });
                 });
@@ -1766,7 +1772,7 @@ export class GameRoom {
             fromMemberName: sender.nickname,
             toTeamId: targetTeamId,
             toMemberId: toMember ? toMember.id : '',
-            toMemberName: toMember ? toMember.nickname : IPL_FRANCHISES[targetTeamId].name,
+            toMemberName: toMember ? toMember.nickname : types_js_1.IPL_FRANCHISES[targetTeamId].name,
             offeredPlayer: offeredPlayers[0],
             requestedPlayer: requestedPlayers[0],
             offeredPlayers: [...offeredPlayers],
@@ -1812,7 +1818,7 @@ export class GameRoom {
             eventAction: 'TRADE_PROPOSED',
             playerName: offeredPlayers[0]?.name || 'Cash Trade',
             teamId: fromTeamId,
-            teamName: IPL_FRANCHISES[fromTeamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[fromTeamId].name,
             amount: moneyAmount || offeredPlayers[0]?.sold_price_inr || offeredPlayers[0]?.base_price_inr,
             eventMessage: `TRADE PROPOSED: ${tradeDesc} (Auction paused for review)`
         });
@@ -1848,7 +1854,7 @@ export class GameRoom {
                 eventAction: 'TRADE_REJECTED',
                 playerName: resolved.offeredPlayers[0]?.name || 'Trade',
                 teamId: resolved.toTeamId,
-                teamName: IPL_FRANCHISES[resolved.toTeamId].name,
+                teamName: types_js_1.IPL_FRANCHISES[resolved.toTeamId].name,
                 eventMessage: `TRADE REJECTED: ${resolved.toMemberName} rejected trade proposal from ${resolved.fromMemberName}.`
             });
             this.resumeAuctionFromTrade('Trade proposal rejected.');
@@ -1951,9 +1957,9 @@ export class GameRoom {
         this.activeTrade = null;
         const offNames = resolved.offeredPlayers.map(p => p.name).join(', ') || 'No Players';
         const reqNames = resolved.requestedPlayers.map(p => p.name).join(', ') || 'No Players';
-        let execDesc = `TRADE COMPLETED: ${IPL_FRANCHISES[fromTeamId].name} traded [${offNames}] to ${IPL_FRANCHISES[toTeamId].name} for [${reqNames}]`;
+        let execDesc = `TRADE COMPLETED: ${types_js_1.IPL_FRANCHISES[fromTeamId].name} traded [${offNames}] to ${types_js_1.IPL_FRANCHISES[toTeamId].name} for [${reqNames}]`;
         if (cost > 0 && payer) {
-            const pName = payer === 'OFFERING_TEAM' ? IPL_FRANCHISES[fromTeamId].name : IPL_FRANCHISES[toTeamId].name;
+            const pName = payer === 'OFFERING_TEAM' ? types_js_1.IPL_FRANCHISES[fromTeamId].name : types_js_1.IPL_FRANCHISES[toTeamId].name;
             execDesc += ` + ₹${(cost / 10000000).toFixed(2)} Cr cash paid by ${pName}`;
         }
         this.addAuditLog('TRADE_ACCEPTED', execDesc, responder.nickname);
@@ -1962,7 +1968,7 @@ export class GameRoom {
             eventAction: 'TRADE_ACCEPTED',
             playerName: resolved.offeredPlayers[0]?.name || 'Trade Executed',
             teamId: toTeamId,
-            teamName: IPL_FRANCHISES[toTeamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[toTeamId].name,
             amount: cost,
             eventMessage: execDesc
         });
@@ -1999,7 +2005,7 @@ export class GameRoom {
             eventAction: 'TRADE_CANCELLED',
             playerName: resolved.offeredPlayers[0]?.name || resolved.offeredPlayer?.name || 'Trade',
             teamId: resolved.fromTeamId,
-            teamName: IPL_FRANCHISES[resolved.fromTeamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[resolved.fromTeamId].name,
             eventMessage: `TRADE CANCELLED: Trade was cancelled by ${caller.nickname}.`
         });
         this.resumeAuctionFromTrade('Trade request was cancelled.');
@@ -2024,7 +2030,7 @@ export class GameRoom {
             eventAction: 'TRADE_EXPIRED',
             playerName: resolved.offeredPlayers[0]?.name || resolved.offeredPlayer?.name || 'Trade',
             teamId: resolved.fromTeamId,
-            teamName: IPL_FRANCHISES[resolved.fromTeamId].name,
+            teamName: types_js_1.IPL_FRANCHISES[resolved.fromTeamId].name,
             eventMessage: `TRADE EXPIRED: Decision timer ran out for trade between ${resolved.fromMemberName} and ${resolved.toMemberName}.`
         });
         this.resumeAuctionFromTrade('Trade decision timer expired.');
@@ -2089,7 +2095,7 @@ export class GameRoom {
         }
         if (modified) {
             xi.isConfirmed = false;
-            this.addAuditLog('PLAYING_XI_UPDATED', `${IPL_FRANCHISES[teamId].name} Playing XI adjusted due to player trade transfer.`, 'System');
+            this.addAuditLog('PLAYING_XI_UPDATED', `${types_js_1.IPL_FRANCHISES[teamId].name} Playing XI adjusted due to player trade transfer.`, 'System');
         }
     }
     /**
@@ -2212,7 +2218,7 @@ export class GameRoom {
         currentXI.isConfirmed = true;
         currentXI.confirmedAt = Date.now();
         const capName = squadMap.get(currentXI.captainId)?.name || 'Captain';
-        this.addAuditLog('PLAYING_XI_CONFIRMED', `${IPL_FRANCHISES[teamId].name} locked their Playing XI (Captain: ${capName}).`, member.nickname);
+        this.addAuditLog('PLAYING_XI_CONFIRMED', `${types_js_1.IPL_FRANCHISES[teamId].name} locked their Playing XI (Captain: ${capName}).`, member.nickname);
         this.broadcastState({
             type: 'PLAYING_XI_UPDATED',
             teamId,
@@ -2321,7 +2327,7 @@ export class GameRoom {
             };
             summary[teamId] = {
                 teamId,
-                teamName: IPL_FRANCHISES[teamId].name,
+                teamName: types_js_1.IPL_FRANCHISES[teamId].name,
                 managerName: managers[teamId] ? managers[teamId].nickname : null,
                 isBot: managers[teamId] ? managers[teamId].isBot : false,
                 initialPurse: this.settings.startingPurse,
@@ -2397,7 +2403,7 @@ export class GameRoom {
         };
     }
     broadcastState(eventMsg) {
-        storageService.saveRoom(this.toJSON());
+        storageService_js_1.storageService.saveRoom(this.toJSON());
         this.broadcastCallback(this.getState(), eventMsg);
     }
     toJSON() {
@@ -2480,3 +2486,4 @@ export class GameRoom {
         return room;
     }
 }
+exports.GameRoom = GameRoom;

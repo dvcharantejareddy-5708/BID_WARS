@@ -2,7 +2,6 @@
   "name": "bid-wars-server",
   "version": "1.0.0",
   "description": "Server-authoritative real-time auction engine for BID WARS",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

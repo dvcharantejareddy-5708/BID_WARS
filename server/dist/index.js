@@ -1,77 +1,86 @@
-import express from 'express';
-import http from 'http';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
-import { fileURLToPath } from 'url';
-import { WebSocketServer } from 'ws';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { roomManager } from './roomManager.js';
-import { getAllPlayers, getPlayerById } from './playerService.js';
-import { tournamentManager } from './tournamentManager.js';
-import { tournamentStorage } from './tournamentStorage.js';
-import { supabase, supabaseAdmin } from './supabase.js';
-import { sanitizeMatchForViewer } from './matchEngine.js';
-dotenv.config();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tournamentManager = exports.roomManager = exports.server = exports.app = exports.isServerless = void 0;
+exports.handler = handler;
+const express_1 = __importDefault(require("express"));
+const http_1 = __importDefault(require("http"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const crypto_1 = __importDefault(require("crypto"));
+const ws_1 = require("ws");
+const cors_1 = __importDefault(require("cors"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const roomManager_js_1 = require("./roomManager.js");
+Object.defineProperty(exports, "roomManager", { enumerable: true, get: function () { return roomManager_js_1.roomManager; } });
+const playerService_js_1 = require("./playerService.js");
+const tournamentManager_js_1 = require("./tournamentManager.js");
+Object.defineProperty(exports, "tournamentManager", { enumerable: true, get: function () { return tournamentManager_js_1.tournamentManager; } });
+const tournamentStorage_js_1 = require("./tournamentStorage.js");
+const supabase_js_1 = require("./supabase.js");
+const matchEngine_js_1 = require("./matchEngine.js");
+dotenv_1.default.config();
 // Detect serverless environment (Vercel Functions / AWS Lambda)
-export const isServerless = Boolean(process.env.VERCEL ||
+exports.isServerless = Boolean(process.env.VERCEL ||
     process.env.VERCEL_ENV ||
     process.env.VERCEL_URL ||
     process.env.VERCEL_REGION ||
     process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.NOW_REGION ||
     process.env.LAMBDA_TASK_ROOT);
-console.log(`[Diagnostic Init] Server module loaded. isServerless=${isServerless}, env=${process.env.NODE_ENV}, VERCEL=${process.env.VERCEL ? 'yes' : 'no'}, time=${new Date().toISOString()}`);
+console.log(`[Diagnostic Init] Server module loaded. isServerless=${exports.isServerless}, env=${process.env.NODE_ENV}, VERCEL=${process.env.VERCEL ? 'yes' : 'no'}, time=${new Date().toISOString()}`);
 process.on('uncaughtException', (err) => {
     console.error('[Diagnostic UncaughtException]', err);
 });
 process.on('unhandledRejection', (reason) => {
     console.error('[Diagnostic UnhandledRejection]', reason);
 });
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const app = express();
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const currentFilename = typeof __filename !== 'undefined' ? __filename : '';
+const app = (0, express_1.default)();
+exports.app = app;
 const port = parseInt(process.env.PORT || '3001', 10);
 const host = process.env.HOST || '0.0.0.0';
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use((0, cors_1.default)());
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
 // Diagnostic request entry logger
 app.use((req, res, next) => {
     console.log(`[Diagnostic Req] ${req.method} ${req.originalUrl || req.url}`);
     next();
 });
 // Restore persisted rooms from durable disk / Supabase only in stateful mode
-if (!isServerless) {
-    roomManager.loadPersistedRooms().catch((err) => {
+if (!exports.isServerless) {
+    roomManager_js_1.roomManager.loadPersistedRooms().catch((err) => {
         console.error('[Startup] Failed to restore persisted rooms:', err);
     });
 }
 // Serve static frontend from client/dist if available (unified fullstack deployment / Render)
 const resolveClientDistPath = () => {
     const candidates = [
-        path.join(__dirname, '../../client/dist'),
-        path.join(__dirname, '../client/dist'),
-        path.join(process.cwd(), 'client/dist'),
-        path.join(process.cwd(), '../client/dist')
+        path_1.default.join(currentDirname, '../../client/dist'),
+        path_1.default.join(currentDirname, '../client/dist'),
+        path_1.default.join(process.cwd(), 'client/dist'),
+        path_1.default.join(process.cwd(), '../client/dist')
     ];
     for (const candidate of candidates) {
-        if (fs.existsSync(candidate) && fs.existsSync(path.join(candidate, 'index.html'))) {
+        if (fs_1.default.existsSync(candidate) && fs_1.default.existsSync(path_1.default.join(candidate, 'index.html'))) {
             return candidate;
         }
     }
     for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
+        if (fs_1.default.existsSync(candidate)) {
             return candidate;
         }
     }
     return candidates[0];
 };
 const clientDistPath = resolveClientDistPath();
-if (fs.existsSync(clientDistPath)) {
+if (fs_1.default.existsSync(clientDistPath)) {
     console.log(`[Static] Serving frontend from ${clientDistPath}`);
-    app.use(express.static(clientDistPath));
+    app.use(express_1.default.static(clientDistPath));
 }
 // REST API Endpoints
 // Health check (supports both /api/health and /health)
@@ -82,9 +91,9 @@ app.get(['/api/health', '/health'], (req, res) => {
         game: 'BID WARS',
         edition: '2026',
         timestamp: Date.now(),
-        serverless: isServerless,
-        supabaseConfigured: Boolean(supabase),
-        adminConfigured: Boolean(supabaseAdmin),
+        serverless: exports.isServerless,
+        supabaseConfigured: Boolean(supabase_js_1.supabase),
+        adminConfigured: Boolean(supabase_js_1.supabaseAdmin),
         hasUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
         hasAnonKey: Boolean(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY),
         hasServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -104,7 +113,7 @@ app.post('/api/rooms', (req, res) => {
                 return res.status(400).json({ error: 'Password for private rooms must be at least 4 characters' });
             }
         }
-        const room = roomManager.createRoom(hostNickname.trim(), settings || {});
+        const room = roomManager_js_1.roomManager.createRoom(hostNickname.trim(), settings || {});
         return res.status(201).json({
             success: true,
             roomCode: room.roomCode,
@@ -123,7 +132,7 @@ app.post('/api/rooms/:code/verify-password', (req, res) => {
     try {
         const code = req.params.code.toUpperCase().trim();
         const { password } = req.body || {};
-        const room = roomManager.getRoom(code);
+        const room = roomManager_js_1.roomManager.getRoom(code);
         if (!room) {
             return res.status(404).json({ error: `Room "${code}" not found` });
         }
@@ -145,7 +154,7 @@ app.post('/api/rooms/:code/verify-password', (req, res) => {
 app.get('/api/rooms/:code', (req, res) => {
     try {
         const code = req.params.code.toUpperCase().trim();
-        const room = roomManager.getRoom(code);
+        const room = roomManager_js_1.roomManager.getRoom(code);
         if (!room) {
             return res.status(404).json({ error: `Room "${code}" not found` });
         }
@@ -169,7 +178,7 @@ app.get('/api/players', (req, res) => {
     const nationality = req.query.nationality; // 'India' or 'Overseas'
     const pool = req.query.pool; // 'auction' or 'retained'
     const marqueeOnly = req.query.marquee === 'true';
-    let list = getAllPlayers(season);
+    let list = (0, playerService_js_1.getAllPlayers)(season);
     if (category) {
         list = list.filter(p => p.category.toLowerCase() === category.toLowerCase());
     }
@@ -205,7 +214,7 @@ app.get('/api/players', (req, res) => {
 // Single Player Detail
 app.get('/api/players/:id', (req, res) => {
     const season = req.query.season === '2025' ? '2025' : '2026';
-    const player = getPlayerById(req.params.id, season);
+    const player = (0, playerService_js_1.getPlayerById)(req.params.id, season);
     if (!player) {
         return res.status(404).json({ error: 'Player not found' });
     }
@@ -246,15 +255,15 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
             return res.status(400).json({ error: 'Invalid Gmail format. Enter a valid address ending in @gmail.com.' });
         }
         // 4. Atomic Uniqueness Checks
-        const isNameAvailable = await tournamentStorage.isNameAvailable(cleanUser);
+        const isNameAvailable = await tournamentStorage_js_1.tournamentStorage.isNameAvailable(cleanUser);
         if (!isNameAvailable) {
             return res.status(409).json({ error: `Username "${cleanUser}" is already taken. Please choose another.` });
         }
-        const isEmailAvailable = await tournamentStorage.isEmailAvailable(cleanEmail);
+        const isEmailAvailable = await tournamentStorage_js_1.tournamentStorage.isEmailAvailable(cleanEmail);
         if (!isEmailAvailable) {
             return res.status(409).json({ error: 'This Gmail address is already registered to another account.' });
         }
-        if (!supabaseAdmin && !supabase) {
+        if (!supabase_js_1.supabaseAdmin && !supabase_js_1.supabase) {
             return res.status(503).json({
                 error: 'Supabase authentication service is unavailable. Local fallback storage is strictly disabled.'
             });
@@ -264,8 +273,8 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
         let emailConfirmed = false;
         let supabaseSession = null;
         // 5. Create confirmed user in Supabase Auth using the real Gmail address (No verification required)
-        if (supabaseAdmin) {
-            const { data: suData, error: suError } = await supabaseAdmin.auth.admin.createUser({
+        if (supabase_js_1.supabaseAdmin) {
+            const { data: suData, error: suError } = await supabase_js_1.supabaseAdmin.auth.admin.createUser({
                 email: cleanEmail,
                 password: password,
                 email_confirm: true, // Immediate account activation
@@ -287,8 +296,8 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
             userId = suData.user.id;
             emailConfirmed = true;
             // Issue active session immediately upon registration
-            if (supabase) {
-                const { data: siData } = await supabase.auth.signInWithPassword({
+            if (supabase_js_1.supabase) {
+                const { data: siData } = await supabase_js_1.supabase.auth.signInWithPassword({
                     email: cleanEmail,
                     password: password
                 });
@@ -300,8 +309,8 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
                 }
             }
         }
-        else if (supabase) {
-            const { data: suData, error: suError } = await supabase.auth.signUp({
+        else if (supabase_js_1.supabase) {
+            const { data: suData, error: suError } = await supabase_js_1.supabase.auth.signUp({
                 email: cleanEmail,
                 password: password,
                 options: {
@@ -332,12 +341,12 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
             }
         }
         // 6. Generate scrypt hash & salt for auth_secrets backup
-        const salt = crypto.randomBytes(16).toString('hex');
-        const passwordHash = crypto.scryptSync(password, salt, 64).toString('hex');
+        const salt = crypto_1.default.randomBytes(16).toString('hex');
+        const passwordHash = crypto_1.default.scryptSync(password, salt, 64).toString('hex');
         // 7. Persist Profile to public.profiles & credentials to public.auth_secrets
         let profile;
         try {
-            profile = await tournamentStorage.saveProfile({
+            profile = await tournamentStorage_js_1.tournamentStorage.saveProfile({
                 id: userId,
                 username: cleanUser,
                 inGameName: cleanUser,
@@ -350,8 +359,8 @@ app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
             });
         }
         catch (dbErr) {
-            if (supabaseAdmin && userId) {
-                await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => { });
+            if (supabase_js_1.supabaseAdmin && userId) {
+                await supabase_js_1.supabaseAdmin.auth.admin.deleteUser(userId).catch(() => { });
             }
             return res.status(500).json({ error: `Database persistence error: ${dbErr.message}` });
         }
@@ -382,8 +391,8 @@ app.post('/api/auth/resend-verification', async (req, res) => {
         }
         const cleanEmail = String(email).trim().toLowerCase();
         const clientUrl = process.env.CLIENT_URL || 'https://bidwars.onrender.com';
-        if (supabase) {
-            const { error } = await supabase.auth.resend({
+        if (supabase_js_1.supabase) {
+            const { error } = await supabase_js_1.supabase.auth.resend({
                 type: 'signup',
                 email: cleanEmail,
                 options: {
@@ -409,7 +418,7 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
             return res.status(400).json({ error: 'Username and password are required' });
         }
         const cleanUser = String(username).trim();
-        let profile = await tournamentStorage.getProfileByUsername(cleanUser);
+        let profile = await tournamentStorage_js_1.tournamentStorage.getProfileByUsername(cleanUser);
         // 1. Resolve registered email
         let userEmail = '';
         if (profile && profile.email) {
@@ -418,18 +427,18 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
         else {
             // Deterministic fallback for legacy accounts created prior to mandatory Gmail
             const authSecret = process.env.AUTH_SECRET_SALT || 'bidwars_auth_default_secret_salt_2026';
-            const authHash = crypto.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
+            const authHash = crypto_1.default.createHmac('sha256', authSecret).update(cleanUser.toLowerCase()).digest('hex').slice(0, 32);
             userEmail = `usr_${authHash}@bidwars.com`;
         }
         // 2. Authoritative Supabase Auth Authentication
-        if (supabase) {
-            const { data: siData, error: siError } = await supabase.auth.signInWithPassword({
+        if (supabase_js_1.supabase) {
+            const { data: siData, error: siError } = await supabase_js_1.supabase.auth.signInWithPassword({
                 email: userEmail,
                 password: String(password)
             });
             if (siData?.session && siData.user) {
                 if (!profile) {
-                    profile = await tournamentStorage.getProfile(siData.user.id);
+                    profile = await tournamentStorage_js_1.tournamentStorage.getProfile(siData.user.id);
                 }
                 return res.json({
                     success: true,
@@ -455,16 +464,16 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
             }
         }
         // 3. Legacy Migration Path: For pre-existing accounts stored with scrypt hash
-        const legacyCreds = await tournamentStorage.getLegacyCredentials(cleanUser);
+        const legacyCreds = await tournamentStorage_js_1.tournamentStorage.getLegacyCredentials(cleanUser);
         if (legacyCreds && legacyCreds.passwordHash && legacyCreds.salt) {
-            const computedHash = crypto.scryptSync(password, legacyCreds.salt, 64).toString('hex');
+            const computedHash = crypto_1.default.scryptSync(password, legacyCreds.salt, 64).toString('hex');
             const hashBuf = Buffer.from(computedHash, 'hex');
             const targetBuf = Buffer.from(legacyCreds.passwordHash, 'hex');
-            if (hashBuf.length === targetBuf.length && crypto.timingSafeEqual(hashBuf, targetBuf)) {
+            if (hashBuf.length === targetBuf.length && crypto_1.default.timingSafeEqual(hashBuf, targetBuf)) {
                 // Legacy password matches! Auto-sync to Supabase Auth
-                if (supabaseAdmin) {
+                if (supabase_js_1.supabaseAdmin) {
                     try {
-                        await supabaseAdmin.auth.admin.createUser({
+                        await supabase_js_1.supabaseAdmin.auth.admin.createUser({
                             id: legacyCreds.id.length === 36 ? legacyCreds.id : undefined,
                             email: userEmail,
                             password: String(password),
@@ -476,10 +485,10 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
                         });
                     }
                     catch {
-                        await supabaseAdmin.auth.admin.updateUserById(legacyCreds.id, { password: String(password) }).catch(() => { });
+                        await supabase_js_1.supabaseAdmin.auth.admin.updateUserById(legacyCreds.id, { password: String(password) }).catch(() => { });
                     }
-                    if (supabase) {
-                        const { data: retrySi } = await supabase.auth.signInWithPassword({
+                    if (supabase_js_1.supabase) {
+                        const { data: retrySi } = await supabase_js_1.supabase.auth.signInWithPassword({
                             email: userEmail,
                             password: String(password)
                         });
@@ -502,7 +511,7 @@ app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
                 }
             }
         }
-        if (!supabase && !supabaseAdmin) {
+        if (!supabase_js_1.supabase && !supabase_js_1.supabaseAdmin) {
             return res.status(503).json({
                 error: 'Authentication database unavailable. Please verify SUPABASE_URL and SUPABASE_ANON_KEY environment variables.'
             });
@@ -527,7 +536,7 @@ app.post('/api/auth/change-password', async (req, res) => {
         if (String(newPassword).length < 6) {
             return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
         }
-        const profile = await tournamentStorage.getProfile(userId);
+        const profile = await tournamentStorage_js_1.tournamentStorage.getProfile(userId);
         if (!profile) {
             return res.status(404).json({ error: 'User profile not found.' });
         }
@@ -535,11 +544,11 @@ app.post('/api/auth/change-password', async (req, res) => {
         if (!userEmail) {
             return res.status(400).json({ error: 'Account does not have a registered email address.' });
         }
-        if (!supabase) {
+        if (!supabase_js_1.supabase) {
             return res.status(503).json({ error: 'Authentication service unavailable.' });
         }
         // Verify current password by signing in with Supabase Auth
-        const { data: verifyData, error: verifyError } = await supabase.auth.signInWithPassword({
+        const { data: verifyData, error: verifyError } = await supabase_js_1.supabase.auth.signInWithPassword({
             email: userEmail,
             password: String(currentPassword)
         });
@@ -547,8 +556,8 @@ app.post('/api/auth/change-password', async (req, res) => {
             return res.status(401).json({ error: 'Current password is incorrect.' });
         }
         // Update password using Supabase Auth Admin API
-        if (supabaseAdmin) {
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        if (supabase_js_1.supabaseAdmin) {
+            const { error: updateError } = await supabase_js_1.supabaseAdmin.auth.admin.updateUserById(userId, {
                 password: String(newPassword)
             });
             if (updateError) {
@@ -556,9 +565,9 @@ app.post('/api/auth/change-password', async (req, res) => {
             }
         }
         // Also update backup credentials in auth_secrets
-        const salt = crypto.randomBytes(16).toString('hex');
-        const passwordHash = crypto.scryptSync(newPassword, salt, 64).toString('hex');
-        await tournamentStorage.updateCredentials(userId, passwordHash, salt).catch(() => { });
+        const salt = crypto_1.default.randomBytes(16).toString('hex');
+        const passwordHash = crypto_1.default.scryptSync(newPassword, salt, 64).toString('hex');
+        await tournamentStorage_js_1.tournamentStorage.updateCredentials(userId, passwordHash, salt).catch(() => { });
         return res.json({ success: true, message: 'Password updated successfully!' });
     }
     catch (err) {
@@ -579,15 +588,15 @@ async function resolveAccountForRecovery(rawIdentifier) {
             throw new Error('Invalid Gmail format. Enter a valid address ending in @gmail.com.');
         }
         // 1. Identify corresponding Supabase Auth account / profile
-        let profile = await tournamentStorage.getProfileByEmail(cleanEmail);
-        if (supabaseAdmin) {
+        let profile = await tournamentStorage_js_1.tournamentStorage.getProfileByEmail(cleanEmail);
+        if (supabase_js_1.supabaseAdmin) {
             try {
-                const { data: userList, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+                const { data: userList, error: listErr } = await supabase_js_1.supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
                 if (!listErr && userList?.users) {
                     const authUser = userList.users.find(u => (u.email || '').toLowerCase() === cleanEmail);
                     if (authUser) {
                         if (!profile) {
-                            profile = await tournamentStorage.getProfile(authUser.id);
+                            profile = await tournamentStorage_js_1.tournamentStorage.getProfile(authUser.id);
                         }
                         // Confirm association if profile exists
                         if (profile && profile.id !== authUser.id) {
@@ -619,13 +628,13 @@ async function resolveAccountForRecovery(rawIdentifier) {
         // Identifier is username
         const cleanUser = clean;
         // 1. Search existing Supabase profiles table
-        const profile = await tournamentStorage.getProfileByUsername(cleanUser);
+        const profile = await tournamentStorage_js_1.tournamentStorage.getProfileByUsername(cleanUser);
         if (!profile)
             return null;
         // 2. Retrieve associated Supabase Auth user ID
-        if (supabaseAdmin && profile.id) {
+        if (supabase_js_1.supabaseAdmin && profile.id) {
             try {
-                const { data: authUserData, error: authUserErr } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+                const { data: authUserData, error: authUserErr } = await supabase_js_1.supabaseAdmin.auth.admin.getUserById(profile.id);
                 if (!authUserErr && authUserData?.user) {
                     const authUser = authUserData.user;
                     const authEmail = (authUser.email || '').trim().toLowerCase();
@@ -690,9 +699,9 @@ app.post('/api/auth/send-recovery-otp', async (req, res) => {
             return res.json({ success: true, message: neutralMsg, identifier: cleanId });
         }
         // In production: trigger recovery code email via Supabase Auth
-        if (supabase) {
+        if (supabase_js_1.supabase) {
             try {
-                await supabase.auth.resetPasswordForEmail(account.email);
+                await supabase_js_1.supabase.auth.resetPasswordForEmail(account.email);
             }
             catch (err) {
                 console.warn('[Recovery] resetPasswordForEmail notification:', err.message);
@@ -731,11 +740,11 @@ app.post('/api/auth/verify-recovery-otp', async (req, res) => {
         if (!account || !account.email) {
             return res.status(400).json({ error: 'Invalid, expired, or already-used recovery code. Please request a new code.' });
         }
-        if (!supabase) {
+        if (!supabase_js_1.supabase) {
             return res.status(503).json({ error: 'Authentication service unavailable.' });
         }
         // Verify recovery OTP via Supabase Auth
-        const { data: vData, error: vErr } = await supabase.auth.verifyOtp({
+        const { data: vData, error: vErr } = await supabase_js_1.supabase.auth.verifyOtp({
             email: account.email,
             token: cleanCode,
             type: 'recovery'
@@ -791,7 +800,7 @@ app.get('/api/profiles/check-name', async (req, res) => {
         if (!/^[a-zA-Z0-9_ -]{3,20}$/.test(name)) {
             return res.json({ available: false, message: 'Name can only contain letters, numbers, spaces, underscores, and hyphens.' });
         }
-        const available = await tournamentStorage.isNameAvailable(name, excludeUserId);
+        const available = await tournamentStorage_js_1.tournamentStorage.isNameAvailable(name, excludeUserId);
         return res.json({ available, message: available ? 'Name is available' : 'This In-Game Name is already taken.' });
     }
     catch (err) {
@@ -801,7 +810,7 @@ app.get('/api/profiles/check-name', async (req, res) => {
 // Get user profile by Supabase UUID
 app.get('/api/profiles/:id', async (req, res) => {
     try {
-        const profile = await tournamentStorage.getProfile(req.params.id);
+        const profile = await tournamentStorage_js_1.tournamentStorage.getProfile(req.params.id);
         if (!profile) {
             return res.status(404).json({ error: 'Profile not found' });
         }
@@ -825,11 +834,11 @@ app.post('/api/profiles', async (req, res) => {
         if (!/^[a-zA-Z0-9_ -]{3,20}$/.test(cleanName)) {
             return res.status(400).json({ error: 'In-Game Name can only contain letters, numbers, spaces, underscores, and hyphens.' });
         }
-        const isAvailable = await tournamentStorage.isNameAvailable(cleanName, id);
+        const isAvailable = await tournamentStorage_js_1.tournamentStorage.isNameAvailable(cleanName, id);
         if (!isAvailable) {
             return res.status(409).json({ error: 'This In-Game Name is already taken. Please choose another.' });
         }
-        const profile = await tournamentStorage.saveProfile({
+        const profile = await tournamentStorage_js_1.tournamentStorage.saveProfile({
             id,
             email,
             inGameName: cleanName,
@@ -849,14 +858,14 @@ app.post('/api/profiles', async (req, res) => {
 // List tournaments (STRICT PRIVACY: Only returns user's created or joined tournaments)
 app.get('/api/tournaments', async (req, res) => {
     try {
-        await tournamentManager.init();
+        await tournamentManager_js_1.tournamentManager.init();
         const userId = req.query.userId;
         if (userId) {
-            const tournaments = tournamentManager.getUserTournaments(userId);
+            const tournaments = tournamentManager_js_1.tournamentManager.getUserTournaments(userId);
             return res.json({ success: true, tournaments });
         }
         // Fallback: If no userId specified, return open registration tournaments
-        const tournaments = tournamentManager.getAllTournaments().filter(t => t.status === 'REGISTRATION');
+        const tournaments = tournamentManager_js_1.tournamentManager.getAllTournaments().filter(t => t.status === 'REGISTRATION');
         return res.json({ success: true, tournaments });
     }
     catch (err) {
@@ -866,8 +875,8 @@ app.get('/api/tournaments', async (req, res) => {
 // Single tournament details (Strict privacy: non-members cannot access active tournaments)
 app.get('/api/tournaments/:id', async (req, res) => {
     try {
-        await tournamentManager.init();
-        const tournament = tournamentManager.getTournament(req.params.id);
+        await tournamentManager_js_1.tournamentManager.init();
+        const tournament = tournamentManager_js_1.tournamentManager.getTournament(req.params.id);
         if (!tournament) {
             return res.status(404).json({ error: 'Tournament not found' });
         }
@@ -890,7 +899,7 @@ app.delete('/api/tournaments/:id', async (req, res) => {
         if (!userId) {
             return res.status(400).json({ error: 'userId is required for tournament deletion' });
         }
-        const result = await tournamentManager.deleteTournament(req.params.id, userId);
+        const result = await tournamentManager_js_1.tournamentManager.deleteTournament(req.params.id, userId);
         if (!result.success) {
             return res.status(result.message?.includes('Access denied') ? 403 : 400).json({ error: result.message });
         }
@@ -910,7 +919,7 @@ app.post('/api/tournaments', async (req, res) => {
         const tCount = [4, 6, 8, 10].includes(Number(teamsCount)) ? Number(teamsCount) : 8;
         const mOvers = [1, 2, 5, 10, 15, 20].includes(Number(matchOvers)) ? Number(matchOvers) : 5;
         const aType = auctionType === 'MINI' ? 'MINI' : 'MEGA';
-        const tournament = await tournamentManager.createTournament(name || 'IPL Tournament', hostId, hostName, hostEmail, tCount, mOvers, hostFranchiseId, aType);
+        const tournament = await tournamentManager_js_1.tournamentManager.createTournament(name || 'IPL Tournament', hostId, hostName, hostEmail, tCount, mOvers, hostFranchiseId, aType);
         return res.status(201).json({ success: true, tournament });
     }
     catch (err) {
@@ -924,7 +933,7 @@ app.post('/api/tournaments/:id/join', async (req, res) => {
         if (!userId || !userName || !franchiseId) {
             return res.status(400).json({ error: 'userId, userName, and franchiseId are required' });
         }
-        const result = await tournamentManager.joinTournament(req.params.id, userId, userName, userEmail, franchiseId);
+        const result = await tournamentManager_js_1.tournamentManager.joinTournament(req.params.id, userId, userName, userEmail, franchiseId);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -938,7 +947,7 @@ app.post('/api/tournaments/:id/join', async (req, res) => {
 app.post('/api/tournaments/:id/start-auction', async (req, res) => {
     try {
         const { userId } = req.body || {};
-        const result = await tournamentManager.startAuction(req.params.id, userId);
+        const result = await tournamentManager_js_1.tournamentManager.startAuction(req.params.id, userId);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -951,7 +960,7 @@ app.post('/api/tournaments/:id/start-auction', async (req, res) => {
 // Import completed auction squads
 app.post('/api/tournaments/:id/import-auction', async (req, res) => {
     try {
-        const result = await tournamentManager.importAuctionSquads(req.params.id);
+        const result = await tournamentManager_js_1.tournamentManager.importAuctionSquads(req.params.id);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -965,7 +974,7 @@ app.post('/api/tournaments/:id/import-auction', async (req, res) => {
 app.post('/api/tournaments/:id/start-live', async (req, res) => {
     try {
         const { userId } = req.body || {};
-        const result = await tournamentManager.startLiveTournament(req.params.id, userId);
+        const result = await tournamentManager_js_1.tournamentManager.startLiveTournament(req.params.id, userId);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -982,7 +991,7 @@ app.post('/api/tournaments/:id/lineup', (req, res) => {
         if (!franchiseId || !userId || !lineup) {
             return res.status(400).json({ error: 'franchiseId, userId, and lineup are required' });
         }
-        const result = tournamentManager.saveMatchLineup(req.params.id, franchiseId, userId, lineup);
+        const result = tournamentManager_js_1.tournamentManager.saveMatchLineup(req.params.id, franchiseId, userId, lineup);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -996,7 +1005,7 @@ app.post('/api/tournaments/:id/lineup', (req, res) => {
 app.post('/api/tournaments/:id/matches/:fixtureId/start', (req, res) => {
     try {
         const { userId } = req.body || {};
-        const result = tournamentManager.startMatch(req.params.id, req.params.fixtureId, userId);
+        const result = tournamentManager_js_1.tournamentManager.startMatch(req.params.id, req.params.fixtureId, userId);
         if (!result.success) {
             return res.status(400).json({ error: result.message });
         }
@@ -1008,19 +1017,19 @@ app.post('/api/tournaments/:id/matches/:fixtureId/start', (req, res) => {
 });
 // Get Live Match
 app.get('/api/matches/:matchId', (req, res) => {
-    const match = tournamentManager.getLiveMatch(req.params.matchId);
+    const match = tournamentManager_js_1.tournamentManager.getLiveMatch(req.params.matchId);
     if (!match) {
         return res.status(404).json({ error: 'Match not found' });
     }
     const userId = req.query.userId || req.headers['x-user-id'] || undefined;
     let viewerFranchiseId = req.query.franchiseId || undefined;
     if (userId) {
-        const verifiedFranchise = tournamentManager.getParticipantFranchise(match.tournamentId, userId);
+        const verifiedFranchise = tournamentManager_js_1.tournamentManager.getParticipantFranchise(match.tournamentId, userId);
         if (verifiedFranchise) {
             viewerFranchiseId = verifiedFranchise;
         }
     }
-    return res.json({ success: true, match: sanitizeMatchForViewer(match, viewerFranchiseId) });
+    return res.json({ success: true, match: (0, matchEngine_js_1.sanitizeMatchForViewer)(match, viewerFranchiseId) });
 });
 // Match Toss (interactive coin flip or direct decision fallback)
 app.post('/api/matches/:matchId/toss', (req, res) => {
@@ -1029,20 +1038,20 @@ app.post('/api/matches/:matchId/toss', (req, res) => {
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
         // Direct decision format (backward compatibility)
         if (decision && tossWinnerFranchiseId) {
-            const result = tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
+            const result = tournamentManager_js_1.tournamentManager.handleToss(req.params.matchId, tossWinnerFranchiseId, decision);
             if (!result.success) {
                 return res.status(400).json({ error: result.message });
             }
             return res.json({
                 success: true,
-                match: result.match ? sanitizeMatchForViewer(result.match, tossWinnerFranchiseId) : undefined
+                match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, tossWinnerFranchiseId) : undefined
             });
         }
         // Interactive coin flip
         if (!callerFranchiseId || !call) {
             return res.status(400).json({ error: 'Caller franchise and call (HEADS/TAILS) required' });
         }
-        const result = tournamentManager.resolveToss(req.params.matchId, callerFranchiseId, call, userId);
+        const result = tournamentManager_js_1.tournamentManager.resolveToss(req.params.matchId, callerFranchiseId, call, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
@@ -1051,7 +1060,7 @@ app.post('/api/matches/:matchId/toss', (req, res) => {
             tossWinnerFranchiseId: result.tossWinnerFranchiseId,
             tossResult: result.tossResult,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, callerFranchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, callerFranchiseId) : undefined
         });
     }
     catch (err) {
@@ -1066,14 +1075,14 @@ app.post('/api/matches/:matchId/toss-decision', (req, res) => {
         if (!tossWinnerFranchiseId || !decision) {
             return res.status(400).json({ error: 'Toss winner and decision (BAT/BOWL) are required' });
         }
-        const result = tournamentManager.handleTossDecision(req.params.matchId, tossWinnerFranchiseId, decision, userId);
+        const result = tournamentManager_js_1.tournamentManager.handleTossDecision(req.params.matchId, tossWinnerFranchiseId, decision, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, tossWinnerFranchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, tossWinnerFranchiseId) : undefined
         });
     }
     catch (err) {
@@ -1085,14 +1094,14 @@ app.post('/api/matches/:matchId/opening-batters', (req, res) => {
     try {
         const { franchiseId, strikerId, nonStrikerId } = req.body || {};
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
-        const result = tournamentManager.selectOpeningBatters(req.params.matchId, franchiseId, strikerId, nonStrikerId, userId);
+        const result = tournamentManager_js_1.tournamentManager.selectOpeningBatters(req.params.matchId, franchiseId, strikerId, nonStrikerId, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1104,14 +1113,14 @@ app.post('/api/matches/:matchId/opening-bowler', (req, res) => {
     try {
         const { franchiseId, bowlerId } = req.body || {};
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
-        const result = tournamentManager.selectOpeningBowler(req.params.matchId, franchiseId, bowlerId, userId);
+        const result = tournamentManager_js_1.tournamentManager.selectOpeningBowler(req.params.matchId, franchiseId, bowlerId, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1123,14 +1132,14 @@ app.post('/api/matches/:matchId/select-batter', (req, res) => {
     try {
         const { franchiseId, replacementBatterId } = req.body || {};
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
-        const result = tournamentManager.selectReplacementBatter(req.params.matchId, franchiseId, replacementBatterId, userId);
+        const result = tournamentManager_js_1.tournamentManager.selectReplacementBatter(req.params.matchId, franchiseId, replacementBatterId, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1142,14 +1151,14 @@ app.post('/api/matches/:matchId/select-bowler', (req, res) => {
     try {
         const { bowlerId, franchiseId } = req.body || {};
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
-        const result = tournamentManager.selectBowler(req.params.matchId, bowlerId, franchiseId, userId);
+        const result = tournamentManager_js_1.tournamentManager.selectBowler(req.params.matchId, bowlerId, franchiseId, userId);
         if (!result.success) {
             return res.status(result.message.includes('Forbidden') ? 403 : 400).json({ error: result.message });
         }
         return res.json({
             success: true,
             message: result.message,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1161,7 +1170,7 @@ app.post('/api/matches/:matchId/choice', (req, res) => {
     try {
         const { franchiseId, choice, ability, blockedNumbers } = req.body || {};
         const userId = req.body?.userId || req.headers['x-user-id'] || undefined;
-        const result = tournamentManager.submitChoice(req.params.matchId, franchiseId, choice, ability, blockedNumbers, userId);
+        const result = tournamentManager_js_1.tournamentManager.submitChoice(req.params.matchId, franchiseId, choice, ability, blockedNumbers, userId);
         if (result.error) {
             return res.status(result.error.includes('Forbidden') ? 403 : 400).json({ error: result.error });
         }
@@ -1169,7 +1178,7 @@ app.post('/api/matches/:matchId/choice', (req, res) => {
             success: true,
             resolved: result.resolved,
             ballEvent: result.ballEvent,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1180,12 +1189,12 @@ app.post('/api/matches/:matchId/choice', (req, res) => {
 app.post('/api/matches/:matchId/timeout', (req, res) => {
     try {
         const { franchiseId } = req.body || {};
-        const result = tournamentManager.handleTimeout(req.params.matchId);
+        const result = tournamentManager_js_1.tournamentManager.handleTimeout(req.params.matchId);
         return res.json({
             success: true,
             resolved: result.resolved,
             ballEvent: result.ballEvent,
-            match: result.match ? sanitizeMatchForViewer(result.match, franchiseId) : undefined
+            match: result.match ? (0, matchEngine_js_1.sanitizeMatchForViewer)(result.match, franchiseId) : undefined
         });
     }
     catch (err) {
@@ -1201,8 +1210,8 @@ app.all('/api/*', (req, res) => {
 });
 // Fallback for unmatched frontend client routes (SPA routing in standalone/dev mode)
 app.get('*', (req, res) => {
-    const indexPath = path.join(clientDistPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
+    const indexPath = path_1.default.join(clientDistPath, 'index.html');
+    if (fs_1.default.existsSync(indexPath)) {
         return res.sendFile(indexPath);
     }
     res.status(404).json({ error: `Not found: ${req.method} ${req.path}`, statusCode: 404 });
@@ -1221,25 +1230,26 @@ app.use((err, req, res, next) => {
     });
 });
 // HTTP Server & WebSockets (Only created in standalone / stateful mode)
-let server = isServerless ? null : http.createServer(app);
+let server = exports.isServerless ? null : http_1.default.createServer(app);
+exports.server = server;
 let wss = null;
-if (!isServerless && server) {
-    wss = new WebSocketServer({ server });
+if (!exports.isServerless && server) {
+    wss = new ws_1.WebSocketServer({ server });
     wss.on('connection', (ws) => {
-        roomManager.handleConnection(ws);
+        roomManager_js_1.roomManager.handleConnection(ws);
     });
 }
 // Start permanent HTTP listener only when directly executed (standalone/persistent mode)
 const isDirectExecution = Boolean(process.argv[1] && (process.argv[1].endsWith('index.ts') ||
     process.argv[1].endsWith('index.js')) && !process.argv[1].includes('___vc'));
-if (!isServerless && isDirectExecution && server && process.env.NODE_ENV !== 'test') {
+if (!exports.isServerless && isDirectExecution && server && process.env.NODE_ENV !== 'test') {
     server.listen(port, host, () => {
         console.log(`[BID WARS SERVER] Live at http://${host}:${port}`);
         console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
     });
 }
 // Universal Handler for Vercel Serverless Function & Express invocation
-export function handler(req, res) {
+function handler(req, res) {
     try {
         return app(req, res);
     }
@@ -1263,5 +1273,13 @@ app.default = app;
 app.handler = handler;
 handler.app = app;
 handler.default = app;
-export default app;
-export { app, server, roomManager, tournamentManager };
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = app;
+    module.exports.default = app;
+    module.exports.handler = handler;
+    module.exports.server = server;
+    module.exports.roomManager = roomManager_js_1.roomManager;
+    module.exports.tournamentManager = tournamentManager_js_1.tournamentManager;
+    module.exports.isServerless = exports.isServerless;
+}
+exports.default = app;

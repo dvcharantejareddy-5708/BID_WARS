@@ -1,7 +1,10 @@
-import { WebSocket } from 'ws';
-import { GameRoom } from './gameEngine.js';
-import { storageService } from './storageService.js';
-export class RoomManager {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.roomManager = exports.RoomManager = void 0;
+const ws_1 = require("ws");
+const gameEngine_js_1 = require("./gameEngine.js");
+const storageService_js_1 = require("./storageService.js");
+class RoomManager {
     rooms = new Map();
     connections = new Map();
     onAuctionCompletedListeners = [];
@@ -35,11 +38,11 @@ export class RoomManager {
     }
     async loadPersistedRooms() {
         try {
-            const persisted = await storageService.loadAllRooms();
+            const persisted = await storageService_js_1.storageService.loadAllRooms();
             for (const jsonState of persisted) {
                 const code = jsonState.roomCode;
                 if (code && !this.rooms.has(code)) {
-                    const room = GameRoom.fromJSON(jsonState, (state, eventMsg) => this.broadcastToRoom(code, state, eventMsg));
+                    const room = gameEngine_js_1.GameRoom.fromJSON(jsonState, (state, eventMsg) => this.broadcastToRoom(code, state, eventMsg));
                     room.onAuctionCompletedCallback = (c) => this.triggerAuctionCompleted(c);
                     this.rooms.set(code, room);
                 }
@@ -63,10 +66,10 @@ export class RoomManager {
     }
     createRoom(hostNickname, settings) {
         const roomCode = this.generateRoomCode();
-        const room = new GameRoom(roomCode, hostNickname, settings, (state, eventMsg) => this.broadcastToRoom(roomCode, state, eventMsg));
+        const room = new gameEngine_js_1.GameRoom(roomCode, hostNickname, settings, (state, eventMsg) => this.broadcastToRoom(roomCode, state, eventMsg));
         room.onAuctionCompletedCallback = (c) => this.triggerAuctionCompleted(c);
         this.rooms.set(roomCode, room);
-        storageService.saveRoom(room.toJSON());
+        storageService_js_1.storageService.saveRoom(room.toJSON());
         return room;
     }
     getRoom(roomCode) {
@@ -79,7 +82,7 @@ export class RoomManager {
             room.clearAllTimers();
         }
         this.rooms.delete(code);
-        storageService.deleteRoom(code);
+        storageService_js_1.storageService.deleteRoom(code);
     }
     handleConnection(ws) {
         ws.on('message', (data) => {
@@ -315,7 +318,7 @@ export class RoomManager {
                 // Find target's WebSocket connection, send KICKED message, and terminate connection
                 for (const [clientWs, clientConn] of this.connections.entries()) {
                     if (clientConn.roomCode === room.roomCode && clientConn.memberId === targetMemberId) {
-                        if (clientWs.readyState === WebSocket.OPEN) {
+                        if (clientWs.readyState === ws_1.WebSocket.OPEN) {
                             clientWs.send(JSON.stringify({
                                 type: 'KICKED',
                                 message: 'You have been removed from the auction room by the host.'
@@ -424,7 +427,7 @@ export class RoomManager {
                 room.removeMember(conn.memberId);
                 if (room.isClosed) {
                     this.rooms.delete(conn.roomCode);
-                    storageService.deleteRoom(conn.roomCode);
+                    storageService_js_1.storageService.deleteRoom(conn.roomCode);
                 }
                 ws.send(JSON.stringify({ type: 'LEFT_ROOM' }));
                 break;
@@ -451,7 +454,7 @@ export class RoomManager {
         const rawEvent = eventMsg ? JSON.stringify(eventMsg) : null;
         const rawState = state ? JSON.stringify({ type: 'SYNC_STATE', state }) : null;
         for (const [ws, conn] of this.connections.entries()) {
-            if (conn.roomCode === roomCode && ws.readyState === WebSocket.OPEN) {
+            if (conn.roomCode === roomCode && ws.readyState === ws_1.WebSocket.OPEN) {
                 if (rawState) {
                     ws.send(rawState);
                 }
@@ -462,9 +465,10 @@ export class RoomManager {
         }
     }
     sendError(ws, message, code) {
-        if (ws.readyState === WebSocket.OPEN) {
+        if (ws.readyState === ws_1.WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ERROR', message, code }));
         }
     }
 }
-export const roomManager = new RoomManager();
+exports.RoomManager = RoomManager;
+exports.roomManager = new RoomManager();

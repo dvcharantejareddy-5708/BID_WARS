@@ -1,10 +1,13 @@
-import { MatchEngine } from './matchEngine.js';
-import { FixtureGenerator } from './fixtureGenerator.js';
-import { tournamentStorage } from './tournamentStorage.js';
-import { supabase, supabaseAdmin } from './supabase.js';
-import { roomManager } from './roomManager.js';
-import { getAllPlayers } from './playerService.js';
-export class TournamentManager {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tournamentManager = exports.TournamentManager = void 0;
+const matchEngine_js_1 = require("./matchEngine.js");
+const fixtureGenerator_js_1 = require("./fixtureGenerator.js");
+const tournamentStorage_js_1 = require("./tournamentStorage.js");
+const supabase_js_1 = require("./supabase.js");
+const roomManager_js_1 = require("./roomManager.js");
+const playerService_js_1 = require("./playerService.js");
+class TournamentManager {
     tournaments = new Map();
     liveMatches = new Map();
     allPlayersMap = new Map();
@@ -13,12 +16,12 @@ export class TournamentManager {
     constructor() {
         this.initPlayersMap();
         try {
-            roomManager.addAuctionCompletedListener((roomCode) => {
+            roomManager_js_1.roomManager.addAuctionCompletedListener((roomCode) => {
                 this.onAuctionCompleted(roomCode).catch(err => {
                     console.error(`[TournamentManager] Auto fixture generation error for room ${roomCode}:`, err);
                 });
             });
-            roomManager.addPlayingXIUpdatedListener((roomCode, tournamentId, teamId, selection) => {
+            roomManager_js_1.roomManager.addPlayingXIUpdatedListener((roomCode, tournamentId, teamId, selection) => {
                 this.syncRoomPlayingXI(tournamentId, teamId, selection);
             });
         }
@@ -28,7 +31,7 @@ export class TournamentManager {
     }
     initPlayersMap() {
         try {
-            const players = getAllPlayers('2026');
+            const players = (0, playerService_js_1.getAllPlayers)('2026');
             for (const p of players) {
                 this.allPlayersMap.set(p.id, p);
             }
@@ -40,11 +43,11 @@ export class TournamentManager {
     async init() {
         if (this.isInitialized)
             return;
-        const loaded = await tournamentStorage.loadAllTournaments();
+        const loaded = await tournamentStorage_js_1.tournamentStorage.loadAllTournaments();
         for (const t of loaded) {
             this.tournaments.set(t.id, t);
         }
-        const matches = await tournamentStorage.loadAllMatches();
+        const matches = await tournamentStorage_js_1.tournamentStorage.loadAllMatches();
         for (const m of matches) {
             this.liveMatches.set(m.id, m);
         }
@@ -86,7 +89,7 @@ export class TournamentManager {
             return null;
         // Idempotent auto-generation check: If auction finished in underlying room, ensure fixtures exist immediately
         if ((tournament.status === 'AUCTION' || !tournament.fixtures || tournament.fixtures.length === 0) && tournament.roomCode) {
-            const room = roomManager.getRoom(tournament.roomCode);
+            const room = roomManager_js_1.roomManager.getRoom(tournament.roomCode);
             if (room && room.getState().status === 'COMPLETED') {
                 this.syncAuctionCompleted(tournament.roomCode);
             }
@@ -122,7 +125,7 @@ export class TournamentManager {
         try {
             console.log(`[TournamentManager] Auto-generating fixtures for tournament ${tournament.id} (${tournament.name})...`);
             // 1. Authoritative import of squads from auction room
-            const room = roomManager.getRoom(roomCode);
+            const room = roomManager_js_1.roomManager.getRoom(roomCode);
             if (room) {
                 const state = room.getState();
                 const teamSquads = state.teamSquads;
@@ -162,7 +165,7 @@ export class TournamentManager {
             }
             // 2. Generate group stage fixtures for all participating teams
             const teamIds = tournament.members.map(m => m.franchiseId);
-            const fixtures = FixtureGenerator.generateGroupStageFixtures(tournament.id, teamIds, tournament.matchOvers);
+            const fixtures = fixtureGenerator_js_1.FixtureGenerator.generateGroupStageFixtures(tournament.id, teamIds, tournament.matchOvers);
             // 3. Initialize points table
             const pointsTable = teamIds.map(fid => ({
                 franchiseId: fid,
@@ -183,7 +186,7 @@ export class TournamentManager {
             tournament.status = 'TOURNAMENT_LIVE';
             tournament.updatedAt = Date.now();
             // 4. Server-authoritative persistence to Supabase and disk
-            tournamentStorage.saveTournament(tournament);
+            tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
             console.log(`[TournamentManager] Successfully auto-generated ${fixtures.length} fixtures for tournament ${tournament.id}`);
             // 5. Broadcast fixtures generated event to room
             if (room) {
@@ -213,7 +216,7 @@ export class TournamentManager {
     getLiveMatch(matchId) {
         let match = this.liveMatches.get(matchId);
         if (!match) {
-            match = tournamentStorage.getMatch(matchId);
+            match = tournamentStorage_js_1.tournamentStorage.getMatch(matchId);
             if (match) {
                 this.liveMatches.set(matchId, match);
             }
@@ -254,7 +257,7 @@ export class TournamentManager {
             hostId,
             hostFranchiseId
         };
-        const auctionRoom = roomManager.createRoom(hostName, roomSettings);
+        const auctionRoom = roomManager_js_1.roomManager.createRoom(hostName, roomSettings);
         // Pre-register and lock host franchise in auction room
         auctionRoom.preRegisterMember(hostId, hostName, hostFranchiseId, true);
         auctionRoom.selectTeam(hostId, hostFranchiseId);
@@ -294,7 +297,7 @@ export class TournamentManager {
             updatedAt: now
         };
         this.tournaments.set(tournamentId, tournament);
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return tournament;
     }
     /**
@@ -351,12 +354,12 @@ export class TournamentManager {
         tournament.teams[franchiseId] = newTeam;
         tournament.updatedAt = now;
         // Pre-register member and lock chosen franchise in underlying auction room
-        const auctionRoom = roomManager.getRoom(tournament.roomCode);
+        const auctionRoom = roomManager_js_1.roomManager.getRoom(tournament.roomCode);
         if (auctionRoom) {
             auctionRoom.preRegisterMember(userId, userName, franchiseId, false);
             auctionRoom.selectTeam(userId, franchiseId);
         }
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true, tournament };
     }
     /**
@@ -373,13 +376,13 @@ export class TournamentManager {
         }
         // Cascading deletion: remove underlying auction room
         if (tournament.roomCode) {
-            roomManager.deleteRoom(tournament.roomCode);
+            roomManager_js_1.roomManager.deleteRoom(tournament.roomCode);
         }
         // Delete tournament from memory and durable storage
         this.tournaments.delete(tournamentId);
-        tournamentStorage.deleteTournament(tournamentId);
+        tournamentStorage_js_1.tournamentStorage.deleteTournament(tournamentId);
         // Cascading deletion from Supabase if configured
-        const clientToUse = supabaseAdmin || supabase;
+        const clientToUse = supabase_js_1.supabaseAdmin || supabase_js_1.supabase;
         if (clientToUse) {
             try {
                 await clientToUse.from('tournaments').delete().eq('id', tournamentId);
@@ -407,7 +410,7 @@ export class TournamentManager {
             return { success: false, message: `Cannot start auction for tournament in ${tournament.status} state.` };
         }
         // Start underlying auction room if in LOBBY state
-        const room = roomManager.getRoom(tournament.roomCode);
+        const room = roomManager_js_1.roomManager.getRoom(tournament.roomCode);
         if (room && room.getState().status === 'LOBBY') {
             const startRes = room.startAuction(tournament.hostId);
             if (!startRes.success) {
@@ -416,7 +419,7 @@ export class TournamentManager {
         }
         tournament.status = 'AUCTION';
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true };
     }
     /**
@@ -427,7 +430,7 @@ export class TournamentManager {
         const tournament = this.tournaments.get(tournamentId);
         if (!tournament)
             return { success: false, message: 'Tournament not found' };
-        const room = roomManager.getRoom(tournament.roomCode);
+        const room = roomManager_js_1.roomManager.getRoom(tournament.roomCode);
         if (!room) {
             return { success: false, message: 'Auction room not found' };
         }
@@ -482,7 +485,7 @@ export class TournamentManager {
         }
         tournament.status = 'SQUAD_FINALIZATION';
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true };
     }
     /**
@@ -496,7 +499,7 @@ export class TournamentManager {
             return { success: false, message: 'Only tournament host can start live matches' };
         }
         const teamIds = tournament.members.map(m => m.franchiseId);
-        const fixtures = FixtureGenerator.generateGroupStageFixtures(tournamentId, teamIds, tournament.matchOvers);
+        const fixtures = fixtureGenerator_js_1.FixtureGenerator.generateGroupStageFixtures(tournamentId, teamIds, tournament.matchOvers);
         // Initialize points table
         const pointsTable = teamIds.map(fid => ({
             franchiseId: fid,
@@ -516,7 +519,7 @@ export class TournamentManager {
         tournament.pointsTable = pointsTable;
         tournament.status = 'TOURNAMENT_LIVE';
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true };
     }
     /**
@@ -565,7 +568,7 @@ export class TournamentManager {
         }
         team.defaultPlayingXI = { ...lineup };
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true };
     }
     /**
@@ -586,7 +589,7 @@ export class TournamentManager {
                 impactPlayerId: selection.impactPlayerId
             };
             tournament.updatedAt = Date.now();
-            tournamentStorage.saveTournament(tournament);
+            tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         }
     }
     /**
@@ -605,7 +608,7 @@ export class TournamentManager {
         if (fixture.status === 'IN_PROGRESS' && fixture.matchId) {
             let existing = this.liveMatches.get(fixture.matchId);
             if (!existing) {
-                existing = tournamentStorage.getMatch(fixture.matchId);
+                existing = tournamentStorage_js_1.tournamentStorage.getMatch(fixture.matchId);
                 if (existing) {
                     this.liveMatches.set(fixture.matchId, existing);
                 }
@@ -651,13 +654,13 @@ export class TournamentManager {
         };
         const homeLineup = getLineup(homeTeam, fixture.homeFranchiseId);
         const awayLineup = getLineup(awayTeam, fixture.awayFranchiseId);
-        const liveMatch = MatchEngine.createMatch(fixture.id, tournamentId, fixture.homeFranchiseId, fixture.awayFranchiseId, fixture.matchOvers, homeLineup, awayLineup, this.allPlayersMap);
+        const liveMatch = matchEngine_js_1.MatchEngine.createMatch(fixture.id, tournamentId, fixture.homeFranchiseId, fixture.awayFranchiseId, fixture.matchOvers, homeLineup, awayLineup, this.allPlayersMap);
         fixture.status = 'IN_PROGRESS';
         fixture.matchId = liveMatch.id;
         this.liveMatches.set(liveMatch.id, liveMatch);
-        tournamentStorage.saveMatch(liveMatch);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(liveMatch);
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
         return { success: true, match: liveMatch };
     }
     /**
@@ -701,10 +704,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.resolveToss(match, callerFranchiseId, call);
+        const res = matchEngine_js_1.MatchEngine.resolveToss(match, callerFranchiseId, call);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return {
             success: true,
             match,
@@ -731,10 +734,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
+        const res = matchEngine_js_1.MatchEngine.handleTossDecision(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match, message: res.message };
     }
     /**
@@ -744,8 +747,8 @@ export class TournamentManager {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { success: false, message: 'Match not found' };
-        MatchEngine.handleToss(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
-        tournamentStorage.saveMatch(match);
+        matchEngine_js_1.MatchEngine.handleToss(match, tossWinnerFranchiseId, decision, this.allPlayersMap);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match };
     }
     /**
@@ -766,10 +769,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
+        const res = matchEngine_js_1.MatchEngine.selectOpeningBatters(match, franchiseId, strikerId, nonStrikerId);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match, message: res.message };
     }
     /**
@@ -790,10 +793,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
+        const res = matchEngine_js_1.MatchEngine.selectOpeningBowler(match, franchiseId, bowlerId);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match, message: res.message };
     }
     /**
@@ -814,10 +817,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
+        const res = matchEngine_js_1.MatchEngine.selectReplacementBatter(match, franchiseId, replacementBatterId);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match, message: res.message };
     }
     /**
@@ -838,10 +841,10 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.selectBowler(match, bowlerId);
+        const res = matchEngine_js_1.MatchEngine.selectBowler(match, bowlerId);
         if (!res.success)
             return { success: false, message: res.message };
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         return { success: true, match, message: res.message };
     }
     /**
@@ -860,11 +863,11 @@ export class TournamentManager {
                 };
             }
         }
-        const res = MatchEngine.submitChoice(match, franchiseId, choice, ability, blockedNumbers, this.allPlayersMap);
+        const res = matchEngine_js_1.MatchEngine.submitChoice(match, franchiseId, choice, ability, blockedNumbers, this.allPlayersMap);
         if (res.error) {
             return { resolved: false, match, error: res.error };
         }
-        tournamentStorage.saveMatch(match);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         if (res.resolved) {
             if (match.status === 'COMPLETED') {
                 this.onMatchCompleted(match);
@@ -880,8 +883,8 @@ export class TournamentManager {
         const match = this.getLiveMatch(matchId);
         if (!match)
             return { resolved: false };
-        const event = MatchEngine.handleTimeout(match, this.allPlayersMap);
-        tournamentStorage.saveMatch(match);
+        const event = matchEngine_js_1.MatchEngine.handleTimeout(match, this.allPlayersMap);
+        tournamentStorage_js_1.tournamentStorage.saveMatch(match);
         if (event) {
             if (match.status === 'COMPLETED') {
                 this.onMatchCompleted(match);
@@ -1029,7 +1032,7 @@ export class TournamentManager {
             tournament.status = 'PLAYOFFS';
             const standings = tournament.pointsTable.map(p => p.franchiseId);
             const playoffFixtures = tournament.fixtures.filter(f => f.stage !== 'GROUP');
-            const nextPlayoff = FixtureGenerator.generateNextPlayoffFixture(tournament.id, tournament.teamsCount, standings, playoffFixtures, tournament.matchOvers);
+            const nextPlayoff = fixtureGenerator_js_1.FixtureGenerator.generateNextPlayoffFixture(tournament.id, tournament.teamsCount, standings, playoffFixtures, tournament.matchOvers);
             if (nextPlayoff) {
                 tournament.fixtures.push(nextPlayoff);
             }
@@ -1047,7 +1050,8 @@ export class TournamentManager {
             }
         }
         tournament.updatedAt = Date.now();
-        tournamentStorage.saveTournament(tournament);
+        tournamentStorage_js_1.tournamentStorage.saveTournament(tournament);
     }
 }
-export const tournamentManager = new TournamentManager();
+exports.TournamentManager = TournamentManager;
+exports.tournamentManager = new TournamentManager();

@@ -1,4 +1,7 @@
-export class FixtureGenerator {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FixtureGenerator = void 0;
+class FixtureGenerator {
     /**
      * Generates fixtures based on tournament team count
      */
@@ -273,3 +276,4 @@ export class FixtureGenerator {
         return null;
     }
 }
+exports.FixtureGenerator = FixtureGenerator;
