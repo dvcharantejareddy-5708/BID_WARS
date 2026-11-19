@@ -18,11 +18,10 @@
       "root": "server",
       "framework": "express",
       "installCommand": "npm install",
-      "buildCommand": "npm run build",
-      "entrypoint": "dist/index.js",
+      "entrypoint": "src/index.ts",
       "functions": {
-        "dist/index.js": {
-          "includeFiles": "dist/data/**"
+        "src/index.ts": {
+          "includeFiles": "{src,dist}/data/**"
         }
       }
     }

@@ -22,6 +22,13 @@ export const isServerless = Boolean(process.env.VERCEL ||
     process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.NOW_REGION ||
     process.env.LAMBDA_TASK_ROOT);
+console.log(`[Diagnostic Init] Server module loaded. isServerless=${isServerless}, env=${process.env.NODE_ENV}, VERCEL=${process.env.VERCEL ? 'yes' : 'no'}, time=${new Date().toISOString()}`);
+process.on('uncaughtException', (err) => {
+    console.error('[Diagnostic UncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[Diagnostic UnhandledRejection]', reason);
+});
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
@@ -30,6 +37,11 @@ const host = process.env.HOST || '0.0.0.0';
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Diagnostic request entry logger
+app.use((req, res, next) => {
+    console.log(`[Diagnostic Req] ${req.method} ${req.originalUrl || req.url}`);
+    next();
+});
 // Restore persisted rooms from durable disk / Supabase only in stateful mode
 if (!isServerless) {
     roomManager.loadPersistedRooms().catch((err) => {
@@ -62,13 +74,20 @@ if (fs.existsSync(clientDistPath)) {
     app.use(express.static(clientDistPath));
 }
 // REST API Endpoints
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({
+// Health check (supports both /api/health and /health)
+app.get(['/api/health', '/health'], (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json({
         status: 'ok',
         game: 'BID WARS',
         edition: '2026',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        serverless: isServerless,
+        supabaseConfigured: Boolean(supabase),
+        adminConfigured: Boolean(supabaseAdmin),
+        hasUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+        hasAnonKey: Boolean(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+        hasServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
     });
 });
 // Create Room
@@ -196,7 +215,7 @@ app.get('/api/players/:id', (req, res) => {
 // 4. USERNAME + GMAIL AUTHENTICATION & PASSWORD MANAGEMENT API
 // ==========================================
 // Register new account with unique username, mandatory verified Gmail and secure password
-app.post('/api/auth/register', async (req, res) => {
+app.post(['/api/auth/register', '/auth/register'], async (req, res) => {
     try {
         const { username, password, confirmPassword, email, gmail } = req.body || {};
         const inputEmail = email || gmail;
@@ -382,7 +401,7 @@ app.post('/api/auth/resend-verification', async (req, res) => {
     }
 });
 // Login with username and password (Supabase Auth single source of truth)
-app.post('/api/auth/login', async (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
         const { username, password } = req.body || {};

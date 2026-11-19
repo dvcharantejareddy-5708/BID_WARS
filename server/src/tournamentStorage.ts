@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { supabase, supabaseAdmin } from './supabase.js';
 import { Tournament, UserProfile, LiveMatch } from './tournamentTypes.js';
@@ -15,7 +16,7 @@ const getTournamentStorageFilePath = (): string => {
     process.env.AWS_LAMBDA_FUNCTION_NAME || 
     process.env.LAMBDA_TASK_ROOT
   );
-  const defaultDir = isServerless ? path.join('/tmp', 'bidwars_data') : path.join(process.cwd(), 'server', 'data');
+  const defaultDir = isServerless ? path.join(os.tmpdir(), 'bidwars_data') : path.join(process.cwd(), 'server', 'data');
   if (!fs.existsSync(defaultDir)) {
     try {
       fs.mkdirSync(defaultDir, { recursive: true });
