@@ -16,8 +16,6 @@
     },
     "server": {
       "root": "server",
-      "framework": "express",
-      "installCommand": "npm install",
       "entrypoint": "index.js",
       "functions": {
         "index.js": {

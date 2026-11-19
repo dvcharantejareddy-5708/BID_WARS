@@ -1361,7 +1361,21 @@ if (!isServerless && isDirectExecution && server && process.env.NODE_ENV !== 'te
   });
 }
 
-// Attach HTTP server and WebSocket server references to Express app
+// Universal Handler for Vercel Serverless Function & Express invocation
+export function handler(req: any, res: any) {
+  try {
+    return app(req, res);
+  } catch (err: any) {
+    console.error('[Serverless Handler Exception]', err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: err?.message || 'Serverless invocation error', status: 500 }));
+    }
+  }
+}
+
+// Attach references for backwards-compatibility
 if (server) {
   (app as any).server = server;
 }
@@ -1369,6 +1383,9 @@ if (wss) {
   (app as any).wss = wss;
 }
 (app as any).default = app;
+(app as any).handler = handler;
+(handler as any).app = app;
+(handler as any).default = app;
 
 export default app;
 export { app, server, roomManager, tournamentManager };

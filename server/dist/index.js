@@ -1238,7 +1238,21 @@ if (!isServerless && isDirectExecution && server && process.env.NODE_ENV !== 'te
         console.log(`[BID WARS WSS] Real-time engine ready at ws://${host}:${port}`);
     });
 }
-// Attach HTTP server and WebSocket server references to Express app
+// Universal Handler for Vercel Serverless Function & Express invocation
+export function handler(req, res) {
+    try {
+        return app(req, res);
+    }
+    catch (err) {
+        console.error('[Serverless Handler Exception]', err);
+        if (!res.headersSent) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: err?.message || 'Serverless invocation error', status: 500 }));
+        }
+    }
+}
+// Attach references for backwards-compatibility
 if (server) {
     app.server = server;
 }
@@ -1246,5 +1260,8 @@ if (wss) {
     app.wss = wss;
 }
 app.default = app;
+app.handler = handler;
+handler.app = app;
+handler.default = app;
 export default app;
 export { app, server, roomManager, tournamentManager };
