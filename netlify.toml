@@ -1,0 +1,16 @@
+# BID WARS - Netlify configuration
+# The frontend is a Vite + React SPA in /client. The Express/WebSocket server
+# in /server is not deployed by Netlify; point VITE_API_URL / VITE_WS_URL at it.
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA fallback (mirrors client/public/_redirects)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
