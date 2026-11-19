@@ -187,6 +187,18 @@ export interface DeliveryResultSummary {
   timestamp: number;
 }
 
+export interface DeliveryState {
+  id: string;
+  matchId: string;
+  inningsNumber: 1 | 2;
+  overNumber: number;
+  ballNumber: number;
+  startTime: number;
+  deadline: number;
+  status: 'WAITING_INPUTS' | 'CHOICES_LOCKED' | 'RESOLVING' | 'RESOLVED';
+  resultStatus?: 'DOT' | 'RUNS' | 'BOUNDARY' | 'WICKET' | 'TIMED_OUT';
+}
+
 export interface LiveMatch {
   id: string;
   tournamentId: string;
@@ -196,6 +208,7 @@ export interface LiveMatch {
   matchOvers: number;
   maxBowlerOvers: number;
   status: MatchStatus;
+  currentDelivery?: DeliveryState;
   tossCallerFranchiseId?: IPLTeamId;
   tossCall?: 'HEADS' | 'TAILS';
   tossResult?: 'HEADS' | 'TAILS';
@@ -228,6 +241,8 @@ export interface LiveMatch {
     batterAbility?: BatterAbilityType;
     bowlerAbility?: BowlerAbilityType;
     blockedNumbers?: number[];
+    hasBatterSubmitted?: boolean;
+    hasBowlerSubmitted?: boolean;
   };
   impactPlayersUsed: Record<IPLTeamId, boolean>;
   ballHistory: BallEvent[];

@@ -1073,6 +1073,10 @@ export class TournamentManager {
       this.allPlayersMap
     );
 
+    if (res.error) {
+      return { resolved: false, match, error: res.error };
+    }
+
     tournamentStorage.saveMatch(match);
 
     if (res.resolved) {
