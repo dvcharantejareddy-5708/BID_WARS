@@ -60,11 +60,12 @@ export const BidWarsLogo: React.FC<BidWarsLogoProps> = ({
       {!iconOnly && (
         <div className="flex flex-col leading-none">
           <span className={`font-display font-black tracking-tight uppercase ${textSizes[size]}`}>
-            <span className="text-[#F5F3ED]">BID</span>
-            <span className="text-[#D6AD55] drop-shadow-[0_1px_4px_rgba(214,173,85,0.25)]">WARS</span>
+            <span className="bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#ECC778] bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(214,173,85,0.28)]">
+              BIDWARS
+            </span>
           </span>
           {showTagline && (
-            <span className="text-[10px] font-mono font-medium tracking-wide text-[#AAA9A2] mt-0.5">
+            <span className="text-[10px] font-mono font-medium tracking-wide text-[#AAA69B] mt-0.5">
               BUILD YOUR SQUAD. OWN THE GAME.
             </span>
           )}

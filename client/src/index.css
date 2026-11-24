@@ -314,6 +314,30 @@
   );
 }
 
+/* Orbital Rotation for Squad Architecture 10-Team Wheel */
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbitCounterSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+.animate-orbit {
+  animation: orbitSpin 32s linear infinite;
+}
+
+.animate-orbit-reverse {
+  animation: orbitCounterSpin 32s linear infinite;
+}
+
+.orbit-container:hover .animate-orbit,
+.orbit-container:hover .animate-orbit-reverse {
+  animation-play-state: paused;
+}
+
 /* Accessibility: Reduced-Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

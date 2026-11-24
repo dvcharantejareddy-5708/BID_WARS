@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Trophy,
   Users,
-  ChevronRight,
   Clock,
   Lock,
   Eye,
@@ -18,7 +17,11 @@ import {
   Zap,
   Menu,
   LogOut,
-  User
+  User,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  ChevronDown
 } from 'lucide-react';
 import { RoomSettings } from '../types.js';
 import { BidWarsLogo } from './BidWarsLogo.js';
@@ -34,206 +37,61 @@ interface LandingPageProps {
   isLoading: boolean;
 }
 
-interface HeroSlide {
-  id: number;
-  tag: string;
-  title: string;
-  subtitle: string;
-  quote: string;
-  stats: string;
-  badge: string;
-  thumbnailTitle: string;
-  thumbnailDesc: string;
-}
-
-const HERO_SLIDES: HeroSlide[] = [
-  {
-    id: 1,
-    tag: '01 / BIDWARS LEAGUE 2026',
-    title: 'THE AUCTION STARTS HERE',
-    subtitle: 'Step into the high-stakes cricket auction arena. Outbid rival franchise owners under the hammer with live purse dynamics.',
-    quote: 'Every bid is a statement. Assemble world-class talent under the hammer.',
-    stats: '10 FRANCHISES · 120 CR PURSE · REAL-TIME MULTIPLAYER',
-    badge: 'LIVE BIDDING SIMULATOR',
-    thumbnailTitle: 'THE HAMMER',
-    thumbnailDesc: 'Live Purse & Gavel'
-  },
-  {
-    id: 2,
-    tag: '02 / SQUAD ARCHITECTURE & STRATEGY',
-    title: 'BUILD YOUR SQUAD',
-    subtitle: 'Balance explosive overseas match-winners with domestic pillars. Craft the ultimate 25-man roster within financial limits.',
-    quote: 'Balance overseas firepower with domestic match-winners to forge a dynasty.',
-    stats: '25 SQUAD CAP · 8 OVERSEAS · RTM CARDS',
-    badge: 'SQUAD ARCHITECTURE',
-    thumbnailTitle: 'THE SQUAD',
-    thumbnailDesc: '10 Franchises'
-  },
-  {
-    id: 3,
-    tag: '03 / MULTIPLAYER MATCH ENGINE',
-    title: 'RULE THE TOURNAMENT',
-    subtitle: 'Take your drafted Playing XI into WicketPulse ball-by-ball tactical matches. Battle through league stages and hoist the trophy.',
-    quote: 'From hammer wars to ball-by-ball WicketPulse showdowns.',
-    stats: 'ROUND ROBIN · PLAYOFFS · FINAL SHOWDOWN',
-    badge: 'WICKETPULSE ENGINE',
-    thumbnailTitle: 'THE TROPHY',
-    thumbnailDesc: 'Playoffs & Finale'
-  }
-];
-
 // All 10 official franchise teams for the squad orbit
 const FRANCHISE_LOGOS = [
-  { name: 'Chennai Super Kings', src: '/logos/csk.jpg' },
-  { name: 'Mumbai Indians', src: '/logos/mi.jpg' },
-  { name: 'Royal Challengers Bengaluru', src: '/logos/rcb.png' },
-  { name: 'Kolkata Knight Riders', src: '/logos/kkr.jpg' },
-  { name: 'Gujarat Titans', src: '/logos/gt.jpg' },
-  { name: 'Lucknow Super Giants', src: '/logos/lsg.webp' },
-  { name: 'Delhi Capitals', src: '/logos/dc.jpg' },
-  { name: 'Rajasthan Royals', src: '/logos/rr.png' },
-  { name: 'Sunrisers Hyderabad', src: '/logos/srh.jpeg' },
-  { name: 'Punjab Kings', src: '/logos/pbks.jpeg' }
+  { id: 'CSK', name: 'Chennai Super Kings', src: '/logos/csk.jpg', color: '#F9CD05' },
+  { id: 'MI', name: 'Mumbai Indians', src: '/logos/mi.jpg', color: '#004BA0' },
+  { id: 'RCB', name: 'Royal Challengers Bengaluru', src: '/logos/rcb.png', color: '#EC1C24' },
+  { id: 'KKR', name: 'Kolkata Knight Riders', src: '/logos/kkr.jpg', color: '#3A225D' },
+  { id: 'GT', name: 'Gujarat Titans', src: '/logos/gt.jpg', color: '#1B2133' },
+  { id: 'LSG', name: 'Lucknow Super Giants', src: '/logos/lsg.webp', color: '#A72056' },
+  { id: 'DC', name: 'Delhi Capitals', src: '/logos/dc.jpg', color: '#00008B' },
+  { id: 'RR', name: 'Rajasthan Royals', src: '/logos/rr.png', color: '#EA1A85' },
+  { id: 'SRH', name: 'Sunrisers Hyderabad', src: '/logos/srh.jpeg', color: '#F26522' },
+  { id: 'PBKS', name: 'Punjab Kings', src: '/logos/pbks.jpeg', color: '#DD1F2D' }
 ];
 
-interface GameModeCard {
-  id: string;
-  tag: string;
-  title: string;
-  description: string;
-  metric: string;
-  icon: 'gavel' | 'trophy' | 'pulse' | 'shield' | 'flame' | 'users' | 'trending' | 'sparkles';
-  badgeColor: string;
-  action: 'create' | 'tournament' | 'join' | 'modal';
-  fullDetails?: {
-    overview: string;
-    highlights: string[];
-    rules: string[];
-  };
+// Helper for cubic-bezier interpolation
+function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number) {
+  const cx = 3 * p1x;
+  const bx = 3 * (p2x - p1x) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * p1y;
+  const by = 3 * (p2y - p1y) - cy;
+  const ay = 1 - cy - by;
+
+  function sampleCurveX(t: number) {
+    return ((ax * t + bx) * t + cx) * t;
+  }
+  function sampleCurveY(t: number) {
+    return ((ay * t + by) * t + cy) * t;
+  }
+  function solveCurveX(x: number) {
+    let t0 = 0;
+    let t1 = 1;
+    let t2 = x;
+    for (let i = 0; i < 8; i++) {
+      const x2 = sampleCurveX(t2) - x;
+      if (Math.abs(x2) < 1e-4) return sampleCurveY(t2);
+      const d2 = (3 * ax * t2 + 2 * bx) * t2 + cx;
+      if (Math.abs(d2) < 1e-4) break;
+      t2 -= x2 / d2;
+    }
+    while (t0 < t1) {
+      const x2 = sampleCurveX(t2);
+      if (Math.abs(x2 - x) < 1e-4) return sampleCurveY(t2);
+      if (x > x2) t0 = t2;
+      else t1 = t2;
+      t2 = (t1 - t0) * 0.5 + t0;
+    }
+    return sampleCurveY(t2);
+  }
+  return solveCurveX;
 }
 
-const GAME_MODES: GameModeCard[] = [
-  {
-    id: 'quick_auction',
-    tag: 'FAST PACED',
-    title: 'Quick Auction Blitz',
-    description: 'Host a rapid 10-team auction with automated bots or friends. Full hammer mechanics in under 15 minutes.',
-    metric: '10-15 MINS',
-    icon: 'gavel',
-    badgeColor: '#D6AD55',
-    action: 'create',
-    fullDetails: {
-      overview: 'Experience the exhilarating intensity of a mega auction in a fast-paced format. Perfect for quick sessions with friends or testing strategic auction algorithms against adaptive AI bidders.',
-      highlights: ['Customizable 5s - 30s bid timers', 'Adjustable purse from 80 Cr to 150 Cr', 'Smart bot bidding with team-need analysis', 'Real-time live budget tracking'],
-      rules: ['Minimum 18 players per squad', 'Maximum 8 overseas players', 'Standard professional incremental bid ladders']
-    }
-  },
-  {
-    id: 'tournament_mode',
-    tag: 'FULL SEASON',
-    title: 'Mega Tournament Mode',
-    description: 'A complete franchise campaign: live mega auction followed by full league fixtures, standings, and playoffs.',
-    metric: '10 TEAMS · LEAGUE',
-    icon: 'trophy',
-    badgeColor: '#E9C77D',
-    action: 'tournament',
-    fullDetails: {
-      overview: 'The definitive franchise ownership experience. Take a team from the auction floor through home and away fixtures, manage squad rotations, and qualify for the Eliminator and Qualifier stages.',
-      highlights: ['Persistent tournament standings & NRR', 'Head-to-head fixtures with friends', 'Multi-user persistent squad storage', 'Championship podium and awards'],
-      rules: ['Round-robin group matches', 'Top 4 teams advance to playoffs', 'Qualifier 1, Eliminator, Qualifier 2, Final']
-    }
-  },
-  {
-    id: 'wicketpulse',
-    tag: 'MULTIPLAYER',
-    title: 'WicketPulse Match Engine',
-    description: 'Strategic ball-by-ball multiplayer cricket game. Outthink your opponent with bowling tactics and batting aggression.',
-    metric: 'LIVE DUEL',
-    icon: 'pulse',
-    badgeColor: '#48B982',
-    action: 'tournament',
-    fullDetails: {
-      overview: 'WicketPulse converts your drafted squad into an interactive tactical match. Every ball is an intense mental duel between batsman shot selection and bowler line & length.',
-      highlights: ['Real-time Supabase multiplayer synchronization', 'Individual player stats & stamina', 'Pace vs spin bowling variations', 'Dynamic powerplay fielding restrictions'],
-      rules: ['20 overs per innings', 'Authentic bowler over limits (4 overs max)', 'Dynamic target chases with Duckworth-Lewis handling']
-    }
-  },
-  {
-    id: 'squad_builder',
-    tag: 'MANAGEMENT',
-    title: 'Franchise Squad Builder',
-    description: 'Manage 25-man rosters with RTM cards, player roles, overseas constraints, and balance metrics.',
-    metric: '25 ROSTER CAP',
-    icon: 'shield',
-    badgeColor: '#D6AD55',
-    action: 'create',
-    fullDetails: {
-      overview: 'Auction victory requires balanced roster composition. Ensure your franchise satisfies all wicketkeeper, all-rounder, overseas, and pace/spin bowling requirements.',
-      highlights: ['Right-to-Match (RTM) strategic usage', 'Overseas player limit enforcement (8 max)', 'Purse allocation analytics', 'Backup player depth chart'],
-      rules: ['Must have at least 2 wicketkeepers', 'Minimum 5 bowling options required', 'Strict purse ceiling cannot be breached']
-    }
-  },
-  {
-    id: 'live_bidding',
-    tag: 'ARENA',
-    title: 'Live Bidding Arena',
-    description: 'High-octane paddle wars with real-time bidding counter, audio gavel strikes, and countdown tension.',
-    metric: 'REAL-TIME',
-    icon: 'flame',
-    badgeColor: '#E05252',
-    action: 'create',
-    fullDetails: {
-      overview: 'Feel the adrenaline of the auction hall. Raise your franchise paddle, watch rival bids counter in real time, and make split-second decisions before the gavel drops for the final time.',
-      highlights: ['Audio cues for bid paddle raises and SOLD hammer strikes', 'Instant bid increment calculator', 'Visual franchise paddles on table', 'Bid history timeline audit'],
-      rules: ['Going once, going twice, SOLD mechanic', 'Bids cannot be retracted once submitted', 'Zero-purse bidders are disqualified from current lot']
-    }
-  },
-  {
-    id: 'tactical_xi',
-    tag: 'TACTICS',
-    title: 'Playing XI Match Tactician',
-    description: 'Lock your matchday XI, assign captaincy and wicketkeeper gloves, and tailor batting orders to match conditions.',
-    metric: '11 SQUAD LOCK',
-    icon: 'users',
-    badgeColor: '#E9C77D',
-    action: 'tournament',
-    fullDetails: {
-      overview: 'Drafting the squad is only half the battle. Strategically deploy your 11 players based on pitch conditions, boundary dimensions, and opponent strengths.',
-      highlights: ['Captaincy boost & tactical leadership', 'Designated wicketkeeper gloveman', 'Flexible batting order adjustment', 'Impact Player substitution option'],
-      rules: ['Maximum 4 overseas players in Playing XI', 'Must include minimum 5 bowling options', 'Locked before toss is conducted']
-    }
-  },
-  {
-    id: 'leaderboards',
-    tag: 'STATISTICS',
-    title: 'Franchise Leaderboards',
-    description: 'Track purse efficiency, trophy count, win-loss ratios, and historical auction valuation records.',
-    metric: 'GLOBAL STATS',
-    icon: 'trending',
-    badgeColor: '#D6AD55',
-    action: 'modal',
-    fullDetails: {
-      overview: 'Compare your managerial performance against the BidWars community. Track historical purse savings, most valuable squad valuations, and championship conversion rates.',
-      highlights: ['Global franchise owner rankings', 'Purse efficiency percentage', 'Auction ROI performance metrics', 'Hall of Fame squads'],
-      rules: ['Updated automatically at conclusion of each tournament', 'Verified match data only', 'Seasonal resets with permanent badge trophies']
-    }
-  },
-  {
-    id: 'championship',
-    tag: 'TROPHY',
-    title: 'Championship Trophy',
-    description: 'The ultimate prize. Navigate the grueling Qualifier 1, Eliminator, Qualifier 2, and hoist the cup in the Grand Finale.',
-    metric: 'GRAND FINALE',
-    icon: 'sparkles',
-    badgeColor: '#D6AD55',
-    action: 'tournament',
-    fullDetails: {
-      overview: 'Where legends are crowned. The top four franchises from the league phase clash in a high-stakes playoff bracket to decide the BidWars champion.',
-      highlights: ['Broadcast-style championship presentation', 'Man of the Match & MVP awards', 'Golden Bat and Golden Ball accolades', 'Permanent franchise championship star'],
-      rules: ['Top 2 play Qualifier 1 (winner to Final)', '3rd & 4th play Eliminator', 'Qualifier 2 pits Q1 loser vs Eliminator winner']
-    }
-  }
-];
+const easeDoors = cubicBezier(0.77, 0, 0.175, 1);
+const easeLetters = cubicBezier(0.16, 1, 0.3, 1);
+const easeForeground = cubicBezier(0.25, 1, 0.5, 1);
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onCreateRoom,
@@ -248,16 +106,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
-  // Hero Slider
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const slideTimerRef = useRef<number | null>(null);
-  const [isHoveringHero, setIsHoveringHero] = useState(false);
-
   // Modals & Panels
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [activeCardDetail, setActiveCardDetail] = useState<GameModeCard | null>(null);
 
   // Quick Auction Form State
   const [hostNickname, setHostNickname] = useState('');
@@ -278,11 +129,302 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [joinPassword, setJoinPassword] = useState('');
   const [showJoinPassword, setShowJoinPassword] = useState(false);
 
-  // Interactive BidWars Auction Showcase Card Simulation
-  const [showcaseBid, setShowcaseBid] = useState(14.75);
+  // Interactive BidWars Auction Showcase Simulation State
+  const [showcaseBid, setShowcaseBid] = useState(18.5);
   const [showcaseBidder, setShowcaseBidder] = useState('ROYAL CHALLENGERS');
   const [showcaseTimer, setShowcaseTimer] = useState(8);
   const [isBidJustRaised, setIsBidJustRaised] = useState(false);
+
+  // Feature Section Interactive States
+  const [activeRoleFilter, setActiveRoleFilter] = useState<'ALL' | 'BAT' | 'BOWL' | 'AR' | 'WK'>('ALL');
+  const [selectedFranchiseOrbit, setSelectedFranchiseOrbit] = useState<string>('CSK');
+  const [matchOverBalls, setMatchOverBalls] = useState<number[]>([1, 4, 0, 6, 2]);
+
+  // =========================================================================
+  // MASTER ANIMATION CLOCK (0.00s to 7.40s) — HARBORLUX CHOREOGRAPHY
+  // =========================================================================
+  const [timelineSec, setTimelineSec] = useState<number>(0);
+  const [isIntroComplete, setIsIntroComplete] = useState<boolean>(false);
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const startTimeRef = useRef<number | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Check reduced motion preference
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }, []);
+
+  const triggerReplay = useCallback(() => {
+    startTimeRef.current = null;
+    setIsIntroComplete(false);
+    setTimelineSec(0);
+    setHasStarted(true);
+  }, []);
+
+  const skipIntro = useCallback(() => {
+    setTimelineSec(7.4);
+    setIsIntroComplete(true);
+  }, []);
+
+  // Main RAF timeline loop
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setTimelineSec(7.4);
+      setIsIntroComplete(true);
+      return;
+    }
+
+    // Auto-start after a tiny mount delay for asset readiness
+    const startTimer = setTimeout(() => {
+      setHasStarted(true);
+    }, 100);
+
+    return () => clearTimeout(startTimer);
+  }, [prefersReducedMotion]);
+
+  useEffect(() => {
+    if (!hasStarted || prefersReducedMotion) return;
+
+    const animateTimeline = (now: number) => {
+      if (!startTimeRef.current) {
+        startTimeRef.current = now;
+      }
+      const elapsedSec = (now - startTimeRef.current) / 1000;
+
+      if (elapsedSec >= 7.4) {
+        setTimelineSec(7.4);
+        setIsIntroComplete(true);
+      } else {
+        setTimelineSec(elapsedSec);
+        animFrameRef.current = requestAnimationFrame(animateTimeline);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animateTimeline);
+
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [hasStarted, prefersReducedMotion]);
+
+  // Derived animation properties according to the exact Harborlux 7.4s timeline:
+  // 1. Left door: 0.02s–1.13s (slides left from center seam)
+  const leftDoorProgress = useMemo(() => {
+    if (timelineSec < 0.02) return 0;
+    if (timelineSec >= 1.13) return 1;
+    const raw = (timelineSec - 0.02) / (1.13 - 0.02);
+    return easeDoors(raw);
+  }, [timelineSec]);
+
+  // 2. Right door: 0.02s–1.24s (slides right from center seam)
+  const rightDoorProgress = useMemo(() => {
+    if (timelineSec < 0.02) return 0;
+    if (timelineSec >= 1.24) return 1;
+    const raw = (timelineSec - 0.02) / (1.24 - 0.02);
+    return easeDoors(raw);
+  }, [timelineSec]);
+
+  // 3. Aerial still to wide camera transition: 1.25s–2.85s (zoom & pan down)
+  const cameraZoomScale = useMemo(() => {
+    if (timelineSec < 1.25) return 1.35;
+    if (timelineSec >= 2.85) return 1.05;
+    const p = (timelineSec - 1.25) / (2.85 - 1.25);
+    return 1.35 - (1.35 - 1.05) * p;
+  }, [timelineSec]);
+
+  const cameraPanY = useMemo(() => {
+    if (timelineSec < 1.25) return -7;
+    if (timelineSec >= 2.85) return 0;
+    const p = (timelineSec - 1.25) / (2.85 - 1.25);
+    return -7 + 7 * p;
+  }, [timelineSec]);
+
+  // 4. Opening aerial crossfades into wide stadium composition: 2.45s–2.95s
+  const aerialOpacity = useMemo(() => {
+    if (timelineSec < 2.45) return 1;
+    if (timelineSec >= 2.95) return 0;
+    return 1 - (timelineSec - 2.45) / (2.95 - 2.45);
+  }, [timelineSec]);
+
+  const wideStadiumOpacity = useMemo(() => {
+    if (timelineSec < 2.45) return 0;
+    if (timelineSec >= 2.95) return 1;
+    return (timelineSec - 2.45) / (2.95 - 2.45);
+  }, [timelineSec]);
+
+  // 5. Navigation: 2.45s–2.75s (fades in moving slightly downward)
+  const navOpacity = useMemo(() => {
+    if (timelineSec < 2.45) return 0;
+    if (timelineSec >= 2.75) return 1;
+    return (timelineSec - 2.45) / (2.75 - 2.45);
+  }, [timelineSec]);
+
+  const navTranslateY = useMemo(() => {
+    if (timelineSec < 2.45) return -14;
+    if (timelineSec >= 2.75) return 0;
+    const p = (timelineSec - 2.45) / (2.75 - 2.45);
+    return -14 * (1 - p);
+  }, [timelineSec]);
+
+  // 6. Kicker: 2.45s–3.10s (fades in and rises slightly)
+  const kickerOpacity = useMemo(() => {
+    if (timelineSec < 2.45) return 0;
+    if (timelineSec >= 3.10) return 1;
+    return (timelineSec - 2.45) / (3.10 - 2.45);
+  }, [timelineSec]);
+
+  const kickerTranslateY = useMemo(() => {
+    if (timelineSec < 2.45) return 18;
+    if (timelineSec >= 3.10) return 0;
+    const p = (timelineSec - 2.45) / (3.10 - 2.45);
+    return 18 * (1 - easeLetters(p));
+  }, [timelineSec]);
+
+  // 7. S Q U A D letters: reveal from left to right starting at 2.45s
+  const letterTimings = useMemo(() => [
+    { start: 2.45, end: 2.95 }, // S
+    { start: 2.60, end: 3.10 }, // Q
+    { start: 2.75, end: 3.25 }, // U
+    { start: 2.90, end: 3.40 }, // A
+    { start: 3.05, end: 3.55 }  // D
+  ], []);
+
+  const getLetterStyle = useCallback((index: number) => {
+    const timing = letterTimings[index];
+    if (timelineSec < timing.start) {
+      return { opacity: 0, transform: 'translateY(42px)' };
+    }
+    if (timelineSec >= timing.end) {
+      return { opacity: 1, transform: 'translateY(0px)' };
+    }
+    const raw = (timelineSec - timing.start) / (timing.end - timing.start);
+    const eased = easeLetters(raw);
+    return {
+      opacity: eased,
+      transform: `translateY(${42 * (1 - eased)}px)`
+    };
+  }, [timelineSec, letterTimings]);
+
+  // 8. Top shade: 2.90s–3.70s (gradually darkens upper background)
+  const topShadeOpacity = useMemo(() => {
+    if (timelineSec < 2.90) return 0;
+    if (timelineSec >= 3.70) return 0.85;
+    const p = (timelineSec - 2.90) / (3.70 - 2.90);
+    return 0.85 * p;
+  }, [timelineSec]);
+
+  // 9. Back layer: 2.90s–4.30s (moves upward by ~1.5%)
+  const backLayerTranslateY = useMemo(() => {
+    if (timelineSec < 2.90) return 1.5;
+    if (timelineSec >= 4.30) return 0;
+    const p = (timelineSec - 2.90) / (4.30 - 2.90);
+    return 1.5 * (1 - p);
+  }, [timelineSec]);
+
+  // 10. Mid layer: 2.90s–4.60s (moves upward by ~4%, holds, then returns)
+  const midLayerTranslateY = useMemo(() => {
+    if (timelineSec < 2.90) return 0;
+    if (timelineSec >= 4.60) return 0;
+    const p = (timelineSec - 2.90) / (4.60 - 2.90);
+    // Sine arc peaking at 3.75s (p = 0.5)
+    return -4 * Math.sin(p * Math.PI);
+  }, [timelineSec]);
+
+  // 11. Headline rising into position: 3.00s–4.80s
+  const headlineTranslateY = useMemo(() => {
+    if (timelineSec < 3.00) return 22;
+    if (timelineSec >= 4.80) return 0;
+    const p = (timelineSec - 3.00) / (4.80 - 3.00);
+    return 22 * (1 - easeLetters(p));
+  }, [timelineSec]);
+
+  // 12. Foreground subject: 3.35s–6.00s (rises from below) and 6.00s–7.30s (settles with overshoot)
+  const foregroundStyle = useMemo(() => {
+    if (timelineSec < 3.35) {
+      return { opacity: 0, transform: 'translateY(110%)' };
+    }
+    if (timelineSec >= 7.30) {
+      return { opacity: 1, transform: 'translateY(0%)' };
+    }
+    if (timelineSec < 6.00) {
+      const p = (timelineSec - 3.35) / (6.00 - 3.35);
+      const eased = easeForeground(p);
+      const y = 110 - (110 - (-2)) * eased;
+      return { opacity: Math.min(1, p * 1.5), transform: `translateY(${y}%)` };
+    }
+    // 6.00s to 7.30s: subtle settling from -2% down to 0%
+    const p = (timelineSec - 6.00) / (7.30 - 6.00);
+    const eased = easeLetters(p);
+    const y = -2 + 2 * eased;
+    return { opacity: 1, transform: `translateY(${y}%)` };
+  }, [timelineSec]);
+
+  // =========================================================================
+  // CONTINUOUS ATMOSPHERIC LOOP (POST-7.4s PARTICLES & AMBIENT HAZE)
+  // =========================================================================
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
+    let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
+
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
+      height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Subtle golden stadium embers & light dust motes
+    const particlesCount = 45;
+    const particles = Array.from({ length: particlesCount }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: Math.random() * 2 + 0.5,
+      speedY: -(Math.random() * 0.4 + 0.1),
+      speedX: (Math.random() - 0.5) * 0.25,
+      opacity: Math.random() * 0.5 + 0.15,
+      hue: Math.random() > 0.4 ? 'rgba(214,173,85,' : 'rgba(240,206,130,'
+    }));
+
+    let animId: number;
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      particles.forEach(p => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        if (p.y < 0) {
+          p.y = height + 10;
+          p.x = Math.random() * width;
+        }
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `${p.hue}${p.opacity})`;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(214,173,85,0.4)';
+        ctx.fill();
+      });
+
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Scroll listener
   useEffect(() => {
@@ -293,33 +435,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Auth state listener
+  // Auth listener
   useEffect(() => {
     const unsub = authService.onAuthStateChange(u => {
       setCurrentUser(u);
     });
-
-    if (typeof window !== 'undefined' && sessionStorage.getItem('bidwars_open_login_after_reset') === 'true') {
-      sessionStorage.removeItem('bidwars_open_login_after_reset');
-      setAuthModalMode('login');
-      setIsAuthModalOpen(true);
-    }
-
     return unsub;
   }, []);
-
-  // Hero Carousel Autoplay
-  useEffect(() => {
-    if (isHoveringHero) return;
-
-    slideTimerRef.current = window.setInterval(() => {
-      triggerSlideChange((currentSlideIndex + 1) % HERO_SLIDES.length);
-    }, 6500);
-
-    return () => {
-      if (slideTimerRef.current) clearInterval(slideTimerRef.current);
-    };
-  }, [currentSlideIndex, isHoveringHero]);
 
   // Interactive showcase simulated timer
   useEffect(() => {
@@ -329,119 +451,117 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const triggerSlideChange = (nextIndex: number) => {
-    if (nextIndex === currentSlideIndex || isTransitioning) return;
-    setIsTransitioning(true);
-    setCurrentSlideIndex(nextIndex);
-    setTimeout(() => {
-      setIsTransitioning(false);
-    }, 450);
-  };
-
+  // Quick auction form submission
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!hostNickname.trim()) return;
-    if (isPrivate && (!password.trim() || password.trim().length < 4)) {
-      alert('Password for private rooms must be at least 4 characters');
-      return;
-    }
 
     onCreateRoom(hostNickname.trim(), {
-      roomName: roomName.trim() || undefined,
+      roomName: roomName.trim() || `${hostNickname.trim()}'s League Arena`,
       isPrivate,
-      password: isPrivate ? password.trim() : undefined,
+      password: isPrivate ? password : '',
       season,
       poolMode,
       timerDuration,
       startingPurse: startingPurseCr * 10000000,
       playMode,
       botCount: playMode === 'friends_bots' ? botCount : 0,
-      minBidIncrement: minBidIncrementLakh * 100000,
-      minSquad: 18,
-      maxSquad: 25,
-      maxOverseas: 8
+      minBidIncrement: minBidIncrementLakh * 100000
     });
   };
 
+  // Join room form submission
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!joinCode.trim()) return;
     onJoinRoom(joinCode.trim().toUpperCase(), joinPassword.trim() || undefined);
   };
 
-  const handleShowcaseBidRaise = (amountCr: number) => {
-    setShowcaseBid(prev => Number((prev + amountCr).toFixed(2)));
-    setShowcaseBidder('YOU (NEON NAWABS)');
-    setShowcaseTimer(10);
-    setIsBidJustRaised(true);
-    setTimeout(() => setIsBidJustRaised(false), 600);
-  };
-
-  const handleLogout = async () => {
-    await authService.signOut();
-    setCurrentUser(null);
-  };
-
-  const currentSlide = HERO_SLIDES[currentSlideIndex];
-
   return (
-    <div className="min-h-screen bg-[#0D0F12] text-[#F5F3ED] font-sans selection:bg-[#D6AD55] selection:text-[#08090B] relative overflow-x-hidden">
-      {/* Custom Precision Cursor */}
+    <div className="relative w-full min-h-screen bg-[#0B0B0C] text-[#F5F3ED] font-sans overflow-x-hidden selection:bg-[#D6AD55] selection:text-[#0B0B0C]">
+      {/* Custom Mouse Cursor */}
       <CustomCursor />
 
-      {/* ======================================================== */}
-      {/* 1. COMPACT, POLISHED FIXED NAVIGATION BAR (68px)         */}
-      {/* ======================================================== */}
+      {/* =================================================================== */}
+      {/* 1. PINNED VIEWPORT NAVIGATION (Fades in at 2.45s–2.75s)            */}
+      {/* =================================================================== */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 h-16 sm:h-[68px] transition-all duration-300 flex items-center px-3 sm:px-6 lg:px-8 border-b ${isScrolled
-          ? 'bg-[#0D0F12]/95 backdrop-blur-md border-white/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.6)]'
-          : 'bg-[#0D0F12]/80 backdrop-blur-sm border-white/[0.04]'
-          }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
+          isScrolled
+            ? 'bg-[#0B0B0C]/95 backdrop-blur-md border-b border-[#D6AD55]/20 shadow-[0_4px_24px_rgba(0,0,0,0.8)]'
+            : 'bg-transparent'
+        }`}
+        style={{
+          opacity: navOpacity,
+          transform: `translateY(${navTranslateY}px)`,
+          pointerEvents: timelineSec >= 2.45 ? 'auto' : 'none'
+        }}
       >
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2 sm:gap-4">
-          {/* Left: Official BidWars Logo & IPL Edition Badge (Never Overlapping) */}
-          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0 min-w-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 xl:gap-6">
+          {/* Left: BidWars Logo & BIDWARS LEAGUE 2026 Edition Label */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
             <BidWarsLogo size="sm" />
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#15181D] border border-[#D6AD55]/30 text-[10px] font-mono text-[#D6AD55] font-semibold tracking-wider uppercase select-none shrink-0">
-              IPL 2026 EDITION
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#111111] border border-[#D6AD55]/30 text-[10px] font-mono text-[#D6AD55] font-semibold tracking-wider uppercase select-none whitespace-nowrap shrink-0">
+              BIDWARS LEAGUE 2026
             </span>
           </div>
 
-          {/* Center: Desktop Editorial Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-semibold tracking-wider uppercase text-[#AAA9A2]">
-            {[
-              { label: 'Auction Arena', onClick: () => setIsCreateModalOpen(true) },
-              { label: 'Tournament Mode', onClick: onSwitchToTournament },
-              { label: 'WicketPulse', onClick: onSwitchToTournament },
-              { label: 'How It Works', onClick: () => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }) },
-              { label: 'Showcase', onClick: () => document.getElementById('feature-showcase')?.scrollIntoView({ behavior: 'smooth' }) }
-            ].map(item => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.onClick}
-                className="group relative py-1 text-[#AAA9A2] hover:text-[#F5F3ED] transition-colors duration-200 cursor-pointer"
-              >
-                <span>{item.label}</span>
-                <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-gradient-to-r from-[#D6AD55] to-[#E9C77D] transition-all duration-300 ease-out group-hover:w-full" />
-              </button>
-            ))}
+          {/* Center: Desktop Navigation Links (Single Line, No Wrapping) */}
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs font-semibold tracking-wider uppercase text-[#AAA69B] whitespace-nowrap">
+            <a
+              href="#stage"
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              Home
+            </a>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              Auction Arena
+            </button>
+            <button
+              type="button"
+              onClick={onSwitchToTournament}
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              Tournament Mode
+            </button>
+            <button
+              type="button"
+              onClick={onSwitchToTournament}
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              WicketPulse
+            </button>
+            <a
+              href="#auction-section"
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              How It Works
+            </a>
+            <a
+              href="#engine-section"
+              className="hover:text-[#F0CE82] transition-colors py-1 cursor-pointer whitespace-nowrap shrink-0"
+            >
+              Showcase
+            </a>
           </nav>
 
-          {/* Right: Authentication & CTA Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {currentUser && currentUser.isRegisteredUser ? (
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-[#15181D] border border-white/10 px-2.5 sm:px-3 py-1.5 rounded-full text-xs text-[#F5F3ED]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#48B982] animate-pulse" />
-                <span className="font-mono text-[#D6AD55] font-semibold text-xs flex items-center gap-1.5 max-w-[100px] sm:max-w-none truncate">
-                  <User className="w-3.5 h-3.5 text-[#D6AD55] shrink-0" />
-                  <span className="truncate">{currentUser.username}</span>
-                </span>
+          {/* Right: Auth / Profile & Enter Arena CTA */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#111111] border border-[#D6AD55]/30 text-xs text-[#F5F3ED] whitespace-nowrap">
+                  <User className="w-3.5 h-3.5 text-[#D6AD55]" />
+                  <span className="font-semibold">{currentUser.username || currentUser.email?.split('@')[0]}</span>
+                </div>
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  title="Sign out"
-                  className="ml-0.5 text-[#74777D] hover:text-[#E05252] transition-colors p-0.5 cursor-pointer"
+                  onClick={() => authService.signOut()}
+                  className="p-2 rounded-xl bg-[#111111] border border-white/10 hover:border-[#D6AD55]/40 text-[#AAA69B] hover:text-[#F5F3ED] transition-colors cursor-pointer"
+                  title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -453,45 +573,51 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   setAuthModalMode('login');
                   setIsAuthModalOpen(true);
                 }}
-                className="hidden sm:inline-flex items-center text-xs font-semibold text-[#AAA9A2] hover:text-white px-2.5 sm:px-3 py-2 transition-colors cursor-pointer"
+                className="hidden sm:inline-flex items-center px-4 py-2 rounded-xl bg-[#111111] hover:bg-[#18181A] border border-[#D6AD55]/30 hover:border-[#D6AD55]/60 text-xs font-semibold uppercase tracking-wider text-[#F5F3ED] transition-all cursor-pointer whitespace-nowrap shrink-0"
               >
-                SIGN IN
+                Sign In
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs tracking-wider uppercase shadow-[0_2px_10px_rgba(214,173,85,0.25)] hover:brightness-105 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#B88B35] text-[#0B0B0C] font-bold text-xs uppercase tracking-wider shadow-[0_4px_16px_rgba(214,173,85,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <GavelIcon className="w-3.5 h-3.5 text-[#08090B]" />
-              <span className="hidden xs:inline">ENTER ARENA</span>
-              <span className="xs:hidden">ARENA</span>
+              <span>Enter Arena</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile Menu Toggle Button */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#15181D] border border-white/10 flex items-center justify-center text-[#AAA9A2] hover:text-white transition-colors cursor-pointer shrink-0"
-              aria-label="Toggle mobile menu"
+              className="lg:hidden p-2 rounded-xl bg-[#111111] border border-white/10 text-[#F5F3ED]"
+              aria-label="Toggle Navigation Menu"
             >
-              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer Overlay */}
+        {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-x-0 top-16 sm:top-[68px] bg-[#0D0F12]/98 border-b border-white/10 p-5 shadow-2xl backdrop-blur-xl animate-fadeIn z-50">
-            <div className="flex flex-col gap-3 text-sm font-semibold tracking-wide uppercase">
+          <div className="lg:hidden bg-[#0B0B0C]/98 border-b border-[#D6AD55]/30 px-6 py-6 space-y-4 animate-fadeIn">
+            <nav className="flex flex-col gap-3 text-sm font-semibold uppercase tracking-wider text-[#AAA69B]">
+              <a
+                href="#stage"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="hover:text-[#F0CE82] py-1.5"
+              >
+                Home
+              </a>
               <button
                 type="button"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   setIsCreateModalOpen(true);
                 }}
-                className="text-left py-2 px-3 rounded-lg hover:bg-white/5 text-[#F5F3ED] cursor-pointer"
+                className="text-left hover:text-[#F0CE82] py-1.5"
               >
                 Auction Arena
               </button>
@@ -501,7 +627,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   setIsMobileMenuOpen(false);
                   onSwitchToTournament && onSwitchToTournament();
                 }}
-                className="text-left py-2 px-3 rounded-lg hover:bg-white/5 text-[#F5F3ED] cursor-pointer"
+                className="text-left hover:text-[#F0CE82] py-1.5"
               >
                 Tournament Mode
               </button>
@@ -511,709 +637,791 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   setIsMobileMenuOpen(false);
                   onSwitchToTournament && onSwitchToTournament();
                 }}
-                className="text-left py-2 px-3 rounded-lg hover:bg-white/5 text-[#F5F3ED] cursor-pointer"
+                className="text-left hover:text-[#F0CE82] py-1.5"
               >
-                WicketPulse Duel
+                WicketPulse
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="text-left py-2 px-3 rounded-lg hover:bg-white/5 text-[#AAA9A2] cursor-pointer"
+              <a
+                href="#auction-section"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="hover:text-[#F0CE82] py-1.5"
               >
                 How It Works
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  document.getElementById('feature-showcase')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="text-left py-2 px-3 rounded-lg hover:bg-white/5 text-[#AAA9A2] cursor-pointer"
+              </a>
+              <a
+                href="#engine-section"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="hover:text-[#F0CE82] py-1.5"
               >
-                Feature Showcase
-              </button>
+                Showcase
+              </a>
+            </nav>
 
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-                {!currentUser && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setAuthModalMode('login');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="text-xs font-semibold text-[#D6AD55] uppercase cursor-pointer"
-                  >
-                    SIGN IN TO ACCOUNT
-                  </button>
-                )}
-                <span className="text-[10px] font-mono text-[#74777D]">IPL 2026 AUCTION ENGINE</span>
+            {!currentUser && (
+              <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setAuthModalMode('login');
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="text-xs font-semibold text-[#D6AD55] uppercase"
+                >
+                  Sign In to Account
+                </button>
+                <span className="text-[10px] font-mono text-[#AAA69B]">BIDWARS LEAGUE 2026</span>
               </div>
-            </div>
+            )}
           </div>
         )}
       </header>
 
-      {/* ======================================================== */}
-      {/* 2. BALANCED TWO-COLUMN HERO COMPOSITION                  */}
-      {/* ======================================================== */}
+      {/* =================================================================== */}
+      {/* 2. THE CINEMATIC 16:9 HERO STAGE (Exact Harborlux Choreography)     */}
+      {/* =================================================================== */}
       <section
-        className="relative w-full min-h-[calc(100vh-68px)] pt-20 pb-16 flex items-center overflow-hidden"
-        onMouseEnter={() => setIsHoveringHero(true)}
-        onMouseLeave={() => setIsHoveringHero(false)}
+        id="stage"
+        className="relative w-full h-screen min-h-[640px] max-h-[1100px] overflow-hidden bg-[#0B0B0C] isolate"
       >
-        {/* Realistic Cricket Stadium Atmosphere Backdrop */}
-        <div className="absolute inset-0 bg-[#08090B]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_15%,rgba(214,173,85,0.12),rgba(8,9,11,0.95)_70%)]" />
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(233,199,125,0.08)_0%,transparent_65%)] blur-3xl pointer-events-none" />
-          <div className="absolute top-10 right-1/4 w-[450px] h-[450px] bg-[radial-gradient(circle,rgba(214,173,85,0.08)_0%,transparent_60%)] blur-3xl pointer-events-none" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
-        </div>
+        {/* Centered 16:9 Cinematic Viewport Container */}
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none">
+          <div className="relative w-full h-full max-w-[1920px] pointer-events-auto overflow-hidden">
+            
+            {/* LAYER 1: BACK ATMOSPHERE, AERIAL & WIDE STADIUM BACKGROUND (Z-10) */}
+            <div
+              className="absolute inset-0 z-10 w-full h-full bg-[#0B0B0C] overflow-hidden"
+              style={{
+                transform: `translateY(${backLayerTranslateY}%)`
+              }}
+            >
+              {/* Distant stadium floodlight glow cones */}
+              <div className="absolute -top-1/4 left-1/4 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(214,173,85,0.18)_0%,transparent_70%)] blur-3xl pointer-events-none" />
+              <div className="absolute -top-1/4 right-1/4 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(240,206,130,0.15)_0%,transparent_70%)] blur-3xl pointer-events-none" />
 
-        {/* Content Container */}
-        <div className="relative z-30 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              {/* Aerial Stadium Still & Camera Zoom (0.00s to 2.95s) */}
+              {aerialOpacity > 0 && (
+                <div
+                  className="absolute inset-0 w-full h-full overflow-hidden"
+                  style={{ opacity: aerialOpacity }}
+                >
+                  <img
+                    src="/stadium-aerial.jpg"
+                    alt="BidWars Stadium Aerial"
+                    className="w-full h-full object-cover origin-center"
+                    style={{
+                      transform: `scale(${cameraZoomScale}) translateY(${cameraPanY}%)`,
+                      transition: 'transform 0.05s linear'
+                    }}
+                  />
+                </div>
+              )}
 
-            {/* ---------------------------------------------------- */}
-            {/* LEFT COLUMN: Headings, Editorial Quote, Actions      */}
-            {/* ---------------------------------------------------- */}
-            <div className="lg:col-span-7 flex flex-col justify-center">
-              {/* Eyebrow Tag */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#15181D]/90 border border-[#D6AD55]/30 backdrop-blur-md mb-4 w-fit">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D6AD55] animate-ping" />
-                <span className="font-mono text-[11px] font-semibold tracking-widest text-[#E9C77D] uppercase">
-                  {currentSlide.tag}
-                </span>
+              {/* Wide Stadium Bowl Midground (Crossfades in at 2.45s–2.95s) */}
+              <div
+                className="absolute inset-0 w-full h-full overflow-hidden"
+                style={{
+                  opacity: wideStadiumOpacity,
+                  transform: `translateY(${midLayerTranslateY}%)`
+                }}
+              >
+                <img
+                  src="/stadium-wide.jpg"
+                  alt="BidWars Arena Bowl"
+                  className="w-full h-full object-cover object-center sm:object-bottom"
+                />
               </div>
+            </div>
 
-              {/* Bold, Proportional Sports-Editorial Headline */}
-              <h1 className="font-bebas text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight uppercase leading-[0.98] sm:leading-[0.96] text-[#F5F3ED] mb-3 max-w-xl break-words">
-                {currentSlide.title}
-              </h1>
+            {/* LAYER 2: ATMOSPHERIC HAZE, EDITORIAL SCRIM & PARTICLES (Z-20) */}
+            <div className="absolute inset-0 z-20 pointer-events-none">
+              {/* Left-side & bottom editorial gradient scrim for crisp headline legibility */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0C]/90 via-[#0B0B0C]/55 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0C] via-transparent to-[#0B0B0C]/40" />
 
-              {/* Editorial Cormorant Accent Quote */}
-              <p className="font-cormorant italic text-base sm:text-lg lg:text-xl text-[#E9C77D] font-medium mb-3 max-w-lg leading-snug">
-                "{currentSlide.quote}"
-              </p>
+              {/* Continuous Atmospheric Particle Canvas */}
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full"
+                style={{
+                  opacity: timelineSec >= 2.4 ? Math.min(1, (timelineSec - 2.4) / 1.0) : 0
+                }}
+              />
 
-              {/* Supporting Manrope Description */}
-              <p className="text-xs sm:text-sm text-[#AAA9A2] leading-relaxed max-w-md mb-5 sm:mb-6">
-                {currentSlide.subtitle}
-              </p>
+              {/* Top Shade Gradient for Navigation Contrast */}
+              <div
+                className="absolute top-0 inset-x-0 h-36 bg-gradient-to-b from-[#0B0B0C]/90 via-[#0B0B0C]/50 to-transparent"
+                style={{ opacity: topShadeOpacity }}
+              />
+            </div>
 
-              {/* Meta Statistics Badges */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-mono text-[#AAA9A2] mb-5 sm:mb-6">
-                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#15181D]/80 border border-white/10 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
-                  <span className="text-[#D6AD55] font-bold">120 CR</span> PURSE
+            {/* LAYER 3: FOREGROUND AUCTION MANAGER SILHOUETTE — CENTRE-RIGHT (Z-30) */}
+            <div
+              className="absolute inset-0 z-30 flex justify-end items-end pointer-events-none overflow-hidden pr-0 sm:pr-[3%] lg:pr-[7%]"
+            >
+              <img
+                src="/stadium-foreground.png"
+                alt="BidWars Auction Manager Foreground Silhouette"
+                className="max-h-[52%] sm:max-h-[66%] lg:max-h-[76%] w-auto object-contain object-bottom opacity-65 sm:opacity-95 drop-shadow-[0_20px_40px_rgba(0,0,0,0.9)]"
+                style={foregroundStyle}
+              />
+            </div>
+
+            {/* LAYER 4: LEFT EDITORIAL HERO CONTENT — ALWAYS READABLE & IN FRONT (Z-40) */}
+            <div
+              className="relative z-40 max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 h-full flex items-center pointer-events-none"
+              style={{
+                transform: `translateY(${headlineTranslateY}px)`
+              }}
+            >
+              <div className="max-w-xl lg:max-w-2xl text-left select-none pt-12 sm:pt-8">
+                {/* Kicker: BUILD YOUR DREAM */}
+                <div
+                  className="mb-1.5 sm:mb-2 text-xs sm:text-sm md:text-base font-mono font-bold uppercase tracking-[0.3em] text-[#F0CE82] drop-shadow-[0_2px_12px_rgba(214,173,85,0.4)]"
+                  style={{
+                    opacity: kickerOpacity,
+                    transform: `translateY(${kickerTranslateY}px)`
+                  }}
+                >
+                  BUILD YOUR DREAM
                 </div>
-                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#15181D]/80 border border-white/10 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
-                  <span className="text-[#D6AD55] font-bold">10</span> TEAMS
-                </div>
-                <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#15181D]/80 border border-white/10 flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
-                  <span className="text-[#48B982] font-bold">LIVE</span> SYNC
+
+                {/* Giant Headline: S Q U A D (Letter-by-letter left-to-right entrance) */}
+                <h1 className="font-bebas text-[clamp(4.5rem,13vw,11.5rem)] leading-[0.88] uppercase tracking-[-0.02em] text-[#F5F3ED] drop-shadow-[0_12px_32px_rgba(0,0,0,0.95)] flex items-center justify-start gap-1 sm:gap-2">
+                  {['S', 'Q', 'U', 'A', 'D'].map((char, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-block transition-transform duration-75"
+                      style={getLetterStyle(idx)}
+                    >
+                      {char}
+                    </span>
+                  ))}
+                </h1>
+
+                {/* Supporting Quote, Description & CTAs */}
+                <div
+                  className="mt-3 sm:mt-4 space-y-2 transition-opacity duration-500"
+                  style={{
+                    opacity: timelineSec >= 3.2 ? Math.min(1, (timelineSec - 3.2) / 0.8) : 0,
+                    transform: `translateY(${timelineSec >= 3.2 ? 0 : 15}px)`
+                  }}
+                >
+                  <p className="text-sm sm:text-base font-serif italic text-[#D6AD55] tracking-wide max-w-lg">
+                    &ldquo;Balance overseas firepower with domestic match-winners to forge a dynasty.&rdquo;
+                  </p>
+                  <p className="text-xs sm:text-sm text-[#AAA69B] max-w-md leading-relaxed">
+                    Build your squad, compete in strategic auctions, and take your team through the BidWars League.
+                  </p>
+
+                  {/* Primary & Secondary Action CTAs */}
+                  <div className="pt-4 flex flex-wrap items-center justify-start gap-3 sm:gap-4 pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="px-5 sm:px-7 py-3 rounded-xl bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#B88B35] text-[#0B0B0C] font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_6px_24px_rgba(214,173,85,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <span>ENTER ARENA</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+
+                    <a
+                      href="#auction-section"
+                      className="px-5 sm:px-6 py-3 rounded-xl bg-[#111111]/85 hover:bg-[#18181A] border border-[#D6AD55]/40 hover:border-[#D6AD55] text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#F5F3ED] transition-all cursor-pointer backdrop-blur-sm"
+                    >
+                      EXPLORE GAME MODES
+                    </a>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Left Column Primary CTAs */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            {/* LAYER 6: THE OPENING DOORS (Z-60) — (0.02s to 1.24s) */}
+            {timelineSec < 1.3 && (
+              <div className="absolute inset-0 z-[60] w-full h-full pointer-events-none overflow-hidden">
+                {/* Left Door */}
+                <div
+                  className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-[#0E0F12] via-[#141519] to-[#111111] border-r border-[#D6AD55]/40 shadow-[10px_0_40px_rgba(0,0,0,0.9)] flex items-center justify-end pr-4 sm:pr-8"
+                  style={{
+                    transform: `translateX(-${leftDoorProgress * 100}%)`,
+                    willChange: 'transform'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(214,173,85,0.08)_0%,transparent_70%)]" />
+                  <div className="h-4/5 w-1 bg-gradient-to-b from-transparent via-[#D6AD55]/60 to-transparent mr-2" />
+                  <div className="flex flex-col items-end opacity-40 select-none">
+                    <span className="font-bebas text-3xl sm:text-5xl text-[#D6AD55] tracking-widest">BID</span>
+                    <span className="text-[9px] font-mono tracking-widest text-[#AAA69B]">GATE A</span>
+                  </div>
+                </div>
+
+                {/* Right Door */}
+                <div
+                  className="absolute top-0 bottom-0 right-0 w-1/2 bg-gradient-to-l from-[#0E0F12] via-[#141519] to-[#111111] border-l border-[#D6AD55]/40 shadow-[-10px_0_40px_rgba(0,0,0,0.9)] flex items-center justify-start pl-4 sm:pr-8"
+                  style={{
+                    transform: `translateX(${rightDoorProgress * 100}%)`,
+                    willChange: 'transform'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(214,173,85,0.08)_0%,transparent_70%)]" />
+                  <div className="h-4/5 w-1 bg-gradient-to-b from-transparent via-[#D6AD55]/60 to-transparent ml-2" />
+                  <div className="flex flex-col items-start opacity-40 select-none ml-2">
+                    <span className="font-bebas text-3xl sm:text-5xl text-[#F0CE82] tracking-widest">WARS</span>
+                    <span className="text-[9px] font-mono tracking-widest text-[#AAA69B]">ARENA</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* REPLAY INTRO & SKIP CONTROLS (Bottom Right) */}
+            <div className="absolute bottom-6 right-5 sm:right-8 z-50 flex items-center gap-2">
+              {isIntroComplete ? (
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs uppercase tracking-wider shadow-[0_4px_16px_rgba(214,173,85,0.35)] hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+                  onClick={triggerReplay}
+                  className="px-3 py-1.5 rounded-full bg-[#111111]/85 hover:bg-[#18181A] border border-[#D6AD55]/35 hover:border-[#D6AD55] text-[10px] font-mono uppercase tracking-wider text-[#D6AD55] flex items-center gap-1.5 shadow-lg backdrop-blur-sm transition-all cursor-pointer"
+                  title="Replay Cinematic 7.4s Intro"
                 >
-                  <GavelIcon className="w-4 h-4 text-[#08090B]" />
-                  <span>START QUICK AUCTION</span>
+                  <RotateCcw className="w-3 h-3" />
+                  <span>REPLAY INTRO</span>
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={skipIntro}
+                  className="px-2.5 py-1 rounded-full bg-[#111111]/75 hover:bg-[#18181A] border border-white/20 text-[10px] font-mono uppercase tracking-wider text-[#AAA69B] hover:text-white backdrop-blur-sm transition-all cursor-pointer"
+                >
+                  SKIP INTRO
+                </button>
+              )}
+            </div>
+
+            {/* Clear Bottom-Left Scroll Indicator (Does not overlap silhouette or railing) */}
+            {isIntroComplete && (
+              <div className="absolute bottom-7 left-5 sm:left-8 lg:left-12 z-50 flex items-center gap-2 opacity-80 pointer-events-none">
+                <ChevronDown className="w-4 h-4 text-[#D6AD55] animate-bounce" />
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#AAA69B]">SCROLL TO EXPLORE</span>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 3. FEATURE SECTION 1: PREMIER CRICKET AUCTION 2026                 */}
+      {/* =================================================================== */}
+      <section
+        id="auction-section"
+        className="relative w-full py-24 sm:py-32 px-4 sm:px-6 lg:px-8 border-t border-[#D6AD55]/20 bg-gradient-to-b from-[#0B0B0C] via-[#0F1014] to-[#0B0B0C] overflow-hidden"
+      >
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#D6AD55]/40 text-xs font-mono text-[#D6AD55] uppercase tracking-widest mb-4">
+              <GavelIcon className="w-3.5 h-3.5 text-[#D6AD55]" />
+              <span>LIVE BIDDING ENGINE</span>
+            </div>
+            <h2 className="font-bebas text-4xl sm:text-6xl uppercase tracking-tight text-[#F5F3ED] mb-4">
+              PREMIER CRICKET AUCTION 2026
+            </h2>
+            <p className="text-sm sm:text-base text-[#AAA69B] leading-relaxed">
+              Experience competitive player auctions, build a balanced squad, and manage your purse with strategic decisions.
+            </p>
+          </div>
+
+          {/* Interactive Bidding Card Showcase */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left: Tactical Bidding Mechanics */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="p-6 rounded-2xl bg-[#111111] border border-[#D6AD55]/25 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-mono text-[#D6AD55] uppercase tracking-wider font-bold">FRANCHISE PURSE LIMIT</span>
+                  <span className="text-xs font-mono text-[#F0CE82] font-bold">₹120.00 CRORE</span>
+                </div>
+                <div className="w-full bg-[#1A1A1E] h-2.5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div className="bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#927545] h-full rounded-full w-[68%]" />
+                </div>
+                <p className="mt-3 text-xs text-[#AAA69B]">
+                  Real-time budget exhaustion limits, squad slot minimums, and dynamic bid increment enforcement.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-[#111111] border border-white/10 hover:border-[#D6AD55]/30 transition-all">
+                <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-[#D6AD55]" />
+                  <span>SPLIT-SECOND PADDLE SYNCHRONIZATION</span>
+                </h4>
+                <p className="text-xs text-[#AAA69B] leading-relaxed">
+                  Sub-50ms Supabase WebSocket updates ensure every paddle raise is registered instantly across all ten franchise tables simultaneously.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-[#111111] border border-white/10 hover:border-[#D6AD55]/30 transition-all">
+                <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#D6AD55]" />
+                  <span>DYNAMIC BID INCREMENTS & TIMER</span>
+                </h4>
+                <p className="text-xs text-[#AAA69B] leading-relaxed">
+                  Automated base-to-marquee bid increments with configurable countdown timers and instant gavel lock when bidding closes.
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Live Interactive Auction Hammer & Player Card */}
+            <div className="lg:col-span-7 relative">
+              <div className="relative mx-auto max-w-lg rounded-3xl bg-[#141519] border border-[#D6AD55]/40 p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden">
+                {/* Gold aura glow */}
+                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[radial-gradient(circle,rgba(214,173,85,0.25)_0%,transparent_70%)] blur-2xl pointer-events-none" />
+
+                {/* Top status bar */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#D6AD55]">
+                      HAMMER ACTIVE
+                    </span>
+                  </div>
+                  <div className="text-xs font-mono text-[#AAA69B]">
+                    TIMER: <span className="font-bold text-[#F0CE82]">{showcaseTimer}s</span>
+                  </div>
+                </div>
+
+                {/* Player Spotlight */}
+                <div className="flex flex-col sm:flex-row items-center gap-5 mb-6">
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-[#1A1A1E] border-2 border-[#D6AD55]/40 p-2 shrink-0 flex items-center justify-center overflow-hidden shadow-lg">
+                    <img
+                      src="/players/ipl2026_001.png"
+                      alt="Spotlight Marquee Player"
+                      className="w-full h-full object-cover rounded-xl"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/logos/rcb.png';
+                      }}
+                    />
+                    <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-[#0B0B0C]/80 border border-[#D6AD55]/30 text-[9px] font-mono text-[#D6AD55]">
+                      BAT · 94 OVR
+                    </div>
+                  </div>
+
+                  <div className="text-center sm:text-left flex-1">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#AAA69B]">SET 1 · MARQUEE BATTER</span>
+                    <h3 className="font-bebas text-2xl sm:text-3xl text-[#F5F3ED] uppercase tracking-wide">
+                      VIRAT KOHLI
+                    </h3>
+                    <p className="text-xs text-[#AAA69B] mb-2">Right-Hand Top Order Anchor · Former Captain</p>
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <span className="px-2 py-0.5 rounded bg-[#111111] border border-white/10 text-[10px] font-mono text-[#D6AD55]">
+                        BASE: ₹2.00 CR
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-[#111111] border border-white/10 text-[10px] font-mono text-emerald-400">
+                        STATUS: HOT
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current Bid Display */}
+                <div className="rounded-2xl bg-[#0B0B0C] border border-[#D6AD55]/30 p-4 sm:p-5 mb-6 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#AAA69B]">CURRENT HIGHEST BID</span>
+                    <div className="font-bebas text-3xl sm:text-4xl text-[#F0CE82] tracking-wider">
+                      ₹{showcaseBid.toFixed(2)} CR
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#AAA69B]">LEADER</span>
+                    <div className="text-xs sm:text-sm font-bold text-[#F5F3ED] tracking-wide">
+                      {showcaseBidder}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Simulated Interactive Paddle Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowcaseBid(prev => +(prev + 0.50).toFixed(2));
+                      setShowcaseBidder('CHENNAI SUPER KINGS');
+                      setShowcaseTimer(10);
+                      setIsBidJustRaised(true);
+                      setTimeout(() => setIsBidJustRaised(false), 600);
+                    }}
+                    className={`py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isBidJustRaised
+                        ? 'bg-[#F0CE82] text-[#0B0B0C] scale-98'
+                        : 'bg-gradient-to-r from-[#F0CE82] to-[#D6AD55] text-[#0B0B0C] hover:brightness-110 shadow-md'
+                    }`}
+                  >
+                    <GavelIcon className="w-4 h-4 text-[#0B0B0C]" />
+                    <span>RAISE ₹0.50 CR</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="py-3 px-4 rounded-xl bg-[#111111] hover:bg-[#18181A] border border-[#D6AD55]/40 text-[#F5F3ED] font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>JOIN ARENA</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 4. FEATURE SECTION 2: SQUAD ARCHITECTURE & STRATEGY                */}
+      {/* =================================================================== */}
+      <section
+        id="squad-section"
+        className="relative w-full py-24 sm:py-32 px-4 sm:px-6 lg:px-8 border-t border-[#D6AD55]/20 bg-[#0B0B0C] overflow-hidden"
+      >
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#D6AD55]/40 text-xs font-mono text-[#D6AD55] uppercase tracking-widest mb-4">
+              <Shield className="w-3.5 h-3.5 text-[#D6AD55]" />
+              <span>ROSTER COMPOSITION</span>
+            </div>
+            <h2 className="font-bebas text-4xl sm:text-6xl uppercase tracking-tight text-[#F5F3ED] mb-4">
+              SQUAD ARCHITECTURE & STRATEGY
+            </h2>
+            <p className="text-sm sm:text-base text-[#AAA69B] leading-relaxed">
+              Create a powerful squad with the right balance of batters, bowlers, all-rounders, and wicketkeepers.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left: Spinning Circular Squad Orbit Visualization with 10 Official Franchises */}
+            <div className="lg:col-span-6 flex items-center justify-center relative py-6">
+              <div className="orbit-container relative w-72 h-72 sm:w-96 sm:h-96 rounded-full border border-[#D6AD55]/20 flex items-center justify-center">
+                {/* Outer Rotating Dashed Ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#D6AD55]/30 animate-orbit" />
+
+                {/* Inner Counter-Rotating Gold Accent Ring */}
+                <div className="absolute inset-8 sm:inset-10 rounded-full border border-[#D6AD55]/20 animate-orbit-reverse" />
+
+                {/* Spinning Orbit Wrapper for all 10 Franchise Team Logos */}
+                <div className="absolute inset-0 flex items-center justify-center animate-orbit">
+                  {FRANCHISE_LOGOS.map((f, idx) => {
+                    const angle = (idx / FRANCHISE_LOGOS.length) * (2 * Math.PI);
+                    const radiusPct = 44; // percentage of container
+                    const leftPct = 50 + Math.cos(angle) * radiusPct;
+                    const topPct = 50 + Math.sin(angle) * radiusPct;
+
+                    return (
+                      <div
+                        key={f.id}
+                        style={{
+                          left: `${leftPct}%`,
+                          top: `${topPct}%`,
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                        className="absolute z-10"
+                      >
+                        {/* Counter-rotating node keeps each logo upright while orbiting */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFranchiseOrbit(f.id)}
+                          className={`animate-orbit-reverse w-11 h-11 sm:w-13 sm:h-13 rounded-full p-1 bg-[#141519] border transition-all duration-300 cursor-pointer shadow-lg hover:scale-125 ${
+                            selectedFranchiseOrbit === f.id
+                              ? 'border-[#F0CE82] ring-2 ring-[#D6AD55]/60 scale-115 shadow-[0_0_18px_rgba(214,173,85,0.5)]'
+                              : 'border-white/15 hover:border-[#D6AD55]/70'
+                          }`}
+                          title={f.name}
+                        >
+                          <img
+                            src={f.src}
+                            alt={f.name}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Stationary Centered Shield Badge */}
+                <div className="relative z-20 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#111111] border-2 border-[#D6AD55] flex flex-col items-center justify-center shadow-[0_0_32px_rgba(214,173,85,0.35)] text-center p-2 transition-transform duration-300 hover:scale-105">
+                  <Shield className="w-6 h-6 text-[#D6AD55] mb-1 animate-pulse" />
+                  <span className="font-bebas text-base sm:text-lg text-[#F5F3ED] uppercase tracking-wider">
+                    {selectedFranchiseOrbit}
+                  </span>
+                  <span className="text-[8px] font-mono text-[#D6AD55] uppercase tracking-widest">
+                    BIDWARS LEAGUE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Squad Rules & Animated Role Breakdown */}
+            <div className="lg:col-span-6 space-y-4">
+              {/* Role filter buttons */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(['ALL', 'BAT', 'BOWL', 'AR', 'WK'] as const).map(role => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setActiveRoleFilter(role)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                      activeRoleFilter === role
+                        ? 'bg-gradient-to-r from-[#F0CE82] to-[#D6AD55] text-[#0B0B0C] shadow-[0_0_12px_rgba(214,173,85,0.35)] scale-105'
+                        : 'bg-[#111111] text-[#AAA69B] hover:text-white border border-white/10 hover:border-[#D6AD55]/40'
+                    }`}
+                  >
+                    {role === 'ALL' ? 'ALL ROLES' : role}
+                  </button>
+                ))}
+              </div>
+
+              {/* Animated Role Target Indicator */}
+              <div className="p-4 rounded-2xl bg-[#141519] border border-[#D6AD55]/30 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-[#D6AD55] font-bold uppercase">
+                    {activeRoleFilter === 'ALL'
+                      ? 'BALANCED 25-MAN SQUAD TARGET'
+                      : `${activeRoleFilter} CORE ALLOCATION`}
+                  </span>
+                  <span className="text-[#F0CE82] font-bold">
+                    {activeRoleFilter === 'ALL'
+                      ? '100% OPTIMAL'
+                      : activeRoleFilter === 'BAT'
+                      ? '7–8 SPECIALISTS'
+                      : activeRoleFilter === 'BOWL'
+                      ? '7–8 BOWLERS'
+                      : activeRoleFilter === 'AR'
+                      ? '4–5 ALL-ROUNDERS'
+                      : '2–3 KEEPERS'}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-[#0B0B0C] overflow-hidden border border-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#927545] transition-all duration-500 ease-out"
+                    style={{
+                      width:
+                        activeRoleFilter === 'ALL'
+                          ? '100%'
+                          : activeRoleFilter === 'BAT'
+                          ? '34%'
+                          : activeRoleFilter === 'BOWL'
+                          ? '32%'
+                          : activeRoleFilter === 'AR'
+                          ? '22%'
+                          : '12%'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Composition Requirements List */}
+              <div className="p-5 rounded-2xl bg-[#111111] border border-[#D6AD55]/25 hover:border-[#D6AD55]/60 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide">
+                    TOTAL SQUAD ROSTER
+                  </h4>
+                  <p className="text-xs text-[#AAA69B]">18 to 25 players maximum per franchise table</p>
+                </div>
+                <span className="text-sm font-mono font-bold text-[#F0CE82]">25 MAX</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[#111111] border border-white/10 hover:border-[#D6AD55]/50 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide">
+                    OVERSEAS PLAYER CAP
+                  </h4>
+                  <p className="text-xs text-[#AAA69B]">Maximum 8 overseas stars per squad, 4 in Playing XI</p>
+                </div>
+                <span className="text-sm font-mono font-bold text-[#D6AD55]">8 MAX</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-[#111111] border border-white/10 hover:border-[#D6AD55]/50 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide">
+                    TACTICAL PLAYING XI
+                  </h4>
+                  <p className="text-xs text-[#AAA69B]">Min 5 bowling options, 1 specialist wicketkeeper</p>
+                </div>
+                <span className="text-sm font-mono font-bold text-emerald-400">11 REQUIRED</span>
+              </div>
+
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={onSwitchToTournament}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#15181D] hover:bg-[#1B1E23] border border-white/10 hover:border-[#D6AD55]/40 text-[#F5F3ED] font-semibold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#B88B35] text-[#0B0B0C] font-bold text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Trophy className="w-4 h-4 text-[#E9C77D]" />
-                  <span>TOURNAMENT MODE</span>
+                  <span>MANAGE FRANCHISE ROSTER</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
             </div>
-
-            {/* ---------------------------------------------------- */}
-            {/* RIGHT COLUMN: Squad Orbit & Section Navigation Rail  */}
-            {/* ---------------------------------------------------- */}
-            <div className="lg:col-span-5 flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-5 sm:gap-8 mt-4 sm:mt-6 lg:mt-0">
-
-              {/* Circular Visual Artwork Container (Orbit / Hammer / Trophy) */}
-              <div className="relative flex-1 flex items-center justify-center min-h-[260px] sm:min-h-[320px] w-full max-w-[320px] sm:max-w-none">
-                {/* Slide 0: The Hammer Artwork */}
-                {currentSlideIndex === 0 && (
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute w-[220px] h-[220px] sm:w-[260px] sm:h-[260px] rounded-full bg-gradient-to-tr from-[#D6AD55]/15 to-transparent blur-2xl animate-pulse" />
-                    <img
-                      src="/auction-hammer.png"
-                      alt="Auction Hammer"
-                      className="w-[180px] sm:w-[250px] object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] filter contrast-125 transform -rotate-12 hover:rotate-0 transition-transform duration-500"
-                    />
-                  </div>
-                )}
-
-                {/* Slide 1: Squad Orbit Visualization (10 Franchises, Zero Collision) */}
-                {currentSlideIndex === 1 && (
-                  <div className="relative w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] flex items-center justify-center">
-                    {/* Concentric Subtle Orbit Paths */}
-                    <div className="absolute inset-0 rounded-full border border-[#D6AD55]/20 animate-spin" style={{ animationDuration: '50s' }}>
-                      {/* 10 Franchise Logos Distributed on Circle */}
-                      {FRANCHISE_LOGOS.map((franchise, idx) => {
-                        const angleRad = (idx * 36) * (Math.PI / 180);
-                        // Radius ~43% of container puts logos comfortably outside center element
-                        const leftPercent = 50 + 43 * Math.cos(angleRad);
-                        const topPercent = 50 + 43 * Math.sin(angleRad);
-                        return (
-                          <div
-                            key={franchise.name}
-                            className="absolute w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#D6AD55]/50 bg-[#0D0F12] shadow-md p-0.5 overflow-hidden transform -translate-x-1/2 -translate-y-1/2"
-                            style={{
-                              left: `${leftPercent}%`,
-                              top: `${topPercent}%`
-                            }}
-                            title={franchise.name}
-                          >
-                            <img
-                              src={franchise.src}
-                              alt={franchise.name}
-                              className="w-full h-full object-cover rounded-full"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Visually Centered '10 SQUADS' Element */}
-                    <div className="relative z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#15181D] border-2 border-[#D6AD55] flex flex-col items-center justify-center shadow-[0_0_20px_rgba(214,173,85,0.3)]">
-                      <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-[#D6AD55] mb-0.5" />
-                      <span className="text-[9px] sm:text-[10px] font-mono uppercase font-bold text-[#F5F3ED] tracking-wider">10 SQUADS</span>
-                      <span className="text-[7px] sm:text-[8px] font-mono text-[#D6AD55]">IPL 2026</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Slide 2: The Trophy Artwork */}
-                {currentSlideIndex === 2 && (
-                  <div className="relative flex flex-col items-center justify-center">
-                    <div className="absolute w-[220px] h-[220px] sm:w-[260px] sm:h-[260px] rounded-full bg-[radial-gradient(circle,rgba(214,173,85,0.25)_0%,transparent_70%)] blur-2xl" />
-                    <Trophy className="w-32 h-32 sm:w-40 sm:h-40 text-[#E9C77D] drop-shadow-[0_12px_24px_rgba(0,0,0,0.9)] stroke-[1.2]" />
-                    <div className="mt-2.5 px-3 py-1 rounded-full bg-[#15181D] border border-[#D6AD55]/40">
-                      <span className="font-mono text-[9px] sm:text-[10px] text-[#D6AD55] font-bold tracking-widest uppercase">IPL 2026 CHAMPION</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Section Navigation Rail (Vertical on desktop, horizontal below on mobile) */}
-              <div className="shrink-0 flex flex-row lg:flex-col items-center gap-3 sm:gap-4 select-none lg:pl-3 lg:border-l lg:border-white/[0.06]">
-                {HERO_SLIDES.map((slide, idx) => {
-                  const isActive = idx === currentSlideIndex;
-                  return (
-                    <button
-                      key={slide.id}
-                      type="button"
-                      onClick={() => triggerSlideChange(idx)}
-                      className="group flex flex-col items-center gap-1 cursor-pointer focus:outline-none transition-all"
-                    >
-                      {/* Circular Button */}
-                      <div
-                        className={`relative rounded-full flex items-center justify-center transition-all duration-300 ${isActive
-                          ? 'w-10 h-10 sm:w-11 sm:h-11 bg-[#15181D] border-2 border-[#D6AD55] shadow-[0_0_16px_rgba(214,173,85,0.4)] scale-105'
-                          : 'w-8 h-8 sm:w-9 sm:h-9 bg-[#15181D]/70 border border-white/15 opacity-60 hover:opacity-100'
-                          }`}
-                      >
-                        {idx === 0 && <GavelIcon className={`${isActive ? 'w-4 h-4 sm:w-5 sm:h-5 text-[#D6AD55]' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#AAA9A2]'}`} />}
-                        {idx === 1 && <Shield className={`${isActive ? 'w-4 h-4 sm:w-5 sm:h-5 text-[#D6AD55]' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#AAA9A2]'}`} />}
-                        {idx === 2 && <Trophy className={`${isActive ? 'w-4 h-4 sm:w-5 sm:h-5 text-[#D6AD55]' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#AAA9A2]'}`} />}
-                      </div>
-
-                      {/* Clean Aligned Text Label */}
-                      <span className={`text-[9px] font-mono tracking-wider uppercase transition-colors ${isActive ? 'text-[#D6AD55] font-bold' : 'text-[#74777D] group-hover:text-[#AAA9A2]'
-                        }`}>
-                        0{slide.id}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ======================================================== */}
-      {/* 3. HERO ACTION PANEL                                     */}
-      {/* ======================================================== */}
-      <div className="relative z-40 max-w-5xl mx-auto px-4 -mt-4 sm:-mt-6">
-        <div className="w-full bg-[#15181D]/95 backdrop-blur-xl border border-[#D6AD55]/30 rounded-2xl p-3 sm:p-4 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Field 1: Quick Auction */}
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl bg-[#1B1E23] hover:bg-[#22262D] border border-white/[0.06] hover:border-[#D6AD55]/40 transition-all text-left cursor-pointer group"
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#D6AD55]/10 border border-[#D6AD55]/25 flex items-center justify-center shrink-0 group-hover:bg-[#D6AD55]/20 transition-colors">
-                <GavelIcon className="w-4 h-4 text-[#D6AD55]" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[#D6AD55]">MODE 01</span>
-                <span className="text-sm font-bold text-[#F5F3ED] truncate">Quick Auction</span>
-                <span className="text-[10px] text-[#74777D] truncate">Instant 10-team room</span>
-              </div>
-            </button>
-
-            {/* Field 2: Tournament Mode */}
-            <button
-              type="button"
-              onClick={onSwitchToTournament}
-              className="flex items-center gap-3 p-3 rounded-xl bg-[#1B1E23] hover:bg-[#22262D] border border-white/[0.06] hover:border-[#D6AD55]/40 transition-all text-left cursor-pointer group"
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#E9C77D]/10 border border-[#E9C77D]/25 flex items-center justify-center shrink-0 group-hover:bg-[#E9C77D]/20 transition-colors">
-                <Trophy className="w-4 h-4 text-[#E9C77D]" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[#E9C77D]">MODE 02</span>
-                <span className="text-sm font-bold text-[#F5F3ED] truncate">Tournament</span>
-                <span className="text-[10px] text-[#74777D] truncate">League & Playoffs</span>
-              </div>
-            </button>
-
-            {/* Field 3: Join Room */}
-            <button
-              type="button"
-              onClick={() => setIsJoinModalOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl bg-[#1B1E23] hover:bg-[#22262D] border border-white/[0.06] hover:border-[#D6AD55]/40 transition-all text-left cursor-pointer group"
-            >
-              <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-white/10 transition-colors">
-                <Users className="w-4 h-4 text-[#AAA9A2] group-hover:text-white" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-[#AAA9A2]">ROOM CODE</span>
-                <span className="text-sm font-bold text-[#F5F3ED] truncate">Join Room</span>
-                <span className="text-[10px] text-[#74777D] truncate">Enter 6-digit code</span>
-              </div>
-            </button>
-
-            {/* Action CTA: Enter Arena */}
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs tracking-wider uppercase shadow-[0_4px_16px_rgba(214,173,85,0.35)] hover:brightness-105 active:scale-98 transition-all cursor-pointer"
-            >
-              <span>ENTER ARENA</span>
-              <ArrowRight className="w-4 h-4 text-[#08090B]" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ======================================================== */}
-      {/* 4. RECOMMENDED GAME MODES & EXPERIENCES (8 Cards Grid)   */}
-      {/* ======================================================== */}
-      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-[#D6AD55] tracking-widest uppercase mb-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>FRANCHISE EXPERIENCES</span>
-            </div>
-            <h2 className="font-bebas text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-[#F5F3ED]">
-              ENGINEERED FOR CRICKET PURISTS
-            </h2>
-          </div>
-          <p className="mt-2 md:mt-0 text-xs sm:text-sm text-[#AAA9A2] max-w-md font-sans">
-            Every mode replicates real IPL auction rules, purse restrictions, and matchday tactical battles.
-          </p>
-        </div>
-
-        {/* 8 Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {GAME_MODES.map(mode => (
-            <div
-              key={mode.id}
-              className="group relative bg-[#15181D] hover:bg-[#1B1E23] border border-white/[0.08] hover:border-[#D6AD55]/40 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)] cursor-pointer"
-              onClick={() => {
-                if (mode.action === 'create') setIsCreateModalOpen(true);
-                else if (mode.action === 'tournament') onSwitchToTournament && onSwitchToTournament();
-                else setActiveCardDetail(mode);
-              }}
-            >
-              <div>
-                {/* Header Tag & Metric */}
-                <div className="flex items-center justify-between mb-3.5">
-                  <span
-                    className="text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]"
-                    style={{ color: mode.badgeColor }}
-                  >
-                    {mode.tag}
-                  </span>
-                  <span className="text-[10px] font-mono text-[#74777D] font-medium">{mode.metric}</span>
-                </div>
-
-                {/* Mode Icon */}
-                <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-3.5 group-hover:border-[#D6AD55]/30 group-hover:bg-[#D6AD55]/10 transition-colors">
-                  {mode.icon === 'gavel' && <GavelIcon className="w-4 h-4 text-[#D6AD55]" />}
-                  {mode.icon === 'trophy' && <Trophy className="w-4 h-4 text-[#E9C77D]" />}
-                  {mode.icon === 'pulse' && <Zap className="w-4 h-4 text-[#48B982]" />}
-                  {mode.icon === 'shield' && <Shield className="w-4 h-4 text-[#D6AD55]" />}
-                  {mode.icon === 'flame' && <Flame className="w-4 h-4 text-[#E05252]" />}
-                  {mode.icon === 'users' && <Users className="w-4 h-4 text-[#E9C77D]" />}
-                  {mode.icon === 'trending' && <TrendingUp className="w-4 h-4 text-[#D6AD55]" />}
-                  {mode.icon === 'sparkles' && <Sparkles className="w-4 h-4 text-[#D6AD55]" />}
-                </div>
-
-                {/* Title */}
-                <h3 className="font-bebas text-xl sm:text-2xl tracking-wide uppercase text-[#F5F3ED] group-hover:text-[#E9C77D] transition-colors mb-1.5">
-                  {mode.title}
-                </h3>
-
-                {/* Description */}
-                <p className="text-xs text-[#AAA9A2] leading-relaxed line-clamp-3">
-                  {mode.description}
-                </p>
-              </div>
-
-              {/* Bottom Explore Link */}
-              <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs font-semibold text-[#D6AD55] group-hover:text-[#E9C77D]">
-                <span>VIEW SPECS</span>
-                <ChevronRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ======================================================== */}
-      {/* 5. EDITORIAL "HOW IT WORKS"                              */}
-      {/* ======================================================== */}
-      <section id="how-it-works" className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-white/[0.06]">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-mono text-[#D6AD55] tracking-widest uppercase font-bold">FOUR-PHASE CYCLE</span>
-          <h2 className="font-bebas text-3xl sm:text-4xl uppercase tracking-tight text-[#F5F3ED] mt-1.5">
-            HOW TO PLAY BIDWARS
-          </h2>
-          <p className="font-cormorant italic text-base sm:text-lg text-[#E9C77D] mt-1.5">
-            "From the opening gavel strike to the championship victory lap."
-          </p>
-        </div>
-
-        {/* 4 Steps Horizontal Track */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 relative">
-          {[
-            {
-              step: '01',
-              title: 'ASSEMBLE & CONFIGURE',
-              desc: 'Create or join a private room. Customize purse limits (up to 120 Cr), timer pace, overseas quotas, and invite managers or bots.'
-            },
-            {
-              step: '02',
-              title: 'BID UNDER THE HAMMER',
-              desc: 'Engage in live multiplayer bidding wars. Read opponent purses, leverage RTM cards, track remaining slots, and land marquee players.'
-            },
-            {
-              step: '03',
-              title: 'FORM PLAYING XI',
-              desc: 'Select your starting eleven adhering to the 4-overseas limit. Assign captaincy, designated wicketkeeper, and balance pace vs spin attacks.'
-            },
-            {
-              step: '04',
-              title: 'CONQUER WICKETPULSE',
-              desc: 'Simulate head-to-head matches in the ball-by-ball WicketPulse engine. Battle through the points table to lift the championship trophy.'
-            }
-          ].map(item => (
-            <div
-              key={item.step}
-              className="relative bg-[#15181D] border border-white/[0.08] rounded-2xl p-5 flex flex-col justify-between"
-            >
-              <div>
-                <div className="w-10 h-10 rounded-xl bg-[#1B1E23] border border-[#D6AD55]/30 flex items-center justify-center font-mono font-bold text-sm text-[#D6AD55] mb-3">
-                  {item.step}
-                </div>
-                <h3 className="font-bebas text-lg tracking-wide uppercase text-[#F5F3ED] mb-1.5">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-[#AAA9A2] leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ======================================================== */}
-      {/* 6. BIDWARS FEATURE SHOWCASE (Interactive Auction Card)   */}
-      {/* ======================================================== */}
-      <section id="feature-showcase" className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-white/[0.06]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          {/* Left Info Column */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#15181D] border border-[#D6AD55]/30 text-xs font-mono text-[#D6AD55] mb-3">
-              <Flame className="w-3.5 h-3.5 text-[#E05252]" />
-              <span>LIVE HAMMER PHYSICS</span>
-            </div>
-
-            <h2 className="font-bebas text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tight text-[#F5F3ED] leading-none mb-3">
-              EVERY PLAYER. EVERY BID. EVERY DECISION.
-            </h2>
-
-            <p className="text-xs sm:text-sm text-[#AAA9A2] leading-relaxed mb-5">
-              Experience the pressure of the auction table with split-second paddle raises, automated budget exhaustion calculations, and full franchise roster audit.
-            </p>
-
-            <ul className="space-y-3 text-xs text-[#AAA9A2] font-medium mb-6">
-              <li className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-[#D6AD55] shrink-0" />
-                <span>Real-time Supabase WebSockets with sub-50ms paddle synchronization</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-[#D6AD55] shrink-0" />
-                <span>Official IPL 2026 player database with comprehensive stats & roles</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-[#D6AD55] shrink-0" />
-                <span>Automated RTM (Right-to-Match) matching and franchise priority rules</span>
-              </li>
-            </ul>
-
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs uppercase tracking-wider shadow-[0_4px_16px_rgba(214,173,85,0.3)] hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-            >
-              <GavelIcon className="w-4 h-4 text-[#08090B]" />
-              <span>HOST YOUR AUCTION ROOM</span>
-            </button>
-          </div>
-
-          {/* Right Column: Interactive Simulated Auction Card */}
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-[#D6AD55]/15 to-[#E9C77D]/10 blur-xl pointer-events-none" />
-
-            <div className="relative bg-[#15181D] border border-[#D6AD55]/30 rounded-2xl p-5 sm:p-6 shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
-              {/* Card Header */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08] mb-5">
-                <div>
-                  <span className="text-[10px] font-mono text-[#D6AD55] font-bold tracking-widest uppercase">LOT #42 · MARQUEE BATSMAN</span>
-                  <h3 className="font-bebas text-2xl sm:text-3xl uppercase tracking-wide text-[#F5F3ED]">
-                    VIRAT KOHLI
-                  </h3>
-                  <span className="text-xs text-[#AAA9A2]">Top-Order Anchor · Right-Handed · India</span>
-                </div>
-
-                {/* Circular Countdown Timer */}
-                <div className="w-12 h-12 rounded-full bg-[#1B1E23] border-2 border-[#D6AD55] flex flex-col items-center justify-center font-mono text-center">
-                  <span className={`text-sm font-bold ${showcaseTimer <= 3 ? 'text-[#E05252] animate-ping' : 'text-[#D6AD55]'}`}>
-                    {showcaseTimer}s
-                  </span>
-                  <span className="text-[7px] text-[#74777D] uppercase">TIMER</span>
-                </div>
-              </div>
-
-              {/* Live Bid Board */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="p-3 rounded-xl bg-[#1B1E23] border border-white/[0.06]">
-                  <span className="text-[9px] font-mono text-[#74777D] uppercase">BASE PRICE</span>
-                  <p className="font-mono text-lg text-[#F5F3ED] font-bold mt-0.5">₹2.00 Cr</p>
-                </div>
-                <div className={`p-3 rounded-xl bg-[#1B1E23] border transition-all duration-300 ${isBidJustRaised ? 'border-[#D6AD55] bg-[#D6AD55]/10 scale-102' : 'border-white/[0.06]'}`}>
-                  <span className="text-[9px] font-mono text-[#D6AD55] uppercase font-bold">CURRENT HIGHEST BID</span>
-                  <p className="font-mono text-xl text-[#E9C77D] font-bold mt-0.5">₹{showcaseBid.toFixed(2)} Cr</p>
-                </div>
-              </div>
-
-              {/* Leading Franchise Pill */}
-              <div className="p-2.5 rounded-xl bg-[#1B1E23]/80 border border-white/[0.08] flex items-center justify-between mb-5 text-xs">
-                <span className="text-[#AAA9A2]">LEADING BIDDER:</span>
-                <span className="font-mono font-bold text-[#F5F3ED] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#48B982]" />
-                  {showcaseBidder}
-                </span>
-              </div>
-
-              {/* Interactive Bid Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleShowcaseBidRaise(0.25)}
-                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#E9C77D] to-[#D6AD55] text-[#08090B] font-bold font-mono text-xs uppercase tracking-wider shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <GavelIcon className="w-3.5 h-3.5 text-[#08090B]" />
-                  <span>BID +₹25 L</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShowcaseBidRaise(0.50)}
-                  className="py-2.5 px-3 rounded-xl bg-[#1B1E23] hover:bg-[#252930] border border-[#D6AD55]/40 text-[#E9C77D] font-bold font-mono text-xs uppercase tracking-wider active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <GavelIcon className="w-3.5 h-3.5 text-[#E9C77D]" />
-                  <span>BID +₹50 L</span>
-                </button>
-              </div>
-
-              <div className="mt-3 text-center">
-                <span className="text-[9px] font-mono text-[#74777D] tracking-wider uppercase">
-                  INTERACTIVE PREVIEW · CLICK BUTTONS TO TEST MECHANICS
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ======================================================== */}
-      {/* 7. CHAMPIONSHIP ROAD TO THE TITLE SHOWCASE               */}
-      {/* ======================================================== */}
-      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-white/[0.06]">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="text-xs font-mono text-[#D6AD55] tracking-widest uppercase font-bold">THE ROAD TO GLORY</span>
-          <h2 className="font-bebas text-3xl sm:text-4xl uppercase tracking-tight text-[#F5F3ED] mt-1.5">
-            LEAGUE STANDINGS & PLAYOFFS
-          </h2>
-          <p className="text-xs sm:text-sm text-[#AAA9A2] mt-1.5 font-sans">
-            Every match counts toward net run rate and tournament qualification.
-          </p>
-        </div>
-
-        {/* Standings Preview Table */}
-        <div className="max-w-4xl mx-auto bg-[#15181D] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
-          <div className="px-5 py-3.5 bg-[#1B1E23] border-b border-white/[0.06] flex items-center justify-between">
-            <span className="font-mono text-xs text-[#D6AD55] font-bold uppercase tracking-wider">IPL 2026 STANDINGS TABLE</span>
-            <span className="text-[10px] font-mono text-[#74777D]">ROUND ROBIN STAGE</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/[0.06] text-[10px] font-mono text-[#74777D] uppercase">
-                  <th className="py-2.5 px-4 sm:px-6">POS</th>
-                  <th className="py-2.5 px-4 sm:px-6">FRANCHISE</th>
-                  <th className="py-2.5 px-3 text-center">P</th>
-                  <th className="py-2.5 px-3 text-center">W</th>
-                  <th className="py-2.5 px-3 text-center">L</th>
-                  <th className="py-2.5 px-3 text-center">NRR</th>
-                  <th className="py-2.5 px-4 sm:px-6 text-right">PTS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04] text-xs">
-                {[
-                  { pos: '01', team: 'Chennai Super Kings', p: 14, w: 10, l: 4, nrr: '+0.842', pts: 20, tag: 'QUALIFIED Q1' },
-                  { pos: '02', team: 'Mumbai Indians', p: 14, w: 9, l: 5, nrr: '+0.512', pts: 18, tag: 'QUALIFIED Q1' },
-                  { pos: '03', team: 'Royal Challengers Bengaluru', p: 14, w: 8, l: 6, nrr: '+0.320', pts: 16, tag: 'ELIMINATOR' },
-                  { pos: '04', team: 'Kolkata Knight Riders', p: 14, w: 8, l: 6, nrr: '+0.114', pts: 16, tag: 'ELIMINATOR' }
-                ].map((row) => (
-                  <tr key={row.pos} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4 sm:px-6 font-mono font-bold text-[#D6AD55]">{row.pos}</td>
-                    <td className="py-3 px-4 sm:px-6 font-semibold text-[#F5F3ED] flex items-center gap-2">
-                      <span className="truncate">{row.team}</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#D6AD55]/10 text-[#D6AD55] border border-[#D6AD55]/20 shrink-0">
-                        {row.tag}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-center font-mono text-[#AAA9A2]">{row.p}</td>
-                    <td className="py-3 px-3 text-center font-mono text-[#48B982] font-semibold">{row.w}</td>
-                    <td className="py-3 px-3 text-center font-mono text-[#E05252]">{row.l}</td>
-                    <td className="py-3 px-3 text-center font-mono text-[#AAA9A2]">{row.nrr}</td>
-                    <td className="py-3 px-4 sm:px-6 text-right font-mono font-bold text-[#F5F3ED] text-sm">{row.pts}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-3.5 bg-[#1B1E23]/60 border-t border-white/[0.06] text-center">
-            <button
-              type="button"
-              onClick={onSwitchToTournament}
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-[#D6AD55] hover:text-[#E9C77D] font-bold tracking-wider uppercase transition-colors cursor-pointer"
-            >
-              <span>OPEN FULL TOURNAMENT FIXTURES & STANDINGS</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ======================================================== */}
-      {/* 8. FOOTER                                                */}
-      {/* ======================================================== */}
-      <footer className="relative z-20 bg-[#08090B] border-t border-white/[0.08] pt-12 pb-10 px-4 sm:px-6 lg:px-8">
+      {/* =================================================================== */}
+      {/* 5. FEATURE SECTION 3: MULTIPLAYER MATCH ENGINE                     */}
+      {/* =================================================================== */}
+      <section
+        id="engine-section"
+        className="relative w-full py-24 sm:py-32 px-4 sm:px-6 lg:px-8 border-t border-[#D6AD55]/20 bg-gradient-to-b from-[#0B0B0C] via-[#0E1015] to-[#0B0B0C] overflow-hidden"
+      >
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-white/[0.06]">
-            {/* Col 1: Wordmark & Tagline */}
-            <div className="md:col-span-1">
-              <BidWarsLogo size="sm" />
-              <p className="font-bebas text-base tracking-wider text-[#D6AD55] uppercase mt-2.5">
-                BUILD YOUR SQUAD. OWN THE GAME.
-              </p>
-              <p className="text-xs text-[#74777D] mt-1.5 leading-relaxed font-sans">
-                Real-time multiplayer cricket auction and tournament simulation platform.
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-[10px] font-mono text-[#48B982]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#48B982] animate-pulse" />
-                <span>ALL SYSTEMS OPERATIONAL</span>
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#D6AD55]/40 text-xs font-mono text-[#D6AD55] uppercase tracking-widest mb-4">
+              <Flame className="w-3.5 h-3.5 text-[#D6AD55]" />
+              <span>WICKETPULSE ENGINE</span>
+            </div>
+            <h2 className="font-bebas text-4xl sm:text-6xl uppercase tracking-tight text-[#F5F3ED] mb-4">
+              MULTIPLAYER MATCH ENGINE
+            </h2>
+            <p className="text-sm sm:text-base text-[#AAA69B] leading-relaxed">
+              Take your auction-built squad into competitive multiplayer cricket with WicketPulse.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left: Ball-by-Ball Match Engine Visuals */}
+            <div className="lg:col-span-7">
+              <div className="rounded-3xl bg-[#141519] border border-[#D6AD55]/30 p-6 sm:p-8 shadow-2xl space-y-6">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide">
+                      FINAL SHOWDOWN · OVER 19.5
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-[#D6AD55] font-bold">WICKETPULSE MULTIPLAYER</span>
+                </div>
+
+                {/* Scorecard Visual */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-[#0B0B0C] border border-white/10">
+                    <span className="text-[10px] font-mono text-[#AAA69B] uppercase">BATTING</span>
+                    <div className="font-bebas text-2xl text-[#F5F3ED]">184 / 4</div>
+                    <span className="text-[10px] text-emerald-400 font-mono">REQ: 8 OFF 2 BALLS</span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0B0B0C] border border-white/10">
+                    <span className="text-[10px] font-mono text-[#AAA69B] uppercase">BOWLING TACTIC</span>
+                    <div className="font-bebas text-2xl text-[#F0CE82]">YORKER SPEAR</div>
+                    <span className="text-[10px] text-[#AAA69B] font-mono">PACE VARIATION +2</span>
+                  </div>
+                </div>
+
+                {/* Over Balls Visual */}
+                <div>
+                  <span className="text-xs font-mono text-[#AAA69B] uppercase tracking-wider mb-2 block">
+                    CURRENT OVER PROGRESSION:
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {matchOverBalls.map((b, i) => (
+                      <span
+                        key={i}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs border ${
+                          b === 6
+                            ? 'bg-[#D6AD55] text-[#0B0B0C] border-[#F0CE82]'
+                            : b === 4
+                            ? 'bg-[#1E2246] text-[#F0CE82] border-[#D6AD55]/40'
+                            : b === 0
+                            ? 'bg-[#111111] text-[#AAA69B] border-white/10'
+                            : 'bg-[#111111] text-[#F5F3ED] border-white/10'
+                        }`}
+                      >
+                        {b}
+                      </span>
+                    ))}
+                    <span className="w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs bg-white/5 border border-dashed border-[#D6AD55] text-[#D6AD55] animate-pulse">
+                      ?
+                    </span>
+                  </div>
+                </div>
+
+                {/* Interactive delivery button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const outcomes = [0, 1, 2, 4, 6];
+                    const next = outcomes[Math.floor(Math.random() * outcomes.length)];
+                    setMatchOverBalls(prev => [...prev.slice(1), next]);
+                  }}
+                  className="w-full py-3 rounded-xl bg-[#111111] hover:bg-[#18181A] border border-[#D6AD55]/50 text-xs font-mono font-bold uppercase tracking-wider text-[#D6AD55] hover:text-[#F0CE82] transition-colors cursor-pointer"
+                >
+                  SIMULATE NEXT TACTICAL DELIVERY ⚡
+                </button>
               </div>
             </div>
 
-            {/* Col 2: Game Modes */}
-            <div>
-              <h4 className="font-mono text-xs font-bold text-[#F5F3ED] uppercase tracking-wider mb-3">GAME MODES</h4>
-              <ul className="space-y-2 text-xs text-[#AAA9A2]">
-                <li><button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#D6AD55] transition-colors">Quick Auction Blitz</button></li>
-                <li><button type="button" onClick={onSwitchToTournament} className="hover:text-[#D6AD55] transition-colors">Mega Tournament</button></li>
-                <li><button type="button" onClick={onSwitchToTournament} className="hover:text-[#D6AD55] transition-colors">WicketPulse Engine</button></li>
-                <li><button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#D6AD55] transition-colors">Squad Architect</button></li>
-              </ul>
-            </div>
+            {/* Right: Feature Highlights */}
+            <div className="lg:col-span-5 space-y-5">
+              <div className="p-6 rounded-2xl bg-[#111111] border border-white/10">
+                <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#D6AD55]" />
+                  <span>BALL-BY-BALL MULTIPLAYER DYNAMICS</span>
+                </h4>
+                <p className="text-xs text-[#AAA69B] leading-relaxed">
+                  Both human managers select batting aggression and bowling line/length simultaneously with instant server-verified resolution.
+                </p>
+              </div>
 
-            {/* Col 3: Resources */}
-            <div>
-              <h4 className="font-mono text-xs font-bold text-[#F5F3ED] uppercase tracking-wider mb-3">RESOURCES</h4>
-              <ul className="space-y-2 text-xs text-[#AAA9A2]">
-                <li><button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#D6AD55] transition-colors">IPL 2026 Auction Rules</button></li>
-                <li><button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#D6AD55] transition-colors">Purse & Bid Increments</button></li>
-                <li><button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#D6AD55] transition-colors">RTM Card Mechanics</button></li>
-                <li><button type="button" onClick={onSwitchToTournament} className="hover:text-[#D6AD55] transition-colors">WicketPulse Guide</button></li>
-              </ul>
-            </div>
+              <div className="p-6 rounded-2xl bg-[#111111] border border-white/10">
+                <h4 className="font-bebas text-xl text-[#F5F3ED] uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-[#D6AD55]" />
+                  <span>LEAGUE ROUND ROBIN TO PLAYOFFS</span>
+                </h4>
+                <p className="text-xs text-[#AAA69B] leading-relaxed">
+                  Compete through a 14-match regular league table. Top 4 teams advance to the Page-Playoff system to hoist the BidWars Trophy.
+                </p>
+              </div>
 
-            {/* Col 4: Legal & Ethics */}
-            <div>
-              <h4 className="font-mono text-xs font-bold text-[#F5F3ED] uppercase tracking-wider mb-3">LEGAL & ETHICS</h4>
-              <ul className="space-y-2 text-xs text-[#74777D]">
-                <li>Non-commercial cricket fan simulator.</li>
-                <li>Player names & imagery property of respective rights holders.</li>
-                <li>Zero real money gambling. Entertainment only.</li>
-                <li className="text-[10px] text-[#74777D] pt-1">© 2026 BIDWARS. ALL RIGHTS RESERVED.</li>
-              </ul>
+              <button
+                type="button"
+                onClick={onSwitchToTournament}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#B88B35] text-[#0B0B0C] font-bold text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>ENTER TOURNAMENT HUB</span>
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#74777D] font-mono gap-3">
-            <span>VERSION 2.6.4 (IPL MEGA POOL READY)</span>
-            <div className="flex items-center gap-5">
-              <span>PRIVACY POLICY</span>
-              <span>TERMS OF SERVICE</span>
-            </div>
+      {/* =================================================================== */}
+      {/* 6. FOOTER                                                          */}
+      {/* =================================================================== */}
+      <footer className="w-full border-t border-[#D6AD55]/20 bg-[#0B0B0C] py-12 px-4 sm:px-6 lg:px-8 text-xs text-[#AAA69B]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <BidWarsLogo size="sm" />
+            <span className="text-[10px] font-mono text-[#D6AD55] uppercase tracking-wider">
+              BIDWARS LEAGUE 2026
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs uppercase font-mono">
+            <a href="#stage" className="hover:text-[#F0CE82] transition-colors">Home</a>
+            <button type="button" onClick={() => setIsCreateModalOpen(true)} className="hover:text-[#F0CE82] transition-colors">Auction</button>
+            <button type="button" onClick={onSwitchToTournament} className="hover:text-[#F0CE82] transition-colors">Tournament</button>
+            <button type="button" onClick={onSwitchToTournament} className="hover:text-[#F0CE82] transition-colors">WicketPulse</button>
+          </div>
+
+          <div className="text-[10px] font-mono text-[#74777D] text-center md:text-right">
+            © 2026 BIDWARS. ALL RIGHTS RESERVED. · NON-COMMERCIAL FAN SIMULATOR.
           </div>
         </div>
       </footer>
 
-      {/* ======================================================== */}
-      {/* 9. CREATE ROOM / QUICK AUCTION MODAL                     */}
-      {/* ======================================================== */}
+      {/* =================================================================== */}
+      {/* 7. QUICK AUCTION MODAL                                             */}
+      {/* =================================================================== */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-xl bg-[#15181D] border border-[#D6AD55]/40 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.9)] max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-[#15181D] z-10 px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
+          <div className="relative w-full max-w-xl bg-[#141519] border border-[#D6AD55]/40 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.9)] max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-[#141519] z-10 px-6 py-4 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <GavelIcon className="w-5 h-5 text-[#D6AD55]" />
                 <h3 className="font-bebas text-2xl uppercase tracking-wide text-[#F5F3ED]">
@@ -1223,13 +1431,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#AAA9A2] hover:text-white transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#AAA69B] hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Modal Form */}
             <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#D6AD55] mb-1.5">
@@ -1241,324 +1448,108 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   placeholder="e.g. CaptainKav, TheGavelGod"
                   value={hostNickname}
                   onChange={e => setHostNickname(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0B0B0C] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA69B] mb-1.5">
                   ROOM NAME (OPTIONAL)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. IPL 2026 Mega Arena"
+                  placeholder="e.g. Premier Mega Arena"
                   value={roomName}
                   onChange={e => setRoomName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0B0B0C] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                    PLAY MODE
-                  </label>
-                  <select
-                    value={playMode}
-                    onChange={e => setPlayMode(e.target.value as any)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-xs font-semibold text-[#F5F3ED] focus:outline-none"
-                  >
-                    <option value="friends_bots">Friends + AI Bots</option>
-                    <option value="friends_only">Friends Only (Multiplayer)</option>
-                  </select>
-                </div>
-
-                {playMode === 'friends_bots' ? (
-                  <div>
-                    <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                      AI BOTS ({botCount})
-                    </label>
-                    <input
-                      type="range"
-                      min={1}
-                      max={9}
-                      value={botCount}
-                      onChange={e => setBotCount(Number(e.target.value))}
-                      className="w-full mt-2 accent-[#D6AD55]"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                      TIMER PER LOT
-                    </label>
-                    <select
-                      value={timerDuration}
-                      onChange={e => setTimerDuration(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-xs font-semibold text-[#F5F3ED] focus:outline-none"
-                    >
-                      <option value={8}>8s (Blitz)</option>
-                      <option value={10}>10s (Standard)</option>
-                      <option value={15}>15s (Tactical)</option>
-                      <option value={20}>20s (Relaxed)</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                    STARTING PURSE
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA69B] mb-1.5">
+                    STARTING PURSE (CR)
                   </label>
                   <select
                     value={startingPurseCr}
                     onChange={e => setStartingPurseCr(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-xs font-semibold text-[#F5F3ED] focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0B0B0C] border border-white/10 focus:border-[#D6AD55] text-xs text-[#F5F3ED] focus:outline-none"
                   >
-                    <option value={100}>₹100 Cr</option>
-                    <option value={120}>₹120 Cr (Official 2026)</option>
-                    <option value={140}>₹140 Cr</option>
+                    <option value={120}>₹120 Cr (Mega Auction)</option>
+                    <option value={100}>₹100 Cr (Standard)</option>
+                    <option value={80}>₹80 Cr (Budget Crunch)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                    PLAYER POOL
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA69B] mb-1.5">
+                    BID TIMER (SECONDS)
                   </label>
                   <select
-                    value={poolMode}
-                    onChange={e => setPoolMode(e.target.value as any)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-xs font-semibold text-[#F5F3ED] focus:outline-none"
+                    value={timerDuration}
+                    onChange={e => setTimerDuration(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0B0B0C] border border-white/10 focus:border-[#D6AD55] text-xs text-[#F5F3ED] focus:outline-none"
                   >
-                    <option value="auction_pool">Official Auction Pool (2026)</option>
-                    <option value="mega_all">Mega Pool (All Available)</option>
+                    <option value={10}>10s (Standard Blitz)</option>
+                    <option value={15}>15s (Strategic)</option>
+                    <option value={8}>8s (Rapid Fire)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#1B1E23] border border-white/[0.06] flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-[#F5F3ED] flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#D6AD55]" />
-                    Private Protected Room
-                  </span>
-                  <span className="text-[10px] text-[#74777D] block">Require password to join</span>
-                </div>
+              <div className="flex items-center gap-2 pt-2">
                 <input
                   type="checkbox"
+                  id="private-check"
                   checked={isPrivate}
                   onChange={e => setIsPrivate(e.target.checked)}
-                  className="w-4 h-4 accent-[#D6AD55] cursor-pointer"
+                  className="w-4 h-4 rounded bg-[#0B0B0C] border-white/20 text-[#D6AD55] focus:ring-[#D6AD55]"
                 />
+                <label htmlFor="private-check" className="text-xs text-[#AAA69B] cursor-pointer">
+                  Require password to join this room
+                </label>
               </div>
 
               {isPrivate && (
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#D6AD55] mb-1.5">
-                    ROOM PASSWORD *
+                  <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA69B] mb-1.5">
+                    ROOM PASSWORD
                   </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required={isPrivate}
-                      placeholder="At least 4 characters"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#74777D] hover:text-white"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter room password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B0B0C] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
+                  />
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs uppercase tracking-wider shadow-lg hover:brightness-105 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 mt-4"
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-[#08090B] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <GavelIcon className="w-4 h-4 text-[#08090B]" />
-                    <span>CREATE ROOM & LAUNCH</span>
-                  </>
-                )}
-              </button>
+              <div className="pt-4 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#AAA69B] cursor-pointer"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F0CE82] via-[#D6AD55] to-[#B88B35] text-[#0B0B0C] font-bold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isLoading ? 'CREATING...' : 'LAUNCH ARENA'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 10. JOIN ROOM MODAL                                      */}
-      {/* ======================================================== */}
-      {isJoinModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md bg-[#15181D] border border-[#D6AD55]/40 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6">
-            <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08] mb-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#D6AD55]" />
-                <h3 className="font-bebas text-2xl uppercase tracking-wide text-[#F5F3ED]">
-                  JOIN AUCTION ROOM
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsJoinModalOpen(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#AAA9A2] hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleJoinSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#D6AD55] mb-1.5">
-                  6-DIGIT ROOM CODE *
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  placeholder="e.g. 7X9K2P"
-                  value={joinCode}
-                  onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-center font-mono font-bold text-lg text-[#D6AD55] tracking-widest placeholder-[#74777D] focus:outline-none transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-[#AAA9A2] mb-1.5">
-                  ROOM PASSWORD (IF PROTECTED)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showJoinPassword ? 'text' : 'password'}
-                    placeholder="Enter password if private"
-                    value={joinPassword}
-                    onChange={e => setJoinPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#1B1E23] border border-white/10 focus:border-[#D6AD55] text-sm text-[#F5F3ED] placeholder-[#74777D] focus:outline-none transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowJoinPassword(!showJoinPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#74777D] hover:text-white"
-                  >
-                    {showJoinPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || !joinCode.trim()}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E9C77D] via-[#D6AD55] to-[#927545] text-[#08090B] font-bold text-xs uppercase tracking-wider shadow-lg hover:brightness-105 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-[#08090B] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Users className="w-4 h-4 text-[#08090B]" />
-                    <span>CONNECT TO ARENA</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 11. MODE DETAIL SHEET MODAL                              */}
-      {/* ======================================================== */}
-      {activeCardDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-lg bg-[#15181D] border border-[#D6AD55]/40 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08] mb-4">
-              <div>
-                <span className="text-[10px] font-mono text-[#D6AD55] font-bold uppercase tracking-widest">
-                  {activeCardDetail.tag} · {activeCardDetail.metric}
-                </span>
-                <h3 className="font-bebas text-2xl sm:text-3xl uppercase tracking-wide text-[#F5F3ED]">
-                  {activeCardDetail.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveCardDetail(null)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#AAA9A2] hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {activeCardDetail.fullDetails && (
-              <div className="space-y-4 text-xs text-[#AAA9A2]">
-                <p className="text-xs sm:text-sm leading-relaxed text-[#F5F3ED]">
-                  {activeCardDetail.fullDetails.overview}
-                </p>
-
-                <div>
-                  <h4 className="font-mono text-xs font-bold text-[#D6AD55] uppercase tracking-wider mb-1.5">
-                    KEY CAPABILITIES
-                  </h4>
-                  <ul className="space-y-1 list-disc list-inside text-[#AAA9A2]">
-                    {activeCardDetail.fullDetails.highlights.map((h, i) => (
-                      <li key={i}>{h}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-mono text-xs font-bold text-[#D6AD55] uppercase tracking-wider mb-1.5">
-                    OFFICIAL REGULATIONS
-                  </h4>
-                  <ul className="space-y-1 list-disc list-inside text-[#AAA9A2]">
-                    {activeCardDetail.fullDetails.rules.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-5 pt-3.5 border-t border-white/[0.08] flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveCardDetail(null)}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-[#AAA9A2] cursor-pointer"
-              >
-                CLOSE
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const action = activeCardDetail.action;
-                  setActiveCardDetail(null);
-                  if (action === 'create') setIsCreateModalOpen(true);
-                  else if (action === 'tournament') onSwitchToTournament && onSwitchToTournament();
-                  else if (action === 'join') setIsJoinModalOpen(true);
-                }}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#E9C77D] to-[#D6AD55] text-[#08090B] font-bold text-xs uppercase tracking-wider shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-              >
-                LAUNCH MODE
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 12. AUTH MODAL INTEGRATION                               */}
-      {/* ======================================================== */}
+      {/* =================================================================== */}
+      {/* 8. AUTH MODAL INTEGRATION                                          */}
+      {/* =================================================================== */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
