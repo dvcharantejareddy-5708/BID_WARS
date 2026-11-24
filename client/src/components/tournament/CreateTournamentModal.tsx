@@ -36,7 +36,7 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
     try {
       const displayName = user.username || user.inGameName || 'Manager';
       const tournament = await TournamentApi.createTournament({
-        name: name.trim() || `${displayName}'s IPL Championship`,
+        name: name.trim() || `${displayName}'s League Championship`,
         hostId: user.id,
         hostName: displayName,
         hostEmail: user.email,
@@ -70,7 +70,7 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({
               </div>
               <div>
                 <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider font-heading">
-                  Create IPL Tournament
+                  Create Tournament
                 </h2>
                 <p className="text-xs text-gray-400">Host a persistent multiplayer tournament with auction & WicketPulse matches</p>
               </div>

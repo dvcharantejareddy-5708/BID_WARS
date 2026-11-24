@@ -250,7 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <h3 className="font-heading font-black text-lg text-white uppercase tracking-wider">
                 {mode === 'login' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Forgot Password?'}
               </h3>
-              <p className="text-[11px] text-gray-400">BidWars IPL Tournament Platform</p>
+              <p className="text-[11px] text-gray-400">BidWars Tournament Platform</p>
             </div>
           </div>
           <button

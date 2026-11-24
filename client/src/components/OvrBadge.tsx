@@ -16,55 +16,55 @@ export function getOvrTier(ovr: number): {
   if (ovr >= 95) {
     return {
       tierName: 'ALL-TIME GREAT',
-      badgeStyle: 'bg-gradient-to-br from-[#FFC93D] via-[#FFE082] to-[#C8FF3D] border-[#FFE082] text-[#0A0B14]',
-      textStyle: 'text-[#0A0B14] font-black',
-      glowStyle: 'shadow-[0_0_18px_rgba(255,201,61,0.55)] ring-1 ring-[#FFC93D]/50'
+      badgeStyle: 'bg-[#FFC93D]/20 border border-[#FFC93D] text-[#FFC93D]',
+      textStyle: 'text-[#FFC93D] font-extrabold',
+      glowStyle: 'shadow-sm'
     };
   }
   if (ovr >= 90) {
     return {
       tierName: 'SUPERSTAR',
-      badgeStyle: 'bg-[#FFC93D]/20 border-[#FFC93D]/70 text-[#FFC93D]',
+      badgeStyle: 'bg-[#FFC93D]/15 border border-[#FFC93D]/60 text-[#FFC93D]',
       textStyle: 'text-[#FFC93D] font-extrabold',
-      glowStyle: 'shadow-[0_0_14px_rgba(255,201,61,0.35)]'
+      glowStyle: 'shadow-sm'
     };
   }
   if (ovr >= 85) {
     return {
       tierName: 'ELITE MATCH-WINNER',
-      badgeStyle: 'bg-[#7C5CFF]/20 border-[#7C5CFF]/70 text-[#C4B5FD]',
-      textStyle: 'text-[#C4B5FD] font-extrabold',
-      glowStyle: 'shadow-[0_0_14px_rgba(124,92,255,0.35)]'
+      badgeStyle: 'bg-[#C8FF3D]/15 border border-[#C8FF3D]/60 text-[#C8FF3D]',
+      textStyle: 'text-[#C8FF3D] font-extrabold',
+      glowStyle: 'shadow-sm'
     };
   }
   if (ovr >= 80) {
     return {
       tierName: 'TOP REGULAR',
-      badgeStyle: 'bg-[#38BDF8]/20 border-[#38BDF8]/70 text-[#38BDF8]',
-      textStyle: 'text-[#38BDF8] font-bold',
-      glowStyle: 'shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+      badgeStyle: 'bg-white/10 border border-white/20 text-white',
+      textStyle: 'text-white font-bold',
+      glowStyle: 'shadow-sm'
     };
   }
   if (ovr >= 75) {
     return {
       tierName: 'STRONG STARTER',
-      badgeStyle: 'bg-[#3DBB83]/20 border-[#3DBB83]/70 text-[#3DBB83]',
-      textStyle: 'text-[#3DBB83] font-bold',
-      glowStyle: 'shadow-[0_0_10px_rgba(61,187,131,0.3)]'
+      badgeStyle: 'bg-white/5 border border-white/15 text-gray-300',
+      textStyle: 'text-gray-300 font-bold',
+      glowStyle: 'shadow-sm'
     };
   }
   if (ovr >= 70) {
     return {
       tierName: 'SOLID SQUAD',
-      badgeStyle: 'bg-[#6366F1]/20 border-[#6366F1]/50 text-[#A5B4FC]',
-      textStyle: 'text-[#A5B4FC] font-semibold',
+      badgeStyle: 'bg-white/5 border border-white/10 text-gray-400',
+      textStyle: 'text-gray-400 font-semibold',
       glowStyle: ''
     };
   }
   return {
     tierName: 'RESERVE',
-    badgeStyle: 'bg-[#1E2246]/60 border-[#344B65] text-[#9E9EB8]',
-    textStyle: 'text-[#9E9EB8] font-medium',
+    badgeStyle: 'bg-white/5 border border-white/10 text-gray-500',
+    textStyle: 'text-gray-500 font-medium',
     glowStyle: ''
   };
 }

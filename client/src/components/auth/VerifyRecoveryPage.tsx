@@ -127,7 +127,7 @@ export const VerifyRecoveryPage: React.FC<VerifyRecoveryPageProps> = ({
             <h2 className="font-heading font-black text-lg text-white uppercase tracking-wider">
               Verify Recovery Code
             </h2>
-            <p className="text-[11px] text-gray-400">BidWars IPL Tournament Platform</p>
+            <p className="text-[11px] text-gray-400">BidWars Tournament Platform</p>
           </div>
         </div>
 

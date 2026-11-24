@@ -475,7 +475,7 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                 <span className="text-[#C8FF3D] font-bold">
                   {IPL_FRANCHISES[myFranchiseId]?.name || myFranchiseId}
                 </span>{' '}
-                ({isMyTeamBatting ? '🏏 Batting' : isMyTeamBowling ? '🎯 Bowling' : '👁️ Spectator'})
+                ({isMyTeamBatting ? 'Batting' : isMyTeamBowling ? 'Bowling' : 'Spectator'})
               </span>
             </div>
           </div>
@@ -546,17 +546,17 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                     type="button"
                     disabled={isFlippingCoin}
                     onClick={() => handleTossCoinFlip('HEADS')}
-                    className="py-4 rounded-2xl bg-[#0D0E1A] border-2 border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-black uppercase text-base tracking-wider hover:scale-102 transition-all cursor-pointer shadow-lg"
+                    className="py-3.5 rounded-xl bg-[#0D0E1A] border border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-bold uppercase text-sm tracking-wider transition-all cursor-pointer shadow-sm"
                   >
-                    👑 HEADS
+                    HEADS
                   </button>
                   <button
                     type="button"
                     disabled={isFlippingCoin}
                     onClick={() => handleTossCoinFlip('TAILS')}
-                    className="py-4 rounded-2xl bg-[#0D0E1A] border-2 border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-black uppercase text-base tracking-wider hover:scale-102 transition-all cursor-pointer shadow-lg"
+                    className="py-3.5 rounded-xl bg-[#0D0E1A] border border-[#2A2F60] hover:border-[#FFC93D] text-white hover:text-[#FFC93D] font-heading font-bold uppercase text-sm tracking-wider transition-all cursor-pointer shadow-sm"
                   >
-                    🪙 TAILS
+                    TAILS
                   </button>
                 </div>
               </div>
@@ -602,17 +602,17 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                     type="button"
                     disabled={isSubmittingTossDecision}
                     onClick={() => handleTossDecision('BAT')}
-                    className="py-4 rounded-2xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black uppercase text-sm tracking-wider shadow-[0_0_20px_rgba(200,255,61,0.3)] hover:scale-102 transition-all cursor-pointer disabled:opacity-50"
+                    className="py-3.5 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-bold uppercase text-xs tracking-wider shadow-sm transition-all cursor-pointer disabled:opacity-50"
                   >
-                    BAT FIRST 🏏
+                    BAT FIRST
                   </button>
                   <button
                     type="button"
                     disabled={isSubmittingTossDecision}
                     onClick={() => handleTossDecision('BOWL')}
-                    className="py-4 rounded-2xl bg-[#7C5CFF] hover:bg-[#6A48F5] text-white font-heading font-black uppercase text-sm tracking-wider shadow-[0_0_20px_rgba(124,92,255,0.3)] hover:scale-102 transition-all cursor-pointer disabled:opacity-50"
+                    className="py-3.5 rounded-xl bg-[#1A1E2B] hover:bg-[#222738] border border-white/10 text-white font-heading font-bold uppercase text-xs tracking-wider shadow-sm transition-all cursor-pointer disabled:opacity-50"
                   >
-                    BOWL FIRST 🎯
+                    BOWL FIRST
                   </button>
                 </div>
                 {isSubmittingTossDecision && (
@@ -759,11 +759,11 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                     onClick={handleSelectOpeningBatters}
                     className={`px-6 py-3 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
                       selectedStrikerId && selectedNonStrikerId && selectedStrikerId !== selectedNonStrikerId
-                        ? 'bg-[#C8FF3D] text-[#0A0B14] shadow-[0_0_20px_rgba(200,255,61,0.3)] hover:scale-102'
+                        ? 'bg-[#C8FF3D] text-[#0A0B14] shadow-sm'
                         : 'bg-[#1E2246] text-gray-600 border border-gray-800 cursor-not-allowed'
                     }`}
                   >
-                    Confirm Openers 🏏
+                    Confirm Openers
                   </button>
                 </div>
               </div>
@@ -834,11 +834,11 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                     onClick={handleSelectOpeningBowler}
                     className={`px-6 py-3 rounded-xl font-heading font-black text-xs uppercase tracking-wider transition-all cursor-pointer ${
                       selectedOpeningBowlerId
-                        ? 'bg-[#FF3B5C] text-white shadow-[0_0_20px_rgba(255,59,92,0.3)] hover:scale-102'
+                        ? 'bg-[#FF3B5C] text-white shadow-sm'
                         : 'bg-[#1E2246] text-gray-600 border border-gray-800 cursor-not-allowed'
                     }`}
                   >
-                    Confirm Bowler 🎯
+                    Confirm Bowler
                   </button>
                 </div>
               </div>
@@ -1069,12 +1069,12 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                   <span className="text-gray-600 hidden sm:inline">•</span>
                   <div>
                     {batterAdv >= 3 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30 uppercase text-[10px]">
-                        ⚡ BATTER ADVANTAGE: +{batterAdv}
+                      <span className="px-2 py-0.5 rounded-full bg-[#C8FF3D]/15 text-[#C8FF3D] border border-[#C8FF3D]/30 uppercase text-[10px] font-mono">
+                        BATTER ADVANTAGE: +{batterAdv}
                       </span>
                     ) : bowlerAdv >= 3 ? (
-                      <span className="px-2 py-0.5 rounded-full bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 uppercase text-[10px]">
-                        🛡️ BOWLER ADVANTAGE: +{bowlerAdv}
+                      <span className="px-2 py-0.5 rounded-full bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 uppercase text-[10px] font-mono">
+                        BOWLER ADVANTAGE: +{bowlerAdv}
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 uppercase text-[10px]">
@@ -1248,7 +1248,7 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-heading font-black uppercase tracking-wider text-white">
-                          {isMyTeamBatting ? '🏏 Select Batting Number' : '🎯 Select Bowling Delivery Number'}
+                          {isMyTeamBatting ? 'Select Batting Number' : 'Select Bowling Delivery Number'}
                         </span>
                         {hasMyChoiceLocked && (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#C8FF3D]/10 text-[#C8FF3D] border border-[#C8FF3D]/30 flex items-center gap-1">
@@ -1522,9 +1522,9 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                 <div className="bg-[#12142A] border-2 border-red-500/50 rounded-3xl p-6 shadow-2xl space-y-4 animate-fade-in">
                   <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
-                      <h3 className="font-heading font-black text-base uppercase text-white">
-                        🚨 WICKET! {isMyTeamBatting ? 'SELECT THE NEXT BATTER' : 'WAITING FOR NEXT BATTER'} ({secondsRemaining}s)
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <h3 className="font-heading font-bold text-sm uppercase text-white">
+                        WICKET — {isMyTeamBatting ? 'SELECT THE NEXT BATTER' : 'WAITING FOR NEXT BATTER'} ({secondsRemaining}s)
                       </h3>
                     </div>
                     <span className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl text-xs font-heading font-black">
@@ -1599,9 +1599,9 @@ export const LiveMatchArena: React.FC<LiveMatchArenaProps> = ({
                 <div className="bg-[#12142A] border-2 border-[#7C5CFF]/50 rounded-3xl p-6 shadow-2xl space-y-4 animate-fade-in">
                   <div className="flex items-center justify-between pb-3 border-b border-[#1E2246]">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#7C5CFF] animate-ping" />
-                      <h3 className="font-heading font-black text-base uppercase text-white">
-                        🔔 OVER COMPLETED!{' '}
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#C8FF3D]" />
+                      <h3 className="font-heading font-bold text-sm uppercase text-white">
+                        OVER COMPLETED —{' '}
                         {isMyTeamBowling ? 'SELECT THE NEXT BOWLER' : 'WAITING FOR NEXT BOWLER'} ({secondsRemaining}s)
                       </h3>
                     </div>

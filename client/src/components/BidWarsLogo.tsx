@@ -36,15 +36,15 @@ export const BidWarsLogo: React.FC<BidWarsLogoProps> = ({
 
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {/* Official Angled Bid-Paddle Gavel Badge from Brand Board */}
+      {/* Unified Metallic Gold Angled Bid-Paddle Gavel Badge */}
       <div
-        className={`${iconSizes[size]} ${badgeRadius[size]} bg-[#C8FF3D] flex items-center justify-center shrink-0 shadow-lime-glow-sm transform -rotate-6 hover:rotate-0 transition-transform duration-300`}
+        className={`${iconSizes[size]} ${badgeRadius[size]} bg-gradient-to-br from-[#F0CE82] via-[#D6AD55] to-[#927545] border border-[#F0CE82]/40 flex items-center justify-center shrink-0 shadow-[0_2px_10px_rgba(214,173,85,0.3)] transform -rotate-6 hover:rotate-0 transition-transform duration-200`}
         title="BIDWARS"
       >
         <svg
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#0A0B14"
+          stroke="#111111"
           strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -53,18 +53,19 @@ export const BidWarsLogo: React.FC<BidWarsLogoProps> = ({
           {/* Stylized Auction Hammer Head and Shaft angled 45deg */}
           <path d="M14 6l4 4" />
           <path d="M11 9l-7 7a2.12 2.12 0 003 3l7-7" />
-          <path d="M13 3l6 6-2 2-6-6 2-2z" fill="#0A0B14" />
+          <path d="M13 3l6 6-2 2-6-6 2-2z" fill="#111111" />
         </svg>
       </div>
 
       {!iconOnly && (
         <div className="flex flex-col leading-none">
-          <span className={`font-display font-extrabold tracking-tight text-white uppercase ${textSizes[size]}`}>
-            BID<span className="text-[#C8FF3D]">WARS</span>
+          <span className={`font-display font-black tracking-tight uppercase ${textSizes[size]}`}>
+            <span className="text-[#F5F3ED]">BID</span>
+            <span className="text-[#D6AD55] drop-shadow-[0_1px_4px_rgba(214,173,85,0.25)]">WARS</span>
           </span>
           {showTagline && (
-            <span className="text-[11px] font-sans font-semibold tracking-wide text-[#8A92B2] mt-0.5">
-              Hammer your XI.
+            <span className="text-[10px] font-mono font-medium tracking-wide text-[#AAA9A2] mt-0.5">
+              BUILD YOUR SQUAD. OWN THE GAME.
             </span>
           )}
         </div>
@@ -72,4 +73,3 @@ export const BidWarsLogo: React.FC<BidWarsLogoProps> = ({
     </div>
   );
 };
-

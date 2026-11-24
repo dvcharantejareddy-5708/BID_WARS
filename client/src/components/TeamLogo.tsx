@@ -28,7 +28,7 @@ export const TeamLogo = React.memo<TeamLogoProps>(({
       <div
         className={`${roundedClass} bg-[#1A1A1A] border border-[#2E2E2E] flex items-center justify-center text-[10px] font-black font-display text-[#8E8E93] shrink-0 select-none ${className}`}
       >
-        IPL
+        BW
       </div>
     );
   }

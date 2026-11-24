@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Trophy, 
-  FastForward, 
-  Pause, 
-  Play, 
-  RotateCcw, 
-  Shield, 
-  Sparkles, 
-  ChevronUp, 
-  AlertCircle, 
-  Dice5, 
-  Tag, 
-  Plane, 
-  ChevronDown, 
-  Wallet, 
+import {
+  Trophy,
+  FastForward,
+  Pause,
+  Play,
+  RotateCcw,
+  Shield,
+  Sparkles,
+  ChevronUp,
+  AlertCircle,
+  Dice5,
+  Tag,
+  Plane,
+  ChevronDown,
+  Wallet,
   HelpCircle,
   X,
   AlertTriangle,
@@ -21,11 +21,11 @@ import {
   Crown,
   ArrowLeftRight
 } from 'lucide-react';
-import { 
-  RoomState, 
-  AuctionLot, 
-  IPLTeamId, 
-  IPL_FRANCHISES, 
+import {
+  RoomState,
+  AuctionLot,
+  IPLTeamId,
+  IPL_FRANCHISES,
   PlayerCategory,
   TradeType
 } from '../types.js';
@@ -170,7 +170,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-fadeIn font-body">
         <div className="bg-[#12142A] border border-[#1E2246] p-8 sm:p-12 rounded-3xl shadow-2xl relative overflow-hidden">
-          <div className="w-16 h-16 rounded-3xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] mx-auto mb-5 shadow-[0_0_20px_rgba(200,255,61,0.2)]">
+          <div className="w-16 h-16 rounded-2xl bg-[#0A0B14] border border-[#C8FF3D]/30 flex items-center justify-center text-[#C8FF3D] mx-auto mb-5 shadow-sm">
             <Trophy className="w-8 h-8 stroke-[2.2]" />
           </div>
           <h2 className="text-2xl font-heading font-black text-white mb-2 uppercase tracking-wide">
@@ -186,7 +186,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={() => setShowHostControlsModal(true)}
-                className="py-3 px-6 rounded-2xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center gap-2"
+                className="py-3 px-6 rounded-xl bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] font-heading font-black text-xs uppercase tracking-wider transition-all shadow-sm flex items-center gap-2"
               >
                 <Crown className="w-4 h-4" />
                 <span>Host Controls</span>
@@ -194,7 +194,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               {onBringAllUnsoldBack && (
                 <button
                   onClick={onBringAllUnsoldBack}
-                  className="py-3 px-5 rounded-2xl bg-[#1E2246] hover:bg-[#282E5C] text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#1E2246] flex items-center gap-2"
+                  className="py-3 px-5 rounded-xl bg-[#1E2246] hover:bg-[#282E5C] text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#1E2246] flex items-center gap-2"
                 >
                   <RotateCcw className="w-4 h-4 text-[#C8FF3D]" />
                   <span>Bring All Unsold Back</span>
@@ -202,14 +202,14 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               )}
               <button
                 onClick={() => setShowTradeModal(true)}
-                className="py-3 px-5 rounded-2xl bg-[#7C5CFF]/25 hover:bg-[#7C5CFF]/40 text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-[#7C5CFF]/40 flex items-center gap-2"
+                className="py-3 px-5 rounded-xl bg-[#1A1E2B] hover:bg-[#222738] text-white font-heading font-bold text-xs uppercase tracking-wider transition-all border border-white/10 flex items-center gap-2 shadow-sm"
               >
                 <ArrowLeftRight className="w-4 h-4 text-[#C8FF3D]" />
                 <span>Trade Players</span>
               </button>
               <button
                 onClick={onEndAuction}
-                className="py-3 px-5 rounded-2xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(255,59,92,0.3)]"
+                className="py-3 px-5 rounded-xl bg-[#FF3B5C] hover:bg-[#E02E4E] text-white font-heading font-black text-xs uppercase tracking-wider transition-all shadow-sm"
               >
                 End Auction Now
               </button>
@@ -236,9 +236,9 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           onClose={() => setShowTradeModal(false)}
           roomState={roomState}
           myMemberId={myMemberId}
-          onCreateTrade={onCreateTrade || (() => {})}
-          onRespondTrade={onRespondTrade || (() => {})}
-          onCancelTrade={onCancelTrade || (() => {})}
+          onCreateTrade={onCreateTrade || (() => { })}
+          onRespondTrade={onRespondTrade || (() => { })}
+          onCancelTrade={onCancelTrade || (() => { })}
           onUpdateTradeTimer={onUpdateTradeTimer}
         />
 
@@ -252,11 +252,11 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
             onResumeAuction={onResumeAuction}
             onRestartAuction={onRestartAuction}
             onEndAuction={onEndAuction}
-            onBringAllUnsoldBack={onBringAllUnsoldBack || (() => {})}
-            onRandomDrawUnsold={onRandomDrawUnsold || (() => {})}
-            onSkipMultiplePlayers={onSkipMultiplePlayers || (() => {})}
-            onKickMember={onKickMember || (() => {})}
-            onUpdateTimer={onUpdateTimer || (() => {})}
+            onBringAllUnsoldBack={onBringAllUnsoldBack || (() => { })}
+            onRandomDrawUnsold={onRandomDrawUnsold || (() => { })}
+            onSkipMultiplePlayers={onSkipMultiplePlayers || (() => { })}
+            onKickMember={onKickMember || (() => { })}
+            onUpdateTimer={onUpdateTimer || (() => { })}
             onUpdateSettings={onUpdateSettings}
             onDrawRandomPlayer={onDrawRandomPlayer}
             onReAuctionParticularPlayer={onReAuctionParticularPlayer}
@@ -359,10 +359,10 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           </span>
 
           {/* Prominent Synchronized Hammer Clock Badge */}
-          <HammerClockBadge 
-            deadlineTimestamp={roomState.deadlineTimestamp} 
-            roomStatus={roomState.status} 
-            lotStatus={lot.status} 
+          <HammerClockBadge
+            deadlineTimestamp={roomState.deadlineTimestamp}
+            roomStatus={roomState.status}
+            lotStatus={lot.status}
           />
 
           {roomState.status === 'PAUSED' ? (
@@ -371,7 +371,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
             </span>
           ) : (
             <span className="bg-[#C8FF3D]/15 text-[#C8FF3D] font-heading font-bold px-3 py-1 rounded-lg border border-[#C8FF3D]/30 flex items-center gap-1.5 text-xs tracking-wider uppercase">
-              <span className="w-2 h-2 rounded-full bg-[#C8FF3D] animate-ping inline-block mr-0.5" />
+              <span className="w-2 h-2 rounded-full bg-[#C8FF3D] inline-block mr-0.5" />
               LIVE AUCTION
             </span>
           )}
@@ -380,12 +380,12 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           <button
             onClick={() => setShowTradeModal(true)}
             aria-label="Player Trading"
-            className="flex items-center gap-1.5 bg-[#7C5CFF]/25 hover:bg-[#7C5CFF]/40 border border-[#7C5CFF]/50 text-white font-heading font-black px-3.5 py-1 rounded-lg transition-all text-[11px] uppercase tracking-wider relative shadow-[0_0_12px_rgba(124,92,255,0.25)]"
+            className="flex items-center gap-1.5 bg-[#1A1E2B] hover:bg-[#222738] border border-white/10 text-white font-heading font-bold px-3.5 py-1 rounded-lg transition-all text-[11px] uppercase tracking-wider relative shadow-sm"
           >
             <ArrowLeftRight className="w-3.5 h-3.5 text-[#C8FF3D]" />
             <span>Trade</span>
             {roomState.activeTrade && (
-              <span className="w-2 h-2 rounded-full bg-[#FF3B5C] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#FF3B5C]" />
             )}
           </button>
 
@@ -415,12 +415,12 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
 
       {/* 2. MAIN 3-PANEL DASHBOARD LAYOUT */}
       <div className="grid grid-cols-12 gap-3.5 items-start">
-        
+
         {/* ======================================================== */}
         {/* LEFT AREA: BIDDING CONTROLS & AUCTION INFO (4 Cols)     */}
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
-          
+
           {/* A. Bidding Panel & Timer (Section 05 Bidding Screen) */}
           <div className="bg-[#12142A] rounded-2xl p-4 sm:p-5 border border-[#23274D] shadow-xl relative overflow-hidden space-y-4">
             {/* Header: BID WAR + Status */}
@@ -438,21 +438,21 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
 
             {/* Hammer Clock & Progress Panel */}
             <div className="flex items-center justify-between gap-3">
-              <HammerClockPanel 
-                deadlineTimestamp={roomState.deadlineTimestamp} 
-                totalDurationSec={roomState.settings.timerDuration || 10} 
-                roomStatus={roomState.status} 
-                lotStatus={lot.status} 
+              <HammerClockPanel
+                deadlineTimestamp={roomState.deadlineTimestamp}
+                totalDurationSec={roomState.settings.timerDuration || 10}
+                roomStatus={roomState.status}
+                lotStatus={lot.status}
               />
 
               {/* Competitive Leader States */}
               {isHighestBidder ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#0A0B14] font-heading font-extrabold uppercase bg-[#C8FF3D] px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(200,255,61,0.4)] tracking-wide">
+                <div className="flex items-center gap-1.5 text-xs text-[#0A0B14] font-heading font-bold uppercase bg-[#C8FF3D] px-3 py-1.5 rounded-lg shadow-sm tracking-wide">
                   <Shield className="w-3.5 h-3.5" />
                   <span>YOU ARE LEADING</span>
                 </div>
               ) : wasOutbid ? (
-                <div className="flex items-center gap-1.5 text-xs text-white font-heading font-extrabold uppercase bg-[#FF3B5C] px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(255,59,92,0.4)] animate-bounce tracking-wide">
+                <div className="flex items-center gap-1.5 text-xs text-white font-heading font-bold uppercase bg-[#FF3B5C] px-3 py-1.5 rounded-lg shadow-sm tracking-wide">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   <span>OUTBID! STRIKE BACK</span>
                 </div>
@@ -497,11 +497,11 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
               </div>
             )}
 
-            {/* Primary Action Button: BID ₹X.XX Cr (Hammer Lime, High Glow) */}
+            {/* Primary Action Button: BID ₹X.XX Cr */}
             <button
               onClick={() => handlePlaceBidSafe(nextMinBid)}
               disabled={!canBid || Boolean(announcingLot)}
-              className="w-full bg-[#C8FF3D] hover:bg-[#B5F522] active:scale-[0.98] text-[#0A0B14] font-heading font-black py-4 px-6 rounded-xl transition-all shadow-[0_0_24px_rgba(200,255,61,0.35)] flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-base uppercase tracking-wider"
+              className="w-full bg-[#C8FF3D] hover:bg-[#B5F522] active:scale-[0.98] text-[#0A0B14] font-heading font-bold py-4 px-6 rounded-xl transition-all shadow-tactile-btn flex items-center justify-between disabled:opacity-30 disabled:cursor-not-allowed group text-base uppercase tracking-wider"
             >
               <div className="flex items-center gap-2.5">
                 {isPlacingBid ? (
@@ -551,7 +551,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setShowHostControlsModal(true)}
-                    className="px-2.5 py-1 bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] rounded-lg font-heading font-black uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-[0_0_10px_rgba(200,255,61,0.2)]"
+                    className="px-2.5 py-1 bg-[#C8FF3D] hover:bg-[#B5F02B] text-[#0A0B14] rounded-lg font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-sm"
                   >
                     <Crown className="w-3 h-3 stroke-[2.5]" />
                     <span>Host Controls</span>
@@ -570,7 +570,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                     <button
                       onClick={() => onDrawRandomPlayer()}
                       disabled={lot.status !== 'IN_PROGRESS' || Boolean(announcingLot)}
-                      className="px-2.5 py-1 bg-gradient-to-r from-[#7C5CFF] to-[#0078FF] hover:opacity-95 text-white rounded-lg font-heading font-black uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-[0_0_10px_rgba(124,92,255,0.3)] disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="px-2.5 py-1 bg-[#1A1E2B] hover:bg-[#222738] text-white border border-white/10 rounded-lg font-heading font-bold uppercase tracking-wider transition-all flex items-center gap-1 text-[11px] shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Draw next random player from active sequence"
                     >
                       <Dice5 className="w-3 h-3 text-[#FFC93D]" />
@@ -740,12 +740,11 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
         {/* CENTER AREA: CURRENT PLAYER DETAILS (Section 04 Player Card) */}
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 order-1 lg:order-2">
-          
-          <div 
+
+          <div
             key={`player-card-${player.id}`}
-            className={`relative bg-[#12142A] border rounded-2xl overflow-hidden shadow-2xl transition-all ${
-              player.is_marquee ? 'border-[#FFC93D] shadow-[0_0_30px_rgba(255,201,61,0.25)]' : 'border-[#23274D]'
-            }`}
+            className={`relative bg-[#12142A] border rounded-2xl overflow-hidden shadow-sm transition-all ${player.is_marquee ? 'border-[#FFC93D]' : 'border-[#23274D]'
+              }`}
           >
             {/* Top Details: Player Category, Set Info & Base Price */}
             <div className="p-4 sm:p-5 bg-[#12142A] border-b border-[#23274D] space-y-3">
@@ -881,7 +880,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
         {/* RIGHT AREA: MY TEAM SUMMARY & LIVE BID FEED (3 Cols)     */}
         {/* ======================================================== */}
         <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 order-3">
-          
+
           {/* A. My Franchise Card */}
           <div className="bg-[#12142A] border border-[#23274D] rounded-2xl p-4 sm:p-5 shadow-xl space-y-3.5">
             <div className="flex items-center justify-between pb-2 border-b border-[#23274D]">
@@ -920,7 +919,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
                     </span>
                   </div>
                   <div className="w-full bg-[#181B38] h-2 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-[#C8FF3D] via-[#FFC93D] to-[#7C5CFF] h-full"
                       style={{ width: `${Math.min(100, Math.max(0, (myPurse / (roomState.settings.startingPurse || 1200000000)) * 100))}%` }}
                     />
@@ -1070,7 +1069,7 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
 
             <button
               onClick={() => setShowOnboardingGuide(false)}
-              className="w-full py-3.5 bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-extrabold uppercase text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] mt-2 tracking-wider"
+              className="w-full py-3.5 bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-extrabold uppercase text-sm rounded-xl transition-all shadow-sm mt-2 tracking-wider"
             >
               Hammer Your XI!
             </button>
@@ -1089,11 +1088,11 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
           onResumeAuction={onResumeAuction}
           onRestartAuction={onRestartAuction}
           onEndAuction={onEndAuction}
-          onBringAllUnsoldBack={onBringAllUnsoldBack || (() => {})}
-          onRandomDrawUnsold={onRandomDrawUnsold || (() => {})}
-          onSkipMultiplePlayers={onSkipMultiplePlayers || (() => {})}
-          onKickMember={onKickMember || (() => {})}
-          onUpdateTimer={onUpdateTimer || (() => {})}
+          onBringAllUnsoldBack={onBringAllUnsoldBack || (() => { })}
+          onRandomDrawUnsold={onRandomDrawUnsold || (() => { })}
+          onSkipMultiplePlayers={onSkipMultiplePlayers || (() => { })}
+          onKickMember={onKickMember || (() => { })}
+          onUpdateTimer={onUpdateTimer || (() => { })}
           onUpdateSettings={onUpdateSettings}
           onDrawRandomPlayer={onDrawRandomPlayer}
           onReAuctionParticularPlayer={onReAuctionParticularPlayer}
@@ -1107,9 +1106,9 @@ export const AuctionArena = React.memo<AuctionArenaProps>(({
         onClose={() => setShowTradeModal(false)}
         roomState={roomState}
         myMemberId={myMemberId}
-        onCreateTrade={onCreateTrade || (() => {})}
-        onRespondTrade={onRespondTrade || (() => {})}
-        onCancelTrade={onCancelTrade || (() => {})}
+        onCreateTrade={onCreateTrade || (() => { })}
+        onRespondTrade={onRespondTrade || (() => { })}
+        onCancelTrade={onCancelTrade || (() => { })}
         onUpdateTradeTimer={onUpdateTradeTimer}
       />
     </div>

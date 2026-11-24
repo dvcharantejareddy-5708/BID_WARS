@@ -289,7 +289,7 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-[#C8FF3D]" />
                 <h3 className="font-heading font-black text-base uppercase tracking-wider text-white">
-                  Claim Your IPL Franchise
+                  Claim Your Franchise
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
@@ -362,7 +362,7 @@ export const TournamentLobby: React.FC<TournamentLobbyProps> = ({
                   2
                 </div>
                 <div>
-                  <div className="font-bold text-sm text-white">Live IPL Auction</div>
+                  <div className="font-bold text-sm text-white">Live Auction</div>
                   <div className="text-xs text-gray-400">Bid, buy, and trade players with ₹120 Cr purse.</div>
                 </div>
               </div>

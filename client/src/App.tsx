@@ -773,25 +773,27 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0B14] text-[#F4F6FA] flex flex-col selection:bg-[#C8FF3D] selection:text-[#0A0B14]">
-      {/* Top Navigation */}
-      <Navbar
-        roomCode={roomState?.roomCode}
-        connected={connected || socketService.isConnected()}
-        myMember={myMember}
-        activeTab={activeTab}
-        setActiveTab={(t) => {
-          if (t === 'settings') {
-            setShowSettingsModal(true);
-          } else {
-            setActiveTab(t);
-          }
-        }}
-        onLeaveRoom={handleLeaveRoom}
-        squadCount={mySquadCount}
-        onToggleChat={handleToggleChat}
-        isChatOpen={isChatOpen}
-        unreadChatCount={unreadChatCount}
-      />
+      {/* Top Navigation — Suppressed on Quick Auction Landing Page which has its own dedicated header */}
+      {!(view === 'landing' && gameMode === 'QUICK_AUCTION') && (
+        <Navbar
+          roomCode={roomState?.roomCode}
+          connected={connected || socketService.isConnected()}
+          myMember={myMember}
+          activeTab={activeTab}
+          setActiveTab={(t) => {
+            if (t === 'settings') {
+              setShowSettingsModal(true);
+            } else {
+              setActiveTab(t);
+            }
+          }}
+          onLeaveRoom={handleLeaveRoom}
+          squadCount={mySquadCount}
+          onToggleChat={handleToggleChat}
+          isChatOpen={isChatOpen}
+          unreadChatCount={unreadChatCount}
+        />
+      )}
 
       {/* Global Error Notification */}
       {errorMessage && (

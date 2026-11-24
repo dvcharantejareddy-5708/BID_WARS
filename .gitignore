@@ -26,3 +26,5 @@ data/
 *.log
 .DS_Store
 Thumbs.db
+.gemini/
+.agents/

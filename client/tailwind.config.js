@@ -67,10 +67,12 @@ export default {
         },
       },
       fontFamily: {
-        // Display font: Unbounded 800
+        // Display font: Unbounded 800 & Bebas Neue for cinematic headlines
+        bebas: ['"Bebas Neue"', 'sans-serif'],
+        cormorant: ['"Cormorant Garamond"', 'serif'],
         unbounded: ['"Unbounded"', 'sans-serif'],
-        display: ['"Unbounded"', 'sans-serif'],
-        heading: ['"Unbounded"', 'sans-serif'],
+        display: ['"Bebas Neue"', '"Unbounded"', 'sans-serif'],
+        heading: ['"Bebas Neue"', '"Unbounded"', 'sans-serif'],
         // Interface font: Manrope 500/700
         manrope: ['"Manrope"', '-apple-system', 'sans-serif'],
         sans: ['"Manrope"', '-apple-system', 'sans-serif'],
@@ -81,21 +83,20 @@ export default {
         number: ['"JetBrains Mono"', 'monospace'],
       },
       backgroundImage: {
-        'signature-gradient': 'linear-gradient(135deg, #C8FF3D 0%, #FFC93D 33%, #FF3B5C 66%, #7C5CFF 100%)',
-        'signature-gradient-h': 'linear-gradient(90deg, #C8FF3D 0%, #FFC93D 33%, #FF3B5C 66%, #7C5CFF 100%)',
-        'lime-glow': 'radial-gradient(circle, rgba(200, 255, 61, 0.2) 0%, transparent 70%)',
-        'violet-glow': 'radial-gradient(circle, rgba(124, 92, 255, 0.25) 0%, transparent 70%)',
-        'crimson-glow': 'radial-gradient(circle, rgba(255, 59, 92, 0.25) 0%, transparent 70%)',
-        'gold-glow': 'radial-gradient(circle, rgba(255, 201, 61, 0.25) 0%, transparent 70%)',
+        'subtle-surface': 'linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%)',
       },
       boxShadow: {
-        'lime-glow': '0 0 25px -4px rgba(200, 255, 61, 0.45)',
-        'lime-glow-sm': '0 0 14px -2px rgba(200, 255, 61, 0.35)',
-        'violet-glow': '0 0 30px -4px rgba(124, 92, 255, 0.45)',
-        'crimson-glow': '0 0 25px -4px rgba(255, 59, 92, 0.45)',
-        'gold-glow': '0 0 25px -4px rgba(255, 201, 61, 0.45)',
-        'card-dark': '0 4px 20px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-        'modal-dark': '0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(124, 92, 255, 0.2)',
+        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
+        'card-dark': '0 4px 16px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)',
+        'modal-dark': '0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+        'tactile-btn': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 6px 0 rgba(0, 0, 0, 0.4)',
+        'tactile-btn-dark': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 2px 6px 0 rgba(0, 0, 0, 0.4)',
+        // Retained for backwards-compatibility without glowing slop
+        'lime-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 2px 8px 0 rgba(0, 0, 0, 0.5)',
+        'lime-glow-sm': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 1px 4px 0 rgba(0, 0, 0, 0.4)',
+        'violet-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 2px 8px 0 rgba(0, 0, 0, 0.5)',
+        'crimson-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 8px 0 rgba(0, 0, 0, 0.5)',
+        'gold-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 8px 0 rgba(0, 0, 0, 0.5)',
       }
     },
   },

@@ -242,10 +242,10 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           {/* Tournament Mode Brand Banner */}
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1E2246] border border-[#C8FF3D]/30 text-[#C8FF3D] text-xs font-heading font-black uppercase tracking-widest shadow-lime-glow-sm">
-              <Trophy className="w-4 h-4" /> IPL Tournament Mode
+              <Trophy className="w-4 h-4" /> BidWars Tournament Mode
             </div>
             <h1 className="text-2xl sm:text-3xl font-heading font-black text-white uppercase tracking-wider">
-              Lead Your IPL Franchise to Glory
+              Lead Your Franchise to Glory
             </h1>
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
               Compete in real-time auctions, select match Playing XIs, unleash OVR special abilities in live WicketPulse matches, and track permanent team records across seasons.
@@ -328,7 +328,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider font-heading flex items-center gap-2">
-              IPL Tournament Hub
+              Tournament Hub
             </h1>
             <p className="text-xs text-gray-400">
               Multiplayer Tournaments • Live WicketPulse Matches • Permanent Supabase Cloud Storage
@@ -379,10 +379,10 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
       <div className="max-w-7xl mx-auto mb-10 bg-gradient-to-r from-[#12142A] via-[#1E2246] to-[#12142A] border border-[#2A2F60] rounded-3xl p-6 md:p-8 shadow-2xl flex flex-wrap items-center justify-between gap-6">
         <div>
           <span className="text-xs font-black uppercase tracking-widest text-[#C8FF3D] flex items-center gap-1.5 mb-2">
-            <Flame className="w-4 h-4" /> The Complete IPL Experience
+            <Flame className="w-4 h-4" /> The Complete Tournament Experience
           </span>
           <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-wider font-heading">
-            Lead Your Franchise to the IPL Trophy
+            Lead Your Franchise to the Trophy
           </h2>
           <p className="text-xs md:text-sm text-gray-300 max-w-xl mt-1 leading-relaxed">
             Build your team in the live auction, select match Playing XIs, unleash OVR special abilities in real-time WicketPulse matches, and climb the points table to the championship!
@@ -425,7 +425,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-[#1E2246] mb-6">
           <h3 className="text-lg font-black uppercase tracking-wider flex items-center gap-2 text-white">
             <Trophy className="w-5 h-5 text-[#C8FF3D]" />
-            Your IPL Tournaments ({tournaments.length})
+            Your Tournaments ({tournaments.length})
           </h3>
           <button
             onClick={loadTournaments}

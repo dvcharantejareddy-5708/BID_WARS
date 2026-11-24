@@ -271,7 +271,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onGoToLogi
             <h2 className="font-heading font-black text-lg text-white uppercase tracking-wider">
               Reset Password
             </h2>
-            <p className="text-[11px] text-gray-400">BidWars IPL Tournament Platform</p>
+            <p className="text-[11px] text-gray-400">BidWars Tournament Platform</p>
           </div>
         </div>
 

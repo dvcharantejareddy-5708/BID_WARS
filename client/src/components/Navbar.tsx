@@ -81,21 +81,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => roomCode && setActiveTab('auction')}>
             <BidWarsLogo size="sm" />
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#12142A] border border-[#23274D] text-[10px] font-mono font-medium text-[#C8FF3D] uppercase tracking-wider">
-              IPL 2026
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-[#15181D] border border-[#D6AD55]/30 text-[10px] font-mono font-medium text-[#D6AD55] uppercase tracking-wider">
+              BIDWARS LEAGUE
             </span>
           </div>
         </div>
 
         {/* Center Navigation Tabs (When inside a room) */}
         {roomCode && (
-          <nav className="hidden md:flex items-center bg-[#12142A] p-1 rounded-xl border border-[#23274D] gap-1">
+          <nav className="hidden md:flex items-center bg-[#121422] p-1 rounded-xl border border-white/10 gap-1">
             <button
               onClick={() => setActiveTab('auction')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-heading uppercase tracking-wider transition-all ${
                 activeTab === 'auction'
-                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-lime-glow-sm'
-                  : 'text-[#8A92B2] hover:text-white hover:bg-[#181A36]'
+                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-sm'
+                  : 'text-[#8A92B2] hover:text-white hover:bg-white/5'
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
@@ -106,15 +106,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('my-team')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-heading uppercase tracking-wider transition-all ${
                 activeTab === 'my-team'
-                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-lime-glow-sm'
-                  : 'text-[#8A92B2] hover:text-white hover:bg-[#181A36]'
+                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-sm'
+                  : 'text-[#8A92B2] hover:text-white hover:bg-white/5'
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
               <span>My Team</span>
               {squadCount > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                  activeTab === 'my-team' ? 'bg-[#0A0B14] text-[#C8FF3D]' : 'bg-[#23274D] text-[#8A92B2]'
+                  activeTab === 'my-team' ? 'bg-[#0A0B14] text-[#C8FF3D]' : 'bg-white/10 text-[#8A92B2]'
                 }`}>
                   {squadCount}
                 </span>
@@ -125,8 +125,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('all-teams')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-heading uppercase tracking-wider transition-all ${
                 activeTab === 'all-teams'
-                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-lime-glow-sm'
-                  : 'text-[#8A92B2] hover:text-white hover:bg-[#181A36]'
+                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-sm'
+                  : 'text-[#8A92B2] hover:text-white hover:bg-white/5'
               }`}
             >
               <Trophy className="w-3.5 h-3.5" />
@@ -137,8 +137,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('players')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-heading uppercase tracking-wider transition-all ${
                 activeTab === 'players'
-                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-lime-glow-sm'
-                  : 'text-[#8A92B2] hover:text-white hover:bg-[#181A36]'
+                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-sm'
+                  : 'text-[#8A92B2] hover:text-white hover:bg-white/5'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -149,8 +149,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('history')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-heading uppercase tracking-wider transition-all ${
                 activeTab === 'history'
-                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-lime-glow-sm'
-                  : 'text-[#8A92B2] hover:text-white hover:bg-[#181A36]'
+                  ? 'bg-[#C8FF3D] text-[#0A0B14] font-bold shadow-sm'
+                  : 'text-[#8A92B2] hover:text-white hover:bg-white/5'
               }`}
             >
               <History className="w-3.5 h-3.5" />

@@ -128,7 +128,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             <div>
               <p className="font-heading font-black text-sm uppercase">Room is Full</p>
               <p className="text-[#9E9EB8] mt-0.5">
-                All 10 IPL franchises have already been claimed by other participants.
+                All 10 franchises have already been claimed by other participants.
               </p>
             </div>
           </div>
@@ -175,7 +175,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                 disabled={!nickname.trim()}
                 className="w-full bg-[#C8FF3D] hover:bg-[#B5F522] text-[#0A0B14] font-heading font-black uppercase tracking-wider py-4 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(200,255,61,0.3)] flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed group text-sm"
               >
-                <span>Select IPL Franchise</span>
+                <span>Select Franchise</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 stroke-[3]" />
               </button>
             </form>

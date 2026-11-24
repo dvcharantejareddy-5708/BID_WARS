@@ -222,27 +222,27 @@ export const FullScreenGavelModal = React.memo<FullScreenGavelModalProps>(({
           hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-3 pointer-events-none'
         }`}>
           {isSold ? (
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-display tracking-wider text-[#C8FF3D] drop-shadow-[0_0_35px_rgba(200,255,61,0.6)]">
-              SOLD!
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-display tracking-wider text-[#C8FF3D] drop-shadow-md">
+              SOLD
             </h1>
           ) : (
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-display tracking-wider text-[#FF3B5C] drop-shadow-[0_0_35px_rgba(255,59,92,0.6)]">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black font-display tracking-wider text-[#FF3B5C] drop-shadow-md">
               UNSOLD
             </h1>
           )}
 
           {/* Player Name and Classification */}
-          <div className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight uppercase tracking-wide drop-shadow-sm">
+          <div className="text-2xl sm:text-3xl font-display font-extrabold text-white leading-tight uppercase tracking-wide">
             {player.name}
           </div>
           <div className="text-xs sm:text-sm text-[#8A92B2] font-sans font-medium">
-            {player.category} • {player.is_overseas ? `✈️ Overseas (${player.nationality})` : '🇮🇳 Indian Player'}
+            {player.category} • {player.is_overseas ? `Overseas (${player.nationality})` : 'Indian Player'}
           </div>
         </div>
 
         {/* Detail Card - Synchronized with Strike */}
         {isSold && winningTeamId && (
-          <div className={`mt-5 w-full max-w-xl bg-[#12142A] border-2 border-[#C8FF3D] rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-lime-glow transition-all duration-500 transform ${
+          <div className={`mt-5 w-full max-w-xl bg-[#121422] border border-[#C8FF3D] rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 shadow-sm transition-all duration-500 transform ${
             hasStruck ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
           }`}>
             {/* Winning Team with Official Logo & Full Name */}
